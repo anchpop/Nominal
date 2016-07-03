@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -- | An example of "Nominal": untyped lambda calculus.
 
 import Nominal
@@ -5,8 +7,11 @@ import Prelude hiding ((.))
 import Data.Set (Set)
 import qualified Data.Set as Set
 
+newtype Variable = Variable Atom
+  deriving (Atomic)
+
 -- | The type of lambda terms, up to alpha-equivalence.
-data Term = Var Atom | App Term Term | Abs (BindAtom Term)
+data Term = Var Variable | App Term Term | Abs (BindAtom Term)
 
 -- In an ideal programming language, this instance would be
 -- automatically derived with \"deriving\". We could probably make
@@ -39,7 +44,7 @@ infixl 9 @@
 
 -- | Substitution. Note that it is capture avoiding!
 -- 'subst' /m/ /x/ /n/ substitutes /m/ for 'Var' /x/ in /n/.
-subst :: Term -> Atom -> Term -> Term
+subst :: Term -> Variable -> Term -> Term
 subst m x (Var y)
   | x == y = m
   | otherwise = Var y
@@ -61,13 +66,13 @@ instance Show Term where
       showString ("λ" ++ show x ++ ".") `compose` showsPrec 1 s
 
 -- | Free variables.
-fv :: Term -> Set Atom
+fv :: Term -> Set Variable
 fv (Var x) = Set.singleton x
 fv (App m n) = fv m `Set.union` fv n
 fv (Abs t) = open t (\x s -> Set.delete x (fv s))
 
 -- | Another equivalent way to define free variables.
-fv' :: Term -> Set Atom
+fv' :: Term -> Set Variable
 fv' = support
 
 -- | Beta reduction to normal form.

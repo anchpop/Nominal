@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | A package for working with binders.
 
 -- Todo: implement a proper Show instance for nominal types (and
@@ -6,6 +9,7 @@
 
 module Nominal (
   Atom,
+  Atomic,
   BindAtom,
   with_fresh,
   with_fresh_named,
@@ -30,6 +34,19 @@ data Atom = Atom Integer String
 
 instance Show Atom where
   show (Atom x n) = n
+
+-- | A type class for atom types. Users can generate additional types
+-- of atoms by cloning 'Atom' and deriving 'Atomic':
+--
+-- > newtype Variable = Variable Atom
+-- >   deriving (Atomic)
+class Atomic a where
+  to_atom :: a -> Atom
+  from_atom :: Atom -> a
+
+instance Atomic Atom where
+  to_atom = id
+  from_atom = id
 
 -- | A global counter for atoms. The use of 'unsafePerformIO' here is
 -- safe, because 'Integer' is a monomorphic type.
@@ -72,14 +89,14 @@ atom_name (Atom x n) = n
 --
 -- > with_fresh (\a -> a . f a b c)
 {-# NOINLINE with_fresh_named #-}
-with_fresh_named :: String -> (Atom -> t) -> t
+with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
 with_fresh_named n body = unsafePerformIO $ do
   a <- new_atom_named n
-  return (body a)
+  return (body (from_atom a))
 
 -- | A version of 'with_fresh_named' when we don't want to 
 -- name the atom.
-with_fresh :: (Atom -> t) -> t
+with_fresh :: (Atomic a) => (a -> t) -> t
 with_fresh = with_fresh_named "x"
 
 -- | A type is 'Nominal' if the group of finitely supported permutations
@@ -100,11 +117,11 @@ class NominalSupport t where
   -- | Compute the set of free atoms.
   support :: t -> Set Atom
 
-instance Nominal Atom where
-  swap a b t = if t == a then b else if t == b then a else t
+instance (Atomic a) => Nominal a where
+  swap a b t = if to_atom t == a then from_atom b else if to_atom t == b then from_atom a else t
 
-instance NominalSupport Atom where
-  support x = Set.singleton x
+instance (Atomic a) => NominalSupport a where
+  support x = Set.singleton (to_atom x)
 
 instance Nominal Integer where
   swap a b t = t
