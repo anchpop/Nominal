@@ -14,7 +14,12 @@ instance Nominal Term where
   swap a b (Var x) = Var (swap a b x)
   swap a b (App t s) = App (swap a b t) (swap a b s)
   swap a b (Abs t) = Abs (swap a b t)
-  
+
+instance NominalSupport Term where
+  support (Var x) = support x
+  support (App t s) = support (t,s)
+  support (Abs t) = support t
+
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
 lam :: (Term -> Term) -> Term
