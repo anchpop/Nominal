@@ -8,10 +8,10 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 newtype Variable = Variable Atom
-  deriving (Atomic)
+  deriving (Atomic, Nominal, NominalSupport, Eq, Show, Ord)
 
 -- | The type of lambda terms, up to alpha-equivalence.
-data Term = Var Variable | App Term Term | Abs (BindAtom Term)
+data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
 
 -- In an ideal programming language, this instance would be
 -- automatically derived with \"deriving\". We could probably make
@@ -29,7 +29,7 @@ instance NominalSupport Term where
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
 lam :: (Term -> Term) -> Term
-lam = lam_named "x"
+lam f = with_fresh (\x -> Abs (x . f (Var x)))
 
 -- | A version of 'lam' that permits us to suggest a name for the
 -- bound variable.
@@ -71,10 +71,6 @@ fv (Var x) = Set.singleton x
 fv (App m n) = fv m `Set.union` fv n
 fv (Abs t) = open t (\x s -> Set.delete x (fv s))
 
--- | Another equivalent way to define free variables.
-fv' :: Term -> Set Variable
-fv' = support
-
 -- | Beta reduction to normal form.
 reduce :: Term -> Term
 reduce (Var x) = Var x
@@ -114,3 +110,7 @@ church n =
       | n <= 0 = z
       | otherwise = s @@ (aux (n-1) s z)
 
+-- | Another example of a recursively built term.
+multilam :: Integer -> Term -> Term
+multilam 0 t = t
+multilam n t = lam (\x -> multilam (n-1) (t @@ x))
