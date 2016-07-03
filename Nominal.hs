@@ -6,11 +6,12 @@
 
 module Nominal (
   Atom,
+  BindAtom,
   with_fresh,
   with_fresh_named,
-  BindAtom,
   (.),
   open,
+  open_for_printing,
   Nominal(..),
   NominalSupport(..),
 )
@@ -186,6 +187,18 @@ open :: BindAtom t -> (Atom -> t -> s) -> s
 open (AtomAbstraction n f) body =
   with_fresh_named n (\a -> body a (f a))
 
+-- | A variant of 'open' which moreover attempts to choose a name for
+-- the bound name that does not clash with any free name in its
+-- scope. This requires a 'NominalSupport' instance. It is mostly
+-- useful for building custom pretty-printers for nominal
+-- terms. Except in pretty-printers, 'open' is equivalent.
+open_for_printing :: (NominalSupport t) => BindAtom t -> (Atom -> t -> s) -> s
+open_for_printing t@(AtomAbstraction n f) body =
+  with_fresh_named n1 (\a -> body a (f a))
+  where
+    sup = support t
+    n1 = rename_fresh sup n
+    
 instance (Eq t) => Eq (BindAtom t) where
   AtomAbstraction n f == AtomAbstraction m g =
     with_fresh (\a -> f a == g a)
@@ -231,10 +244,8 @@ rename_fresh atoms n = n'
     as = Set.map atom_name atoms
 
 instance (Show t, NominalSupport t) => Show (BindAtom t) where
-  showsPrec d t@(AtomAbstraction n f) = showParen (d > 5) $
-    with_fresh_named n1 $ \a ->
-      showString (show a ++ ".") `compose` showsPrec 5 (f a)
+  showsPrec d t = open_for_printing t $ \a s ->
+    showParen (d > 5) $
+      showString (show a ++ ".") `compose` showsPrec 5 s
     where
       compose f g x = f (g x) -- because hidden from Prelude
-      sup = support t
-      n1 = rename_fresh sup n
