@@ -19,12 +19,12 @@ import Data.IORef
 import System.IO.Unsafe
 import Prelude hiding ((.))
 
--- An atom is an globally unique, opaque value with a suggested name.
-newtype Atom = Atom (Integer, String)
+-- | An atom is an globally unique, opaque value with a suggested name.
+data Atom = Atom Integer String
              deriving (Eq)
 
 instance Show Atom where
-  show (Atom (x, n)) = n ++ show x
+  show (Atom x n) = n ++ show x
 
 -- | A global counter for atoms. The use of 'unsafePerformIO' here is
 -- safe, because 'Integer' is a monomorphic type.
@@ -36,12 +36,11 @@ new_atom_named :: String -> IO Atom
 new_atom_named n = do
   x <- readIORef global_atom_counter
   writeIORef global_atom_counter (x+1)
-  return (Atom (x, n))
+  return (Atom x n)
 
--- | A version of 'new_atom_named' to use when we don't want to name
--- the atom.
-new_atom :: IO Atom
-new_atom = new_atom_named "x"
+-- | Return the suggested name of an atom.
+atom_name :: Atom -> String
+atom_name (Atom x n) = n
 
 -- | Perform a computation in the presence of a fresh atom. The use of
 -- 'unsafePerformIO' here is not technically safe, because
@@ -128,13 +127,13 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- It would also be possible to use a DeBruijn encoding or a nameful
 -- encoding. Maybe we'll eventually provide all three, or a
 -- combination.
-newtype BindAtom t = AtomAbstraction (Atom -> t)
+data BindAtom t = AtomAbstraction String (Atom -> t)
 
 -- | Atom abstraction: /a/./t/ represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
 -- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/.
 (.) :: (Nominal t) => Atom -> t -> BindAtom t
-a.t = AtomAbstraction (\x -> swap a x t)
+a.t = AtomAbstraction (atom_name a) (\x -> swap a x t)
 
 infixr 5 .
 
@@ -157,20 +156,21 @@ infixr 5 .
 --
 -- > f t = open t (\x s -> body).
 open :: BindAtom t -> (Atom -> t -> s) -> s
-open (AtomAbstraction f) body =
-  with_fresh (\a -> body a (f a))
+open (AtomAbstraction n f) body =
+  with_fresh_named n (\a -> body a (f a))
 
 instance (Eq t) => Eq (BindAtom t) where
-  AtomAbstraction f == AtomAbstraction g =
+  AtomAbstraction n f == AtomAbstraction m g =
     with_fresh (\a -> f a == g a)
 
 instance (Nominal t) => Nominal (BindAtom t) where
-  -- Here, we crucially use the assumption that in the HOAS encoding,
-  -- f will only be applied to fresh names.
-  swap a b (AtomAbstraction f) = AtomAbstraction (\x -> swap a b (f x))
+  -- Implementation note: here, we crucially use the assumption that
+  -- in the HOAS encoding, f will only be applied to fresh names.
+  swap a b (AtomAbstraction n f) = AtomAbstraction n (\x -> swap a b (f x))
 
 instance (Show t) => Show (BindAtom t) where
-  showsPrec d (AtomAbstraction f) = showParen (d > 5) $
-    with_fresh (\a -> showString (show a ++ ".") `compose` showsPrec 5 (f a))
+  showsPrec d (AtomAbstraction n f) = showParen (d > 5) $
+    with_fresh_named n $ \a ->
+      showString (show a ++ ".") `compose` showsPrec 5 (f a)
     where
-      compose f g x = f (g x)
+      compose f g x = f (g x) -- because hidden from Prelude

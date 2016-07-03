@@ -18,7 +18,12 @@ instance Nominal Term where
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
 lam :: (Term -> Term) -> Term
-lam f = with_fresh (\x -> Abs (x . f (Var x)))
+lam = lam_named "x"
+
+-- | A version of 'lam' that permits us to suggest a name for the
+-- bound variable.
+lam_named :: String -> (Term -> Term) -> Term
+lam_named n f = with_fresh_named n (\x -> Abs (x . f (Var x)))
 
 -- | Substitution. Note that it is capture avoiding!
 -- 'subst' /m/ /x/ /n/ substitutes /m/ for 'Var' /x/ in /n/.
