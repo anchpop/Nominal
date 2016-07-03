@@ -137,24 +137,20 @@ a.t = AtomAbstraction (atom_name a) (\x -> swap a x t)
 
 infixr 5 .
 
--- | Unpack an atom abstraction. To be equivariant and referentially
--- transparent, this is subject to the same restriction as
--- 'with_fresh', i.e., in
+-- | Pattern matching for atom abstraction. In an ideal programming
+-- idiom, we would be able to define a function on atom abstractions
+-- like this:
 --
--- > open t (\a s -> body),
+-- > f (x.s) = body.
 --
--- we must have /a/ # /body/.
-
--- Language note: open t (\x s -> body) serves as a kind of
--- \"let\"-binding for abstractions. In an ideal programming language,
--- it would be possible to pattern-match on an element of 'BindAtom'
--- /t/, i.e., we could write
---
--- > f (x.s) = body
---
--- instead of
+-- Haskell doesn't provide this syntax, but the 'open' function
+-- provides the equivalent syntax
 --
 -- > f t = open t (\x s -> body).
+--
+-- To be referentially transparent and equivariant, the body is
+-- subject to the same restriction as 'with_fresh', namely,
+-- /x/ must be fresh for the body (in symbols /x/ # /body/).
 open :: BindAtom t -> (Atom -> t -> s) -> s
 open (AtomAbstraction n f) body =
   with_fresh_named n (\a -> body a (f a))
