@@ -9,6 +9,7 @@ module Nominal (
   BindAtom,
   with_fresh,
   with_fresh_named,
+  with_fresh_namelist,
   (.),
   open,
   open_for_printing,
@@ -24,28 +25,29 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Char
 
--- | An atom is an globally unique, opaque value with a suggested name.
-data Atom = Atom Integer String
+-- | An atom is an globally unique, opaque value with some optional
+-- name suggestions.
+data Atom = Atom Integer [String]
              deriving (Eq, Ord)
 
 instance Show Atom where
-  show (Atom x n) = n
+  show (Atom x ns) = head (varnames ns)
 
 -- | A global counter for atoms. The use of 'unsafePerformIO' here is
 -- safe, because 'Integer' is a monomorphic type.
 global_atom_counter :: IORef Integer
 global_atom_counter = unsafePerformIO (newIORef 0)
 
--- | Create a new atom with the given suggested name.
-new_atom_named :: String -> IO Atom
-new_atom_named n = do
+-- | Create a new atom with the given name suggestions.
+new_atom_named :: [String] -> IO Atom
+new_atom_named ns = do
   x <- readIORef global_atom_counter
   writeIORef global_atom_counter (x+1)
-  return (Atom x n)
+  return (Atom x ns)
 
--- | Return the suggested name of an atom.
-atom_name :: Atom -> String
-atom_name (Atom x n) = n
+-- | Return the suggested names of an atom.
+atom_names :: Atom -> [String]
+atom_names (Atom x ns) = ns
 
 -- | Perform a computation in the presence of a fresh atom. The use of
 -- 'unsafePerformIO' here is not technically safe, because
@@ -71,16 +73,19 @@ atom_name (Atom x n) = n
 -- > with_fresh (\a -> f a == g a)
 --
 -- > with_fresh (\a -> a . f a b c)
-{-# NOINLINE with_fresh_named #-}
-with_fresh_named :: String -> (Atom -> t) -> t
-with_fresh_named n body = unsafePerformIO $ do
-  a <- new_atom_named n
+{-# NOINLINE with_fresh_namelist #-}
+with_fresh_namelist :: [String] -> (Atom -> t) -> t
+with_fresh_namelist ns body = unsafePerformIO $ do
+  a <- new_atom_named ns
   return (body a)
+         
+with_fresh_named :: String -> (Atom -> t) -> t
+with_fresh_named n = with_fresh_namelist [n]
 
 -- | A version of 'with_fresh_named' when we don't want to 
 -- name the atom.
 with_fresh :: (Atom -> t) -> t
-with_fresh = with_fresh_named "x"
+with_fresh = with_fresh_namelist ["x", "y", "z", "u", "v", "w", "r", "s", "t", "p", "q"]
 
 -- | A type is 'Nominal' if the group of finitely supported permutations
 -- of atoms acts on it. We can speak of the support of an element of
@@ -159,13 +164,13 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- It would also be possible to use a DeBruijn encoding or a nameful
 -- encoding. Maybe we'll eventually provide all three, or a
 -- combination.
-data BindAtom t = AtomAbstraction String (Atom -> t)
+data BindAtom t = AtomAbstraction [String] (Atom -> t)
 
 -- | Atom abstraction: /a/./t/ represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
 -- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/.
 (.) :: (Nominal t) => Atom -> t -> BindAtom t
-a.t = AtomAbstraction (atom_name a) (\x -> swap a x t)
+a.t = AtomAbstraction (atom_names a) (\x -> swap a x t)
 
 infixr 5 .
 
@@ -184,8 +189,8 @@ infixr 5 .
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
 open :: BindAtom t -> (Atom -> t -> s) -> s
-open (AtomAbstraction n f) body =
-  with_fresh_named n (\a -> body a (f a))
+open (AtomAbstraction ns f) body =
+  with_fresh_namelist ns (\a -> body a (f a))
 
 -- | A variant of 'open' which moreover attempts to choose a name for
 -- the bound name that does not clash with any free name in its
@@ -193,11 +198,11 @@ open (AtomAbstraction n f) body =
 -- useful for building custom pretty-printers for nominal
 -- terms. Except in pretty-printers, 'open' is equivalent.
 open_for_printing :: (NominalSupport t) => BindAtom t -> (Atom -> t -> s) -> s
-open_for_printing t@(AtomAbstraction n f) body =
+open_for_printing t@(AtomAbstraction ns f) body =
   with_fresh_named n1 (\a -> body a (f a))
   where
     sup = support t
-    n1 = rename_fresh sup n
+    n1 = rename_fresh sup ns
     
 instance (Eq t) => Eq (BindAtom t) where
   AtomAbstraction n f == AtomAbstraction m g =
@@ -226,22 +231,22 @@ to_subscript '8' = '₈'
 to_subscript '9' = '₉'
 to_subscript c = c
 
--- An infinite list of identifiers, based on the suggested name.
-varnames :: String -> [String]
-varnames x0 = x1 : x : [ x ++ map to_subscript (show n) | n <- [1..] ]
+-- An infinite list of identifiers, based on the suggested names.
+varnames :: [String] -> [String]
+varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
   where
-    (x, x1) = case takeWhile isAlpha x0 of
-         "" -> ("x", "x") -- Treat no_name as a special case.
-         x -> (x, x0)
+    xs1 = [ x | x <- xs0, x /= "" ]
+    xs2 = [ y | x <- xs0, let y = takeWhile isAlpha x, y /= "" ]
+    xs3 = if xs2 == [] then ["x"] else xs2
 
 -- Compute a string that is not the name of any atom in the set, based
--- on the supplied suggestion.
-rename_fresh :: Set Atom -> String -> String
-rename_fresh atoms n = n'
+-- on the supplied suggestions.
+rename_fresh :: Set Atom -> [String] -> String
+rename_fresh atoms ns = n'
   where
-    n' = head [ x | x <- varnames n, not (used x) ]
+    n' = head [ x | x <- varnames ns, not (used x) ]
     used x = x `Set.member` as
-    as = Set.map atom_name atoms
+    as = Set.map show atoms
 
 instance (Show t, NominalSupport t) => Show (BindAtom t) where
   showsPrec d t = open_for_printing t $ \a s ->

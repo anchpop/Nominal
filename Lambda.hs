@@ -24,7 +24,7 @@ instance NominalSupport Term where
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
 lam :: (Term -> Term) -> Term
-lam = lam_named "x"
+lam f = with_fresh (\x -> Abs (x . f (Var x)))
 
 -- | A version of 'lam' that permits us to suggest a name for the
 -- bound variable.
@@ -109,3 +109,7 @@ church n =
       | n <= 0 = z
       | otherwise = s @@ (aux (n-1) s z)
 
+-- | Another example of a recursively built term.
+multilam :: Integer -> Term -> Term
+multilam 0 t = t
+multilam n t = lam (\x -> multilam (n-1) (t @@ x))
