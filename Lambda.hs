@@ -8,7 +8,10 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 newtype Variable = Variable Atom
-  deriving (Atomic, Nominal, NominalSupport, Eq, Show, Ord)
+  deriving (Atomic, Nominal, NominalShow, Eq, Ord)
+
+instance Show Variable where
+  show (Variable x) = show x
 
 -- | The type of lambda terms, up to alpha-equivalence.
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
@@ -21,10 +24,10 @@ instance Nominal Term where
   swap π (App t s) = App (swap π t) (swap π s)
   swap π (Abs t) = Abs (swap π t)
 
-instance NominalSupport Term where
-  support (Var x) = support x
-  support (App t s) = support (t,s)
-  support (Abs t) = support t
+instance NominalShow Term where
+  avoid (Var x) = avoid x
+  avoid (App t s) = avoid (t,s)
+  avoid (Abs t) = avoid t
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
@@ -104,7 +107,7 @@ church :: Integer -> Term
 church n =
   with_fresh_named "s" $ \s ->
     with_fresh_named "z" $ \z ->
-      Abs (s. Abs (z. aux n (Var s) (Var z)))
+      Abs (s . Abs (z . aux n (Var s) (Var z)))
   where
     aux n s z
       | n <= 0 = z

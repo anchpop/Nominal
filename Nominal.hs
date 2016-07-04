@@ -16,7 +16,7 @@ module Nominal (
   open,
   open_for_printing,
   Nominal(..),
-  NominalSupport(..),
+  NominalShow(..),
 )
 where
 
@@ -37,11 +37,16 @@ instance Show Atom where
 
 -- | A type class for atom types. Users can generate additional types
 -- of atoms by cloning 'Atom' and deriving 'Atomic', 'Nominal',
--- 'NominalSupport', 'Eq', and 'Show':
+-- 'NominalShow', 'Eq', and 'Ord', and defining an instance for 'Show':
 --
+-- > {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- >
 -- > newtype Variable = Variable Atom
--- >   deriving (Atomic, Nominal, NominalSupport, Eq, Show)
-class (Nominal a, NominalSupport a, Eq a, Show a) => Atomic a where
+-- >   deriving (Atomic, Nominal, NominalShow, Eq, Ord)
+-- > 
+-- > instance Show Variable where
+-- >   show (Variable x) = show x
+class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
 
@@ -104,8 +109,7 @@ with_fresh :: (Atomic a) => (a -> t) -> t
 with_fresh = with_fresh_namelist ["x", "y", "z", "u", "v", "w", "r", "s", "t", "p", "q"]
 
 -- | A type is 'Nominal' if the group of finitely supported permutations
--- of atoms acts on it. We can speak of the support of an element of
--- this type. We can also bind an atom in such a type.
+-- of atoms acts on it. We can bind an atom in such a type.
 
 -- Language note: in an ideal programming language, 'Nominal'
 -- instances for new datatypes could be derived with 'deriving'.
@@ -113,54 +117,57 @@ class Nominal t where
   -- | 'swap' /a/ /b/ /t/: replace /a/ by /b/ and /b/ by /a/ in /t/.
   swap :: (Atom, Atom) -> t -> t
 
--- | A type is 'NominalSupport' if we can moreover compute its support,
--- which is the finite set of atoms occurring freely in it. Most
--- 'Nominal' types are also 'NominalSupport', with the exception of
--- function types (for which we cannot compute the support).
-class NominalSupport t where
-  -- | Compute the set of free atoms.
-  support :: t -> Set Atom
+-- | 'NominalShow' is a helper class to support pretty-printing of
+-- nominal values. Most 'Nominal' types are also 'NominalShow', with
+-- the exception of function types (for which we cannot compute the
+-- support).
+class NominalShow t where
+  -- | Compute a set of strings that should not be used as the names of
+  -- bound variables. Usually these are the names of the atoms free in
+  -- /t/. If your type uses additional constants or identifiers that
+  -- are not implemented as 'Atom's, you can return their names too.
+  avoid :: t -> Set String
 
 instance Nominal Atom where
   swap (a,b) t = if t == a then b else if t == b then a else t
 
-instance NominalSupport Atom where
-  support x = Set.singleton x
+instance NominalShow Atom where
+  avoid x = Set.singleton (show x)
 
 instance Nominal Integer where
   swap π t = t
-instance NominalSupport Integer where
-  support t = Set.empty
+instance NominalShow Integer where
+  avoid t = Set.empty
 
 instance Nominal Int where
   swap π t = t
-instance NominalSupport Int where
-  support t = Set.empty
+instance NominalShow Int where
+  avoid t = Set.empty
 
 instance Nominal Char where
   swap π t = t
-instance NominalSupport Char where
-  support t = Set.empty
+instance NominalShow Char where
+  avoid t = Set.empty
 
 instance (Nominal t) => Nominal [t] where
   swap π ts = map (swap π) ts
-instance (NominalSupport t) => NominalSupport [t] where
-  support ts = Set.unions (map support ts)
+instance (NominalShow t) => NominalShow [t] where
+  avoid ts = Set.unions (map avoid ts)
 
 instance Nominal () where
   swap π t = t
-instance NominalSupport () where
-  support t = Set.empty
+instance NominalShow () where
+  avoid t = Set.empty
 
 instance (Nominal t, Nominal s) => Nominal (t,s) where
   swap π (t, s) = (swap π t, swap π s)
-instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s) where
-  support (t, s) = support t `Set.union` support s
+instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
+  avoid (t, s) = avoid t `Set.union` avoid s
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
   swap π (t, s, r) = (swap π t, swap π s, swap π r)
-instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r) where
-  support (t, s, r) = support t `Set.union` support s `Set.union` support r
+instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
+  avoid (t, s, r) = avoid t `Set.union` avoid s `Set.union` avoid r
 
 -- ... and so on for tuples.
 
@@ -219,14 +226,14 @@ open (AtomAbstraction ns f) body =
 
 -- | A variant of 'open' which moreover attempts to choose a name for
 -- the bound name that does not clash with any free name in its
--- scope. This requires a 'NominalSupport' instance. It is mostly
+-- scope. This requires a 'NominalShow' instance. It is mostly
 -- useful for building custom pretty-printers for nominal
 -- terms. Except in pretty-printers, 'open' is equivalent.
-open_for_printing :: (Atomic a, NominalSupport t) => Bind a t -> (a -> t -> s) -> s
+open_for_printing :: (Atomic a, NominalShow t) => Bind a t -> (a -> t -> s) -> s
 open_for_printing t@(AtomAbstraction ns f) body =
   with_fresh_named n1 (\a -> body a (f a))
   where
-    sup = support t
+    sup = avoid t
     n1 = rename_fresh sup ns
     
 instance (Atomic a, Eq t) => Eq (Bind a t) where
@@ -238,9 +245,9 @@ instance (Nominal t) => Nominal (Bind a t) where
   -- in the HOAS encoding, f will only be applied to fresh names.
   swap π (AtomAbstraction n f) = AtomAbstraction n (\x -> swap π (f x))
 
-instance (Atomic a, NominalSupport t) => NominalSupport (Bind a t) where
-  support (AtomAbstraction n f) =
-    with_fresh (\a -> Set.delete (to_atom a) (support (f a)))
+instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
+  avoid (AtomAbstraction n f) =
+    with_fresh (\a -> Set.delete (show (to_atom a)) (avoid (f a)))
 
 -- Convert a digit to a subscript.
 to_subscript :: Char -> Char
@@ -264,16 +271,16 @@ varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <-
     xs2 = [ y | x <- xs0, let y = takeWhile isAlpha x, y /= "" ]
     xs3 = if xs2 == [] then ["x"] else xs2
 
--- Compute a string that is not the name of any atom in the set, based
--- on the supplied suggestions.
-rename_fresh :: Set Atom -> [String] -> String
+-- Compute a string that is not in the given set, and whose name is
+-- based on the supplied suggestions.
+rename_fresh :: Set String -> [String] -> String
 rename_fresh atoms ns = n'
   where
     n' = head [ x | x <- varnames ns, not (used x) ]
     used x = x `Set.member` as
     as = Set.map show atoms
 
-instance (Atomic a, Show a, Show t, NominalSupport t) => Show (Bind a t) where
+instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
   showsPrec d t = open_for_printing t $ \a s ->
     showParen (d > 5) $
       showString (show a ++ ".") `compose` showsPrec 5 s
