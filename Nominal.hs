@@ -110,7 +110,7 @@ with_fresh = with_fresh_namelist ["x", "y", "z", "u", "v", "w", "r", "s", "t", "
 -- instances for new datatypes could be derived with 'deriving'.
 class Nominal t where
   -- | 'swap' /a/ /b/ /t/: replace /a/ by /b/ and /b/ by /a/ in /t/.
-  swap :: Atom -> Atom -> t -> t
+  swap :: (Atom, Atom) -> t -> t
 
 -- | A type is 'NominalSupport' if we can moreover compute its support,
 -- which is the finite set of atoms occurring freely in it. Most
@@ -121,50 +121,50 @@ class NominalSupport t where
   support :: t -> Set Atom
 
 instance Nominal Atom where
-  swap a b t = if t == a then b else if t == b then a else t
+  swap (a,b) t = if t == a then b else if t == b then a else t
 
 instance NominalSupport Atom where
   support x = Set.singleton x
 
 instance Nominal Integer where
-  swap a b t = t
+  swap π t = t
 instance NominalSupport Integer where
   support t = Set.empty
 
 instance Nominal Int where
-  swap a b t = t
+  swap π t = t
 instance NominalSupport Int where
   support t = Set.empty
 
 instance Nominal Char where
-  swap a b t = t
+  swap π t = t
 instance NominalSupport Char where
   support t = Set.empty
 
 instance (Nominal t) => Nominal [t] where
-  swap a b ts = map (swap a b) ts
+  swap π ts = map (swap π) ts
 instance (NominalSupport t) => NominalSupport [t] where
   support ts = Set.unions (map support ts)
 
 instance Nominal () where
-  swap a b t = t
+  swap π t = t
 instance NominalSupport () where
   support t = Set.empty
 
 instance (Nominal t, Nominal s) => Nominal (t,s) where
-  swap a b (t, s) = (swap a b t, swap a b s)
+  swap π (t, s) = (swap π t, swap π s)
 instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s) where
   support (t, s) = support t `Set.union` support s
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
-  swap a b (t, s, r) = (swap a b t, swap a b s, swap a b r)
+  swap π (t, s, r) = (swap π t, swap π s, swap π r)
 instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r) where
   support (t, s, r) = support t `Set.union` support s `Set.union` support r
 
 -- ... and so on for tuples.
 
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
-  swap a b f = \x -> swap a b (f (swap a b x))
+  swap π f = \x -> swap π (f (swap π x))
 
 -- | Bind a t is the type of atom abstractions, denoted [a]t
 -- in nominal logic. Its elements are of the form a.v modulo
@@ -185,7 +185,7 @@ data Bind a t = AtomAbstraction [String] (a -> t)
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
 -- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/.
 (.) :: (Atomic a, Nominal t) => a -> t -> Bind a t
-a.t = AtomAbstraction (atom_names (to_atom a)) (\x -> swap (to_atom a) (to_atom x) t)
+a.t = AtomAbstraction (atom_names (to_atom a)) (\x -> swap (to_atom a, to_atom x) t)
 
 infixr 5 .
 
@@ -226,7 +226,7 @@ instance (Atomic a, Eq t) => Eq (Bind a t) where
 instance (Nominal t) => Nominal (Bind a t) where
   -- Implementation note: here, we crucially use the assumption that
   -- in the HOAS encoding, f will only be applied to fresh names.
-  swap a b (AtomAbstraction n f) = AtomAbstraction n (\x -> swap a b (f x))
+  swap π (AtomAbstraction n f) = AtomAbstraction n (\x -> swap π (f x))
 
 instance (Atomic a, NominalSupport t) => NominalSupport (Bind a t) where
   support (AtomAbstraction n f) =
