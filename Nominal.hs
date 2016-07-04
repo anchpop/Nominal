@@ -12,6 +12,7 @@ module Nominal (
   with_fresh_named,
   with_fresh_namelist,
   (.),
+  bind,
   open,
   open_for_printing,
   Nominal(..),
@@ -188,6 +189,15 @@ data Bind a t = AtomAbstraction [String] (a -> t)
 a.t = AtomAbstraction (atom_names (to_atom a)) (\x -> swap (to_atom a, to_atom x) t)
 
 infixr 5 .
+
+-- | A convenience function for constructing binders. 
+--
+-- > bind (\x -> body)
+--
+-- is a convenient way to write the atom abstraction (x.body),
+-- where /x/ is a fresh variable.
+bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
+bind f = with_fresh (\x -> x . f x)
 
 -- | Pattern matching for atom abstraction. In an ideal programming
 -- idiom, we would be able to define a function on atom abstractions
