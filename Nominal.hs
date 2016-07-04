@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -- | A package for working with binders.
 
 -- Todo: implement a proper Show instance for nominal types (and
@@ -19,6 +21,8 @@ module Nominal (
   NominalShow(..),
   Avoid,
   avoid_string,
+  AtomKind(..),
+  AtomOfKind,
 )
 where
 
@@ -38,9 +42,23 @@ data Atom = Atom Integer [String]
 instance Show Atom where
   show (Atom x ns) = head (varnames ns)
 
--- | A type class for atom types. Users can generate additional types
--- of atoms by cloning 'Atom' and deriving 'Atomic', 'Nominal',
--- 'NominalShow', 'Eq', and 'Ord', and defining an instance for 'Show':
+-- | A type class for atom types. There are two suggested ways users can
+-- generate additional types of atoms.
+--
+-- 1. By defining some new empty type /X/ that is an instance of
+-- 'AtomKind'.  Optionally, a list of suggested names for the new
+-- atoms can be provided.  (These will be used as the names of bound
+-- variables unless otherwise specified). Then 'AtomOfKind' /X/ is a
+-- new type of atoms.
+-- 
+-- > data X
+-- > instance AtomKind X where
+-- >   suggested_names = ["x", "y", "z"]
+-- > newtype MyName = AtomOfKind X
+-- 
+-- 2. By cloning an existing 'Atomic' type, deriving 'Atomic',
+-- 'Nominal', 'NominalShow', 'Eq', and 'Ord', and defining a 'Show'
+-- instance:
 --
 -- > {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- >
@@ -52,10 +70,12 @@ instance Show Atom where
 class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
+  names :: a -> [String]
 
 instance Atomic Atom where
   to_atom = id
   from_atom = id
+  names a = ["x", "y", "z", "u", "v", "w", "r", "s", "t", "p", "q"]
 
 -- | A global counter for atoms. The use of 'unsafePerformIO' here is
 -- safe, because 'Integer' is a monomorphic type.
@@ -109,7 +129,10 @@ with_fresh_named n = with_fresh_namelist [n]
 -- | A version of 'with_fresh_named' when we don't want to 
 -- name the atom.
 with_fresh :: (Atomic a) => (a -> t) -> t
-with_fresh = with_fresh_namelist ["x", "y", "z", "u", "v", "w", "r", "s", "t", "p", "q"]
+with_fresh f = with_fresh_namelist (names (un f)) f
+  where
+    un :: (a -> t) -> a
+    un f = undefined
 
 -- | A type is 'Nominal' if the group of finitely supported permutations
 -- of atoms acts on it. We can bind an atom in such a type.
@@ -329,3 +352,24 @@ instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
       showString (show a ++ ".") `compose` showsPrec 5 s
     where
       compose f g x = f (g x) -- because hidden from Prelude
+
+class AtomKind a where
+  suggested_names :: a -> [String]
+  suggested_names a = names a'
+    where
+      a' :: Atom
+      a' = undefined
+
+newtype AtomOfKind a = AtomOfKind Atom
+  deriving (Nominal, NominalShow, Eq, Ord)
+
+instance Show (AtomOfKind a) where
+  show (AtomOfKind a) = show a
+
+instance (AtomKind a) => Atomic (AtomOfKind a) where
+  to_atom (AtomOfKind a) = a
+  from_atom a = AtomOfKind a
+  names f = suggested_names (un f)
+    where
+      un :: AtomOfKind a -> a
+      un f = undefined

@@ -8,11 +8,9 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Monoid
 
-newtype Variable = Variable Atom
-  deriving (Atomic, Nominal, NominalShow, Eq, Ord)
-
-instance Show Variable where
-  show (Variable x) = show x
+data V
+instance AtomKind V
+type Variable = AtomOfKind V
 
 -- | The type of lambda terms, up to alpha-equivalence.
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
