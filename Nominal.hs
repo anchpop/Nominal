@@ -17,6 +17,8 @@ module Nominal (
   open_for_printing,
   Nominal(..),
   NominalShow(..),
+  Avoid,
+  avoid_string,
 )
 where
 
@@ -26,6 +28,7 @@ import System.IO.Unsafe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Char
+import Data.Monoid
 
 -- | An atom is an globally unique, opaque value with some optional
 -- name suggestions.
@@ -117,57 +120,96 @@ class Nominal t where
   -- | 'swap' /a/ /b/ /t/: replace /a/ by /b/ and /b/ by /a/ in /t/.
   swap :: (Atom, Atom) -> t -> t
 
+-- | Something to be avoided can be an atom or a string.
+data Avoidee = A Atom | S String
+             deriving (Eq, Ord)
+
+newtype Avoid = Avoid (Set Avoidee)
+
+instance Monoid Avoid where
+  mempty = Avoid mempty
+  mappend (Avoid x) (Avoid y) = Avoid (mappend x y)
+
+avoid_atom :: Atom -> Avoid
+avoid_atom a = Avoid (Set.singleton (A a))
+
+unavoid_atom :: Atom -> Avoid -> Avoid
+unavoid_atom a (Avoid s) = Avoid (Set.delete (A a) s)
+
+avoid_string :: String -> Avoid
+avoid_string s = Avoid (Set.singleton (S s))
+
+strings_of_opaque :: Avoid -> Set String
+strings_of_opaque (Avoid s) = Set.map name s where
+  name (A a) = show a
+  name (S s) = s
+                 
 -- | 'NominalShow' is a helper class to support pretty-printing of
 -- nominal values. Most 'Nominal' types are also 'NominalShow', with
 -- the exception of function types (for which we cannot compute the
 -- support).
+
 class NominalShow t where
-  -- | Compute a set of strings that should not be used as the names of
-  -- bound variables. Usually these are the names of the atoms free in
-  -- /t/. If your type uses additional constants or identifiers that
-  -- are not implemented as 'Atom's, you can return their names too.
-  avoid :: t -> Set String
+  -- | Compute a set of atoms and strings that should not be usd as
+  -- the names of bound variables. Usually this is defined by
+  -- straightforward inductive clauses, for example:
+  --
+  -- > instance NominalShow Term where
+  -- >   avoid (Var x) = avoid x
+  -- >   avoid (App t s) = avoid t `mappend` avoid s
+  -- >   avoid (Abs t) = avoid t
+  --
+  -- The type 'Avoid' forms a 'Monoid', so avoid-sets can be combined
+  -- with the usual monoid operations such as 'mempty', 'mappend', and 'mconcat'.
+  -- 
+  -- If your nominal type uses additional constants or identifiers
+  -- that are not implemented as 'Atom's, but whose names you wouldn't
+  -- like to clash with the names of bound variables, declare them
+  -- with 'avoid_string':
+  --
+  -- >   avoid (Const str) = avoid_string str
+  avoid :: t -> Avoid
 
 instance Nominal Atom where
   swap (a,b) t = if t == a then b else if t == b then a else t
 
 instance NominalShow Atom where
-  avoid x = Set.singleton (show x)
+  avoid a = avoid_atom a
 
 instance Nominal Integer where
   swap π t = t
 instance NominalShow Integer where
-  avoid t = Set.empty
+  avoid t = mempty
 
 instance Nominal Int where
   swap π t = t
 instance NominalShow Int where
-  avoid t = Set.empty
+  avoid t = mempty
 
 instance Nominal Char where
   swap π t = t
 instance NominalShow Char where
-  avoid t = Set.empty
+  avoid t = mempty
 
 instance (Nominal t) => Nominal [t] where
   swap π ts = map (swap π) ts
 instance (NominalShow t) => NominalShow [t] where
-  avoid ts = Set.unions (map avoid ts)
+  avoid ts = mconcat (map avoid ts)
 
 instance Nominal () where
   swap π t = t
 instance NominalShow () where
-  avoid t = Set.empty
+  avoid t = mempty
 
 instance (Nominal t, Nominal s) => Nominal (t,s) where
   swap π (t, s) = (swap π t, swap π s)
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  avoid (t, s) = avoid t `Set.union` avoid s
+  avoid (t, s) = avoid t `mappend` avoid s
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
   swap π (t, s, r) = (swap π t, swap π s, swap π r)
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
-  avoid (t, s, r) = avoid t `Set.union` avoid s `Set.union` avoid r
+  avoid (t, s, r) = avoid t `mappend` avoid s `mappend` avoid r
 
 -- ... and so on for tuples.
 
@@ -234,7 +276,9 @@ open_for_printing t@(AtomAbstraction ns f) body =
   with_fresh_named n1 (\a -> body a (f a))
   where
     sup = avoid t
-    n1 = rename_fresh sup ns
+    n1 = rename_fresh (strings_of_opaque sup) ns
+    name (A a) = show a
+    name (S s) = s
     
 instance (Atomic a, Eq t) => Eq (Bind a t) where
   AtomAbstraction n f == AtomAbstraction m g =
@@ -247,7 +291,7 @@ instance (Nominal t) => Nominal (Bind a t) where
 
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
   avoid (AtomAbstraction n f) =
-    with_fresh (\a -> Set.delete (show (to_atom a)) (avoid (f a)))
+    with_fresh (\a -> unavoid_atom (to_atom a) (avoid (f a)))
 
 -- Convert a digit to a subscript.
 to_subscript :: Char -> Char
@@ -274,11 +318,10 @@ varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <-
 -- Compute a string that is not in the given set, and whose name is
 -- based on the supplied suggestions.
 rename_fresh :: Set String -> [String] -> String
-rename_fresh atoms ns = n'
+rename_fresh as ns = n'
   where
     n' = head [ x | x <- varnames ns, not (used x) ]
     used x = x `Set.member` as
-    as = Set.map show atoms
 
 instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
   showsPrec d t = open_for_printing t $ \a s ->

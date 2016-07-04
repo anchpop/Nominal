@@ -6,6 +6,7 @@ import Nominal
 import Prelude hiding ((.))
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Monoid
 
 newtype Variable = Variable Atom
   deriving (Atomic, Nominal, NominalShow, Eq, Ord)
