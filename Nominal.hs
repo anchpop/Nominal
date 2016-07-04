@@ -179,11 +179,11 @@ class NominalShow t where
   --
   -- > instance NominalShow Term where
   -- >   avoid (Var x) = avoid x
-  -- >   avoid (App t s) = avoid t `mappend` avoid s
+  -- >   avoid (App t s) = avoid t <> avoid s
   -- >   avoid (Abs t) = avoid t
   --
   -- The type 'Avoid' forms a 'Monoid', so avoid-sets can be combined
-  -- with the usual monoid operations such as 'mempty', 'mappend', and 'mconcat'.
+  -- with the usual monoid operations such as 'mempty', '<>', and 'mconcat'.
   -- 
   -- If your nominal type uses additional constants or identifiers
   -- that are not implemented as 'Atom's, but whose names you wouldn't
@@ -227,12 +227,12 @@ instance NominalShow () where
 instance (Nominal t, Nominal s) => Nominal (t,s) where
   swap π (t, s) = (swap π t, swap π s)
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  avoid (t, s) = avoid t `mappend` avoid s
+  avoid (t, s) = avoid t <> avoid s
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
   swap π (t, s, r) = (swap π t, swap π s, swap π r)
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
-  avoid (t, s, r) = avoid t `mappend` avoid s `mappend` avoid r
+  avoid (t, s, r) = avoid t <> avoid s <> avoid r
 
 -- ... and so on for tuples.
 

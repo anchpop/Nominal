@@ -25,7 +25,7 @@ instance Nominal Term where
 
 instance NominalShow Term where
   avoid (Var x) = avoid x
-  avoid (App t s) = avoid (t,s)
+  avoid (App t s) = avoid t <> avoid s
   avoid (Abs t) = avoid t
 
 -- | A convenience constructor for abstractions. This allows us to
