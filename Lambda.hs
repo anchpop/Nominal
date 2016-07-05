@@ -14,6 +14,7 @@ type Variable = AtomOfKind V
 
 -- | The type of lambda terms, up to alpha-equivalence.
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
+                                           deriving (Eq)
 
 -- In an ideal programming language, this instance would be
 -- automatically derived with \"deriving\". We could probably make
