@@ -17,6 +17,7 @@ module Nominal (
   bind,
   open,
   open_for_printing,
+  merge,
   Nominal(..),
   NominalShow(..),
   Support,
