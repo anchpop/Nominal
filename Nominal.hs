@@ -225,10 +225,10 @@ with_fresh_namelist ns body = unsafePerformIO $ do
   return (body (from_atom a))
 
 -- ----------------------------------------------------------------------
--- * Nominal types
+-- * Atom abstraction
 
 -- | A type is 'Nominal' if the group of finitely supported permutations
--- of atoms acts on it. We can bind an atom in such a type.
+-- of atoms acts on it. We can abstract over an atom in such a type.
 
 -- Language note: in an ideal programming language, 'Nominal'
 -- instances for new datatypes could be derived with 'deriving'.
@@ -264,8 +264,8 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
   swap π f = \x -> swap π (f (swap π x))
 
 -- | Bind a t is the type of atom abstractions, denoted [a]t
--- in nominal logic. Its elements are of the form a.v modulo
--- alpha-equivalence. For more details on what this means, see
+-- in the nominal logic literature. Its elements are of the form (a.v)
+-- modulo alpha-equivalence. For more details on what this means, see
 -- Definition 4 of [Pitts 2002].
 
 -- Implementation note: we currently use an HOAS encoding. It remains
@@ -274,23 +274,33 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- to /fresh/ atoms.
 -- 
 -- It would also be possible to use a DeBruijn encoding or a nameful
--- encoding. Maybe we'll eventually provide all three, or a
--- combination.
+-- encoding. It remains to be seen which encoding is the most
+-- efficient in practice.
 data Bind a t = AtomAbstraction NameSuggestion (a -> t)
 
--- | Atom abstraction: /a/./t/ represents the equivalence class of pairs
+-- | Atom abstraction: (/a/./t/) represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
--- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/.
+-- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/. 
+--
+-- We use the infix operator '.', which is normally bound to function
+-- composition in the standard library. Thus, nominal programs should
+-- import the standard library like this:
+--
+-- > import Prelude hiding ((.))
 (.) :: (Atomic a, Nominal t) => a -> t -> Bind a t
 a.t = AtomAbstraction (atom_names (to_atom a)) (\x -> swap (to_atom a, to_atom x) t)
 
 infixr 5 .
 
+-- | 'abst' /x/ /t/ is an alternative prefix notation for (/x/./t/).
+abst :: (Atomic a, Nominal t) => a -> t -> Bind a t
+abst = (.)
+
 -- | A convenience function for constructing binders. 
 --
--- > bind (\x -> body)
+-- > bind (\x -> t)
 --
--- is a convenient way to write the atom abstraction (x.body),
+-- is a convenient way to write the atom abstraction (x.t),
 -- where /x/ is a fresh variable.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
 bind f = with_fresh (\x -> x . f x)
@@ -301,7 +311,7 @@ bind f = with_fresh (\x -> x . f x)
 --
 -- > f (x.s) = body.
 --
--- Haskell doesn't provide this syntax, but the 'open' function
+-- Haskell doesn't let us provide this syntax, but the 'open' function
 -- provides the equivalent syntax
 --
 -- > f t = open t (\x s -> body).
@@ -321,6 +331,52 @@ instance (Nominal t) => Nominal (Bind a t) where
   -- Implementation note: here, we crucially use the assumption that
   -- in the HOAS encoding, f will only be applied to fresh names.
   swap π (AtomAbstraction n f) = AtomAbstraction n (\x -> swap π (f x))
+
+-- | Sometimes, it is necessary to open two abstractions, using the
+-- /same/ fresh name for both of them. An example of this is the
+-- typing rule for lambda abstraction in dependent type theory:
+--
+-- >           Gamma, x:t  |-  e : s
+-- >      ------------------------------------
+-- >        Gamma |-  Lam (x.e) : Pi t (x.s)
+--
+-- In the bottom-up reading of this rule, we are given the terms
+-- @Lam@ /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/
+-- and terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ = (/x/./s/).
+-- Crucially, the same atom /x/ should be used in both /e/ and /s/,
+-- because we subsequently need to check that /e/ has type /s/ in some
+-- scope that is common to /e/ and /s/.
+--
+-- The 'merge' primitive permits us to deal with such situations.
+-- Its defining property is
+--
+-- > merge (x.e) (x.s) = (x.(e,s)).
+--
+-- We can therefore solve the above problem:
+--
+-- > open (merge body body') (\x (e,s) -> .....)
+--
+-- Moreover, the 'merge' primitive can be used to define other
+-- merge-like functionality. For example, it is easy to define a function
+--
+-- > merge_list :: (Atomic a, Nominal t) => [Bind a t] -> Bind a [t]
+--
+-- in terms of it.
+--
+-- Semantically, the 'merge' operation implements the isomorphism of
+-- nominal sets [A]T x [A]S = [A](T x S).
+--
+-- If /x/ and /y/ are atoms with user-suggested concrete names and
+--
+-- > (z.(t',s')) = merge (x.t) (y.s),
+--
+-- then /z/ will be preferably given the concrete name of /x/, but the
+-- concrete name of /y/ will be used if the name of /x/ would cause a
+-- clash.
+merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
+merge (AtomAbstraction ns f) (AtomAbstraction ns' g) = (AtomAbstraction ns'' h) where
+  ns'' = combine_names ns ns'
+  h x = (f x, g x)
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
