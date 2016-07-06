@@ -25,9 +25,9 @@ instance Nominal Term where
   swap π (Abs t) = Abs (swap π t)
 
 instance NominalShow Term where
-  avoid (Var x) = avoid x
-  avoid (App t s) = avoid t <> avoid s
-  avoid (Abs t) = avoid t
+  support (Var x) = support x
+  support (App t s) = support t <> support s
+  support (Abs t) = support t
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@

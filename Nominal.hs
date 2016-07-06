@@ -19,7 +19,7 @@ module Nominal (
   open_for_printing,
   Nominal(..),
   NominalShow(..),
-  Avoid,
+  Support,
   avoid_string,
   AtomKind(..),
   AtomOfKind,
@@ -385,23 +385,28 @@ merge (AtomAbstraction ns f) (AtomAbstraction ns' g) = (AtomAbstraction ns'' h) 
 data Avoidee = A Atom | S String
              deriving (Eq, Ord)
 
-newtype Avoid = Avoid (Set Avoidee)
+-- | This type provides an internal representation for the support of
+-- a nominal term, i.e., the set of atoms occurring in it. This is an
+-- opaque type with no exposed structure. The only way to construct a
+-- value of type 'Support' is to use the function 'support', or the
+-- monoid operations.
+newtype Support = Support (Set Avoidee)
 
-instance Monoid Avoid where
-  mempty = Avoid mempty
-  mappend (Avoid x) (Avoid y) = Avoid (mappend x y)
+instance Monoid Support where
+  mempty = Support mempty
+  mappend (Support x) (Support y) = Support (mappend x y)
 
-avoid_atom :: Atom -> Avoid
-avoid_atom a = Avoid (Set.singleton (A a))
+support_singleton :: Atom -> Support
+support_singleton a = Support (Set.singleton (A a))
 
-unavoid_atom :: Atom -> Avoid -> Avoid
-unavoid_atom a (Avoid s) = Avoid (Set.delete (A a) s)
+support_delete :: Atom -> Support -> Support
+support_delete a (Support s) = Support (Set.delete (A a) s)
 
-avoid_string :: String -> Avoid
-avoid_string s = Avoid (Set.singleton (S s))
+avoid_string :: String -> Support
+avoid_string s = Support (Set.singleton (S s))
 
-strings_of_opaque :: Avoid -> Set String
-strings_of_opaque (Avoid s) = Set.map name s where
+strings_of_opaque :: Support -> Set String
+strings_of_opaque (Support s) = Set.map name s where
   name (A a) = show a
   name (S s) = s
                  
@@ -416,11 +421,11 @@ class NominalShow t where
   -- straightforward inductive clauses, for example:
   --
   -- > instance NominalShow Term where
-  -- >   avoid (Var x) = avoid x
-  -- >   avoid (App t s) = avoid t <> avoid s
-  -- >   avoid (Abs t) = avoid t
+  -- >   support (Var x) = support x
+  -- >   support (App t s) = support t <> support s
+  -- >   support (Abs t) = support t
   --
-  -- The type 'Avoid' forms a 'Monoid', so avoid-sets can be combined
+  -- The type 'Support' forms a 'Monoid', so support-sets can be combined
   -- with the usual monoid operations such as 'mempty', '<>', and 'mconcat'.
   -- 
   -- If your nominal type uses additional constants or identifiers
@@ -428,32 +433,32 @@ class NominalShow t where
   -- like to clash with the names of bound variables, declare them
   -- with 'avoid_string':
   --
-  -- >   avoid (Const str) = avoid_string str
-  avoid :: t -> Avoid
+  -- >   support (Const str) = avoid_string str
+  support :: t -> Support
 
 instance NominalShow Atom where
-  avoid a = avoid_atom a
+  support a = support_singleton a
 
 instance NominalShow Integer where
-  avoid t = mempty
+  support t = mempty
 
 instance NominalShow Int where
-  avoid t = mempty
+  support t = mempty
 
 instance NominalShow Char where
-  avoid t = mempty
+  support t = mempty
 
 instance (NominalShow t) => NominalShow [t] where
-  avoid ts = mconcat (map avoid ts)
+  support ts = mconcat (map support ts)
 
 instance NominalShow () where
-  avoid t = mempty
+  support t = mempty
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  avoid (t, s) = avoid t <> avoid s
+  support (t, s) = support t <> support s
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
-  avoid (t, s, r) = avoid (t, (s, r))
+  support (t, s, r) = support (t, (s, r))
 
 -- ... and so on for tuples.
 
@@ -466,14 +471,14 @@ open_for_printing :: (Atomic a, NominalShow t) => Bind a t -> (a -> t -> s) -> s
 open_for_printing t@(AtomAbstraction ns f) body =
   with_fresh_named n1 (\a -> body a (f a))
   where
-    sup = avoid t
+    sup = support t
     n1 = rename_fresh (strings_of_opaque sup) ns
     name (A a) = show a
     name (S s) = s
     
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
-  avoid (AtomAbstraction n f) =
-    with_fresh (\a -> unavoid_atom (to_atom a) (avoid (f a)))
+  support (AtomAbstraction n f) =
+    with_fresh (\a -> support_delete (to_atom a) (support (f a)))
 
 instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
   showsPrec d t = open_for_printing t $ \a s ->
