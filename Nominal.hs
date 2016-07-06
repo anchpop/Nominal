@@ -20,7 +20,7 @@ module Nominal (
   Nominal(..),
   NominalShow(..),
   Support,
-  string_support,
+  Literal(..),
   AtomKind(..),
   AtomOfKind,
 )
@@ -32,7 +32,6 @@ import System.IO.Unsafe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Char
-import Data.Monoid
 import Data.List
 import Data.Unique
 
@@ -379,22 +378,29 @@ data Avoidee = A Atom | S String
 -- | This type provides an internal representation for the support of
 -- a nominal term, i.e., the set of atoms occurring in it. This is an
 -- opaque type with no exposed structure. The only way to construct a
--- value of type 'Support' is to use the function 'support', or the
--- monoid operations.
+-- value of type 'Support' is to use the function 'support'.
 newtype Support = Support (Set Avoidee)
 
-instance Monoid Support where
-  mempty = Support mempty
-  mappend (Support x) (Support y) = Support (mappend x y)
+support_empty = Support Set.empty
 
-support_singleton :: Atom -> Support
-support_singleton a = Support (Set.singleton (A a))
+support_unions xs = Support (Set.unions [ x | Support x <- xs ])
+
+support_atom :: Atom -> Support
+support_atom a = Support (Set.singleton (A a))
 
 support_delete :: Atom -> Support -> Support
 support_delete a (Support s) = Support (Set.delete (A a) s)
 
-string_support :: String -> Support
-string_support s = Support (Set.singleton (S s))
+support_string :: String -> Support
+support_string s = Support (Set.singleton (S s))
+
+newtype Literal = Literal String
+
+instance Nominal Literal where
+  swap π t = t
+
+instance NominalShow Literal where
+  support (Literal s) = support_string s
 
 strings_of_support :: Support -> Set String
 strings_of_support (Support s) = Set.map name s where
@@ -409,47 +415,44 @@ strings_of_support (Support s) = Set.map name s where
 class NominalShow t where
   -- | Compute a set of atoms and strings that should not be usd as
   -- the names of bound variables. Usually this is defined by
-  -- straightforward inductive clauses. It is convenient to use tuples
-  -- and lists in the induction hypotheses, for example:
+  -- straightforward recursive clauses. The recursive clauses must
+  -- apply 'support' to a tuple or list of immediate subterms.
   --
   -- > instance NominalShow Term where
   -- >   support (Var x) = support x
   -- >   support (App t s) = support (t, s)
   -- >   support (Abs t) = support t
   -- >   support (MultiApp t args) = support (t, [args])
+  -- >   support Unit = support ()
   --
-  -- The type 'Support' forms a 'Monoid', so elements can also be
-  -- combined with the usual monoid operations such as 'mempty', '<>',
-  -- and 'mconcat'.
-  -- 
-  -- If your nominal type uses additional constants or identifiers
-  -- that are not implemented as 'Atom's, but whose names you wouldn't
-  -- like to clash with the names of bound variables, declare them
-  -- with 'string_support':
+  -- If your nominal type uses additional constants, identifiers, or
+  -- reserved keywords that are not implemented as 'Atom's, but whose
+  -- names you wouldn't like to clash with the names of bound
+  -- variables, declare them with 'Literal' applied to a string:
   --
-  -- >   support (Const str) = string_support str
+  -- >   support (Const str) = support (Literal str)
   support :: t -> Support
 
 instance NominalShow Atom where
-  support a = support_singleton a
-
-instance NominalShow Integer where
-  support t = mempty
-
-instance NominalShow Int where
-  support t = mempty
-
-instance NominalShow Char where
-  support t = mempty
+  support a = support_atom a
 
 instance (NominalShow t) => NominalShow [t] where
-  support ts = mconcat (map support ts)
-
-instance NominalShow () where
-  support t = mempty
+  support ts = support_unions (map support ts)
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  support (t, s) = support t <> support s
+  support (t, s) = support_unions [support t, support s]
+
+instance NominalShow Integer where
+  support t = support ()
+
+instance NominalShow Int where
+  support t = support ()
+
+instance NominalShow Char where
+  support t = support ()
+
+instance NominalShow () where
+  support t = support ()
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   support (t, s, r) = support (t, (s, r))
