@@ -20,7 +20,7 @@ module Nominal (
   Nominal(..),
   NominalShow(..),
   Support,
-  avoid_string,
+  string_support,
   AtomKind(..),
   AtomOfKind,
 )
@@ -402,8 +402,8 @@ support_singleton a = Support (Set.singleton (A a))
 support_delete :: Atom -> Support -> Support
 support_delete a (Support s) = Support (Set.delete (A a) s)
 
-avoid_string :: String -> Support
-avoid_string s = Support (Set.singleton (S s))
+string_support :: String -> Support
+string_support s = Support (Set.singleton (S s))
 
 strings_of_support :: Support -> Set String
 strings_of_support (Support s) = Set.map name s where
@@ -434,9 +434,9 @@ class NominalShow t where
   -- If your nominal type uses additional constants or identifiers
   -- that are not implemented as 'Atom's, but whose names you wouldn't
   -- like to clash with the names of bound variables, declare them
-  -- with 'avoid_string':
+  -- with 'string_support':
   --
-  -- >   support (Const str) = avoid_string str
+  -- >   support (Const str) = string_support str
   support :: t -> Support
 
 instance NominalShow Atom where
