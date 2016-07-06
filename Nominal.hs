@@ -34,6 +34,7 @@ import qualified Data.Set as Set
 import Data.Char
 import Data.Monoid
 import Data.List
+import Data.Unique
 
 -- ----------------------------------------------------------------------
 -- * Concrete names
@@ -102,19 +103,13 @@ combine_names xs ys = xs ++ (ys \\ xs)
 
 -- | An atom is an globally unique, opaque value with some optional
 -- name suggestions.
-data Atom = Atom Integer NameSuggestion
+data Atom = Atom Unique NameSuggestion
              deriving (Eq, Ord)
-
--- | A global counter for atoms. The use of 'unsafePerformIO' here is
--- safe, because 'Integer' is a monomorphic type.
-global_atom_counter :: IORef Integer
-global_atom_counter = unsafePerformIO (newIORef 0)
 
 -- | Create a new atom with the given name suggestions.
 new_atom_namelist :: NameSuggestion -> IO Atom
 new_atom_namelist ns = do
-  x <- readIORef global_atom_counter
-  writeIORef global_atom_counter (x+1)
+  x <- newUnique
   return (Atom x ns)
 
 -- | Return the suggested names of an atom.
@@ -196,10 +191,6 @@ instance Show Atom where
 
 -- Implementation note: the use of 'unsafePerformIO' makes this
 -- function not referentially transparent. For example, we have
---
--- > (with_fresh id, with_fresh id) /= let x = with_fresh id in (x, x).
---
--- or even
 --
 -- > with_fresh id /= with_fresh id.
 --
