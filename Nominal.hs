@@ -382,9 +382,14 @@ data Avoidee = A Atom | S String
 -- value of type 'Support' is to use the function 'support'.
 newtype Support = Support (Set Avoidee)
 
+support_empty :: Support
 support_empty = Support Set.empty
 
+support_unions :: [Support] -> Support
 support_unions xs = Support (Set.unions [ x | Support x <- xs ])
+
+support_union :: Support -> Support -> Support
+support_union (Support x) (Support y) = Support (Set.union x y)
 
 support_atom :: Atom -> Support
 support_atom a = Support (Set.singleton (A a))
@@ -434,6 +439,7 @@ class NominalShow t where
   -- >   support (Const str) = support (Literal str)
   support :: t -> Support
 
+-- Primitive cases.
 instance NominalShow Atom where
   support a = support_atom a
 
@@ -441,8 +447,12 @@ instance (NominalShow t) => NominalShow [t] where
   support ts = support_unions (map support ts)
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  support (t, s) = support_unions [support t, support s]
+  support (t, s) = support_union (support t) (support s)
 
+instance NominalShow () where
+  support t = support_empty
+
+-- Derived cases.
 instance NominalShow Integer where
   support t = support ()
 
@@ -450,9 +460,6 @@ instance NominalShow Int where
   support t = support ()
 
 instance NominalShow Char where
-  support t = support ()
-
-instance NominalShow () where
   support t = support ()
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
