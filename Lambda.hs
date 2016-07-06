@@ -6,7 +6,6 @@ import Nominal
 import Prelude hiding ((.))
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Monoid
 
 data V
 instance AtomKind V
@@ -26,7 +25,7 @@ instance Nominal Term where
 
 instance NominalShow Term where
   support (Var x) = support x
-  support (App t s) = support t <> support s
+  support (App t s) = support (t, s)
   support (Abs t) = support t
 
 -- | A convenience constructor for abstractions. This allows us to

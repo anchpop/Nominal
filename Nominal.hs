@@ -418,15 +418,18 @@ strings_of_support (Support s) = Set.map name s where
 class NominalShow t where
   -- | Compute a set of atoms and strings that should not be usd as
   -- the names of bound variables. Usually this is defined by
-  -- straightforward inductive clauses, for example:
+  -- straightforward inductive clauses. It is convenient to use tuples
+  -- and lists in the induction hypotheses, for example:
   --
   -- > instance NominalShow Term where
   -- >   support (Var x) = support x
-  -- >   support (App t s) = support t <> support s
+  -- >   support (App t s) = support (t, s)
   -- >   support (Abs t) = support t
+  -- >   support (MultiApp t args) = support (t, [args])
   --
-  -- The type 'Support' forms a 'Monoid', so support-sets can be combined
-  -- with the usual monoid operations such as 'mempty', '<>', and 'mconcat'.
+  -- The type 'Support' forms a 'Monoid', so elements can also be
+  -- combined with the usual monoid operations such as 'mempty', '<>',
+  -- and 'mconcat'.
   -- 
   -- If your nominal type uses additional constants or identifiers
   -- that are not implemented as 'Atom's, but whose names you wouldn't
