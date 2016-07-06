@@ -405,8 +405,8 @@ support_delete a (Support s) = Support (Set.delete (A a) s)
 avoid_string :: String -> Support
 avoid_string s = Support (Set.singleton (S s))
 
-strings_of_opaque :: Support -> Set String
-strings_of_opaque (Support s) = Set.map name s where
+strings_of_support :: Support -> Set String
+strings_of_support (Support s) = Set.map name s where
   name (A a) = show a
   name (S s) = s
                  
@@ -472,7 +472,7 @@ open_for_printing t@(AtomAbstraction ns f) body =
   with_fresh_named n1 (\a -> body a (f a))
   where
     sup = support t
-    n1 = rename_fresh (strings_of_opaque sup) ns
+    n1 = rename_fresh (strings_of_support sup) ns
     name (A a) = show a
     name (S s) = s
     
