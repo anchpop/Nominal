@@ -19,6 +19,7 @@ module Nominal {-(
   open_for_printing,
   merge,
   Nominal(..),
+  Permutation,
   NominalShow(..),
   Support,
   Literal(..),
@@ -228,7 +229,7 @@ with_fresh_namelist ns body = unsafePerformIO $ do
 -- instances for new datatypes could be derived with 'deriving'.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
-  (•) :: Perm -> t -> t
+  (•) :: Permutation -> t -> t
   
 instance Nominal Atom where
   (•) = perm_apply_atom
@@ -260,65 +261,105 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
       π' = perm_invert π
 
 -- ----------------------------------------------------------------------
--- * The group of permutations
+-- * The monoid of permutations
 
--- | The group of finitely supported permutations on atoms.
+-- | The monoid of finitely supported permutations on atoms. This is
+-- carefully engineered for efficiency.
 newtype Perm = Perm (Map Atom Atom)
              deriving (Show) -- ### for testing
 
 -- | The identity permutation. O(1).
-perm_identity :: Perm
-perm_identity = Perm Map.empty
+p_identity :: Perm
+p_identity = Perm Map.empty
 
 -- | Compose two permutations. O(/m/) where /m/ is the size of the right permutation.
-perm_composeR :: Perm -> Perm -> Perm
-perm_composeR s@(Perm sigma) (Perm tau) = Perm rho
+p_composeR :: Perm -> Perm -> Perm
+p_composeR s@(Perm sigma) (Perm tau) = Perm rho
   where
     rho = Map.foldrWithKey f sigma tau
     f a b rho = rho'
       where
-        c = perm_apply_atom s b
+        c = p_apply_atom s b
         rho'
           | a == c = Map.delete a rho
           | otherwise = Map.insert a c rho
 
 -- | Compose two permutations. O(/n/) where /n/ is the size of the left permutation.
 -- This also requires the inverse of the right permutation as an input.
-perm_composeL :: Perm -> Perm -> Perm -> Perm
-perm_composeL (Perm sigma) (Perm tau) t'@(Perm tau_inv) = Perm rho
+p_composeL :: Perm -> Perm -> Perm -> Perm
+p_composeL (Perm sigma) (Perm tau) t'@(Perm tau_inv) = Perm rho
   where
     rho = Map.foldrWithKey f tau sigma
     f a b rho = rho'
       where
-        c = perm_apply_atom t' a
+        c = p_apply_atom t' a
         rho'
           | c == b = Map.delete c rho
           | otherwise = Map.insert c b rho
-    
--- ### this is O(n). If all other operations are efficient (especially
--- pre- and post-composition), then it is better to store a pair of a
--- permutation and the inverse.
--- | Invert a permutation. O(n).
-perm_invert :: Perm -> Perm
-perm_invert (Perm sigma) = Perm sigma' where
-  sigma' = Map.fromList [ (b,a) | (a,b) <- Map.toList sigma ]
 
 -- | Apply a permutation to an atom. O(1).
-perm_apply_atom :: Perm -> Atom -> Atom
-perm_apply_atom (Perm sigma) a =
+p_apply_atom :: Perm -> Atom -> Atom
+p_apply_atom (Perm sigma) a =
   case Map.lookup a sigma of
     Nothing -> a
     Just b -> b
 
--- | Make a transposition. O(1)
-perm_transpose :: Atom -> Atom -> Perm
-perm_transpose a b
-  | a == b = perm_identity
+-- | A transposition. O(1)
+p_transpose :: Atom -> Atom -> Perm
+p_transpose a b
+  | a == b = p_identity
   | otherwise = Perm (Map.singleton a b `Map.union` Map.singleton b a)
+
+-- ----------------------------------------------------------------------
+-- * The group of permutations
+
+-- | The group of finitely supported permutations on atoms.
+
+-- Implementation note: if we used 'Perm' directly, inverting a
+-- permutation would be O(n). We make inverting O(1) by storing a
+-- permutation and its inverse. Because of laziness, the inverse will
+-- not be computed unless it is used.
+data Permutation = Permutation Perm Perm
+             deriving (Show) -- ### for testing
+
+-- | The identity permutation. O(1).
+perm_identity :: Permutation
+perm_identity = Permutation p_identity p_identity
+
+-- | Compose two permutations. O(/m/) where /m/ is the size of the
+-- right permutation.
+perm_composeR :: Permutation -> Permutation -> Permutation
+perm_composeR (Permutation sigma sinv) (Permutation tau tinv) = Permutation rho rinv
+  where
+    rho = p_composeR sigma tau
+    rinv = p_composeL tinv sinv sigma
+
+-- | Compose two permutations. O(/n/) where /n/ is the size of the
+-- left permutation.
+perm_composeL :: Permutation -> Permutation -> Permutation
+perm_composeL (Permutation sigma sinv) (Permutation tau tinv) = Permutation rho rinv
+  where
+    rho = p_composeL sigma tau tinv
+    rinv = p_composeR tinv sinv
+
+-- | Invert a permutation. O(1).
+perm_invert :: Permutation -> Permutation
+perm_invert (Permutation sigma sinv) = Permutation sinv sigma
+
+-- | Apply a permutation to an atom. O(1).
+perm_apply_atom :: Permutation -> Atom -> Atom
+perm_apply_atom (Permutation sigma sinv) = p_apply_atom sigma
+
+-- | A transposition. O(1).
+perm_transpose :: Atom -> Atom -> Permutation
+perm_transpose a b = Permutation sigma sigma
+  where
+    sigma = p_transpose a b
+
 
 -- | Make a permutation from a list of swaps. This is mostly useful
 -- for testing.
-perm_from_list :: [(Atom, Atom)] -> Perm
+perm_from_list :: [(Atom, Atom)] -> Permutation
 perm_from_list xs = aux (reverse xs) where
   aux [] = perm_identity
   aux ((a,b):t) = perm_from_list t `perm_composeR` perm_transpose a b
@@ -326,7 +367,7 @@ perm_from_list xs = aux (reverse xs) where
 -- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
 -- This is used to cache substitutions so that they can be optimized
 -- and applied all at once.
-data Defer t = Defer Perm t
+data Defer t = Defer Permutation t
 
 instance Nominal (Defer t) where
   -- This is where 'Defer' pays off. Rather than using 'force',
