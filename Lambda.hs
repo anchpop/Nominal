@@ -19,9 +19,9 @@ data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
 -- automatically derived with \"deriving\". We could probably make
 -- this even simpler.
 instance Nominal Term where
-  swap π (Var x) = Var (swap π x)
-  swap π (App t s) = App (swap π t) (swap π s)
-  swap π (Abs t) = Abs (swap π t)
+  π • Var x = Var (π • x)
+  π • App t s = App (π • t) (π • s)
+  π • Abs t = Abs (π • t)
 
 instance NominalShow Term where
   support (Var x) = support x

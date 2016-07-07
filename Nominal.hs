@@ -232,134 +232,100 @@ with_fresh_namelist ns body = unsafePerformIO $ do
 -- library may take advantage of this. Swap should be hidden from the
 -- user to prevent them from violating the invariant. ###
 class Nominal t where
-  -- | 'swap' /a/ /b/ /t/: replace /a/ by /b/ and /b/ by /a/ in /t/.
-  swap :: (Atom, Atom) -> t -> t
-  subst_apply :: Substitution -> t -> (Substitution, t)
+  -- | Apply a permutation of atoms to a term.
+  (•) :: Permutation -> t -> t
   
 instance Nominal Atom where
-  swap (a,b) t = if t == a then b else if t == b then a else t
-  subst_apply = subst_desc
+  (•) = perm_apply_atom
 
 instance Nominal Integer where
-  swap π t = t
-  subst_apply = subst_const
+  π • t = t
 
 instance Nominal Int where
-  swap π t = t
-  subst_apply = subst_const
+  π • t = t
 
 instance Nominal Char where
-  swap π t = t
-  subst_apply = subst_const
+  π • t = t
 
 instance (Nominal t) => Nominal [t] where
-  swap π ts = map (swap π) ts
-  subst_apply = mapAccumL subst_apply
+  π • t = map (π •) t
 
 instance Nominal () where
-  swap π t = t
-  subst_apply = subst_const
+  π • t = t
 
 instance (Nominal t, Nominal s) => Nominal (t,s) where
-  swap π (t, s) = (swap π t, swap π s)
-  subst_apply sigma (t, s) = (sigma'', (t', s'))
-    where
-      (sigma', t') = subst_apply sigma t
-      (sigma'', s') = subst_apply sigma' s
+  π • (t, s) = (π • t, π • s)
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
-  swap π (t, s, r) = (swap π t, swap π s, swap π r)
-  subst_apply sigma (t, s, r) = (sigma', (t', s', r'))
-    where
-      (sigma', (t', (s', r'))) = subst_apply sigma (t, (s, r))
+  π • (t, s, r) = (π • t, π • s, π • r)
 
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
-  swap π f = \x -> swap π (f (swap π x))
+  π • f = \x -> π • (f (π' • x))
+    where
+      π' = perm_invert π
+
+-- ----------------------------------------------------------------------
+-- * The group of permutations
+
+-- | The group of finitely supported permutations on atoms.
+newtype Permutation = Permutation (Map Atom Atom)
+
+-- | The identity permutation.
+perm_identity :: Permutation
+perm_identity = Permutation Map.empty
+
+-- | Compose two permutations.
+perm_compose :: Permutation -> Permutation -> Permutation
+perm_compose sigma tau = Permutation rho
+  where
+    Permutation s = sigma
+    Permutation t = tau
+    domain = Map.keysSet s `Set.union` Map.keysSet t
+    rho = Map.fromList [ (a,b) | a <- Set.toList domain,
+                                 let b = perm_apply_atom sigma (perm_apply_atom tau a),
+                                 a /= b ]
+
+-- | Invert a permutation.
+perm_invert :: Permutation -> Permutation
+perm_invert (Permutation sigma) = Permutation sigma' where
+  sigma' = Map.fromList [ (b,a) | (a,b) <- Map.toList sigma ]
+
+-- | Apply a permutation to an atom.
+perm_apply_atom :: Permutation -> Atom -> Atom
+perm_apply_atom (Permutation sigma) a =
+  case Map.lookup a sigma of
+    Nothing -> a
+    Just b -> b
+
+-- | Make a transposition.
+perm_transpose :: Atom -> Atom -> Permutation
+perm_transpose a b
+  | a == b = perm_identity
+  | otherwise = Permutation (Map.singleton a b `Map.union` Map.singleton b a)
+
+-- | Make a permutation from a list of swaps. This is mostly useful
+-- for testing.
+perm_from_list :: [(Atom, Atom)] -> Permutation
+perm_from_list [] = perm_identity
+perm_from_list ((a,b):t) = perm_transpose a b `perm_compose` perm_from_list t
+
+-- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
+-- This is used to cache substitutions so that they can be optimized
+-- and applied all at once.
+data Defer t = Defer Permutation t
+
+instance Nominal (Defer t) where
+  -- This is where 'Defer' pays off. Rather than using 'force',
+  -- we compile the permutations for later efficient use.
+  π • (Defer sigma t) = Defer (perm_compose π sigma) t
+  
+force :: (Nominal t) => Defer t -> t
+force (Defer sigma t) = sigma • t
 
 -- | Bind a t is the type of atom abstractions, denoted [a]t
 -- in the nominal logic literature. Its elements are of the form (a.v)
 -- modulo alpha-equivalence. For more details on what this means, see
 -- Definition 4 of [Pitts 2002].
-
--- | A copy of /t/, but with a more efficient implementation of
--- substitution. Instead of performing substitutions one by one (with
--- time O(/nm/), where /n/ is the number of substitutions and /m/ is
--- the size of the term), we cache substitutions (with time O(/n/+/m/).
---
--- ### is this true?
---
--- Essentially the type 'Defer' /t/ creates a barrier to substitution;
--- it represents a kind of explicit substitution on /t/.
-
--- | A substitution sigma is represented as a finite forest of atoms (i.e., a
--- finitely supported, directed, acyclic graph on the set of all
--- atoms, where each atom has at most one child).  Given such a
--- forest, each atom /a/ has a final descendant 'desc'(/a/), which is
--- /a/ itself if /a/ has no child, and 'desc'(/b/) if /a/ has child
--- /b/.  The encoded substitution is the 'desc' function; we also
--- write sigma(M) for desc(M). Let 'free'(sigma) be the set of
--- childless atoms. It is the case that for all M, support(sigma(M))
--- is a subset of free(sigma). The fundamental operation is
--- post-composition with a single replacement /a/ -> /x/, where
--- moreover we always assume /x/ is fresh, i.e., currently childless
--- in sigma. It is done by adding a new edge from desc(a) to x.
--- If it were implemented like this, the tree could grow to linear height
--- (in the number of insertions), so that n insertions might take time O(n^2)
--- to complete, and each lookup might take time O(n).
---
--- In addition we optimize the representation, so that we never have to
--- follow a double edge a -> b -> c more than once. While computing desc(a),
--- we replace the edge from a -> child(a) by a -> desc(a).
-type Substitution = Map Atom Atom
-
--- The empty substitution.
-subst_empty :: Substitution
-subst_empty = Map.empty
-
--- Look up the descentent of a, while also updating the substitution to
--- be more efficient next time.
-subst_desc :: Substitution -> Atom -> (Substitution, Atom)
-subst_desc sigma a = case Map.lookup a sigma of
-  Nothing -> (sigma, a)
-  Just b -> (sigma'', c)
-    where
-      (sigma', c) = subst_desc sigma b
-      sigma'' = Map.insert a c sigma'
-
--- The second atom must be fresh for the substitution.
-subst_insert :: Atom -> Atom -> Substitution -> Substitution
-subst_insert a x sigma = sigma''
-  where
-    (sigma', c) = subst_desc sigma a
-    sigma'' = Map.insert c x sigma'
-
--- | A singleton substitution. This is equivalent to 'subst_insert'
--- /a/ /x/ 'subst_empty'.
-subst_singleton :: Atom -> Atom -> Substitution
-subst_singleton a x = Map.singleton a x
-
--- | Apply a substitution to a term that contains no atoms at all.
-subst_const :: Substitution -> t -> (Substitution, t)
-subst_const sigma t = (sigma, t)
-
--- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
--- This is used to cache substitutions so that they can be optimized
--- and applied all at once.
--- 
--- Implementation note: we will crucially (and experimentally) rely on
--- the fact that swap (a,x) is only ever applied in the case where x
--- is fresh (so that it is effectively a substitution and not a swap).
-data Defer t = Defer Substitution t
-
-instance Nominal (Defer t) where
-  swap (a, x) (Defer sigma t) = Defer sigma' t
-    where
-      sigma' = subst_insert a x sigma
-
-force :: (Nominal t) => Defer t -> t
-force (Defer sigma t) = t'
-  where
-    (sigma', t') = subst_apply sigma t
 
 -- Implementation note: we currently use an HOAS encoding. It remains
 -- to see whether this is efficient. An important invariant of the
@@ -375,11 +341,11 @@ data Bind a t = Bind NameSuggestion (a -> Defer t)
 -- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
 -- this for 'Atom' and later generalize to other 'Atomic' types.
 atom_abst :: Atom -> t -> Bind Atom t
-atom_abst a t = Bind (atom_names a) (\x -> Defer (subst_singleton a x) t)
+atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_transpose a x) t)
 
 -- | Atom abstraction: (/a/./t/) represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
--- for fresh /c/, 'swap' /a/ /c/ /t/ = 'swap' /b/ /c/ /s/. 
+-- for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
 --
 -- We use the infix operator '.', which is normally bound to function
 -- composition in the standard library. Thus, nominal programs should
@@ -431,8 +397,9 @@ instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
 
 instance (Nominal t) => Nominal (Bind a t) where
   -- Implementation note: here, we crucially use the assumption that
-  -- in the HOAS encoding, f will only be applied to fresh names.
-  swap π (Bind n f) = Bind n (\x -> swap π (f x))
+  -- in the HOAS encoding, the binder will only be opened with fresh
+  -- atoms.
+  π • (Bind n f) = Bind n (\x -> π • (f x))
 
 -- | Sometimes, it is necessary to open two abstractions, using the
 -- /same/ fresh name for both of them. An example of this is the
@@ -478,7 +445,7 @@ instance (Nominal t) => Nominal (Bind a t) where
 merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
 merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
   ns'' = combine_names ns ns'
-  h x = Defer subst_empty (force (f x), force (g x))
+  h x = Defer perm_identity (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -515,7 +482,7 @@ support_string s = Support (Set.singleton (S s))
 newtype Literal = Literal String
 
 instance Nominal Literal where
-  swap π t = t
+  π • t = t
 
 instance NominalShow Literal where
   support (Literal s) = support_string s
@@ -594,7 +561,7 @@ open_for_printing t@(Bind ns f) body =
     name (S s) = s
 
 instance (NominalShow t) => NominalShow (Defer t) where
-
+  support t = support (force t)
   
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
   support (Bind n f) =
