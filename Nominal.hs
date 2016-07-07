@@ -6,7 +6,7 @@
 -- atoms). This should include some proper alpha-renaming. This
 -- probably requires computing the free atoms of a term.
 
-module Nominal (
+module Nominal {-(
   Atom,
   Atomic,
   Bind,
@@ -24,7 +24,7 @@ module Nominal (
   Literal(..),
   AtomKind(..),
   AtomOfKind,
-)
+)-}
 where
 
 import Prelude hiding ((.))
@@ -32,6 +32,8 @@ import Data.IORef
 import System.IO.Unsafe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Char
 import Data.List
 import Data.Unique
@@ -224,33 +226,52 @@ with_fresh_namelist ns body = unsafePerformIO $ do
 
 -- Language note: in an ideal programming language, 'Nominal'
 -- instances for new datatypes could be derived with 'deriving'.
+--
+-- Implementation note: in fact, whenever swap (a,b) is used in this
+-- library, the second argument b is always fresh. Some parts of the
+-- library may take advantage of this. Swap should be hidden from the
+-- user to prevent them from violating the invariant. ###
 class Nominal t where
   -- | 'swap' /a/ /b/ /t/: replace /a/ by /b/ and /b/ by /a/ in /t/.
   swap :: (Atom, Atom) -> t -> t
-
+  subst_apply :: Substitution -> t -> (Substitution, t)
+  
 instance Nominal Atom where
   swap (a,b) t = if t == a then b else if t == b then a else t
+  subst_apply = subst_desc
 
 instance Nominal Integer where
   swap π t = t
+  subst_apply = subst_const
 
 instance Nominal Int where
   swap π t = t
+  subst_apply = subst_const
 
 instance Nominal Char where
   swap π t = t
+  subst_apply = subst_const
 
 instance (Nominal t) => Nominal [t] where
   swap π ts = map (swap π) ts
+  subst_apply = mapAccumL subst_apply
 
 instance Nominal () where
   swap π t = t
+  subst_apply = subst_const
 
 instance (Nominal t, Nominal s) => Nominal (t,s) where
   swap π (t, s) = (swap π t, swap π s)
+  subst_apply sigma (t, s) = (sigma'', (t', s'))
+    where
+      (sigma', t') = subst_apply sigma t
+      (sigma'', s') = subst_apply sigma' s
 
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
   swap π (t, s, r) = (swap π t, swap π s, swap π r)
+  subst_apply sigma (t, s, r) = (sigma', (t', s', r'))
+    where
+      (sigma', (t', (s', r'))) = subst_apply sigma (t, (s, r))
 
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
   swap π f = \x -> swap π (f (swap π x))
@@ -260,6 +281,86 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- modulo alpha-equivalence. For more details on what this means, see
 -- Definition 4 of [Pitts 2002].
 
+-- | A copy of /t/, but with a more efficient implementation of
+-- substitution. Instead of performing substitutions one by one (with
+-- time O(/nm/), where /n/ is the number of substitutions and /m/ is
+-- the size of the term), we cache substitutions (with time O(/n/+/m/).
+--
+-- ### is this true?
+--
+-- Essentially the type 'Defer' /t/ creates a barrier to substitution;
+-- it represents a kind of explicit substitution on /t/.
+
+-- | A substitution sigma is represented as a finite forest of atoms (i.e., a
+-- finitely supported, directed, acyclic graph on the set of all
+-- atoms, where each atom has at most one child).  Given such a
+-- forest, each atom /a/ has a final descendant 'desc'(/a/), which is
+-- /a/ itself if /a/ has no child, and 'desc'(/b/) if /a/ has child
+-- /b/.  The encoded substitution is the 'desc' function; we also
+-- write sigma(M) for desc(M). Let 'free'(sigma) be the set of
+-- childless atoms. It is the case that for all M, support(sigma(M))
+-- is a subset of free(sigma). The fundamental operation is
+-- post-composition with a single replacement /a/ -> /x/, where
+-- moreover we always assume /x/ is fresh, i.e., currently childless
+-- in sigma. It is done by adding a new edge from desc(a) to x.
+-- If it were implemented like this, the tree could grow to linear height
+-- (in the number of insertions), so that n insertions might take time O(n^2)
+-- to complete, and each lookup might take time O(n).
+--
+-- In addition we optimize the representation, so that we never have to
+-- follow a double edge a -> b -> c more than once. While computing desc(a),
+-- we replace the edge from a -> child(a) by a -> desc(a).
+type Substitution = Map Atom Atom
+
+-- The empty substitution.
+subst_empty :: Substitution
+subst_empty = Map.empty
+
+-- Look up the descentent of a, while also updating the substitution to
+-- be more efficient next time.
+subst_desc :: Substitution -> Atom -> (Substitution, Atom)
+subst_desc sigma a = case Map.lookup a sigma of
+  Nothing -> (sigma, a)
+  Just b -> (sigma'', c)
+    where
+      (sigma', c) = subst_desc sigma b
+      sigma'' = Map.insert a c sigma'
+
+-- The second atom must be fresh for the substitution.
+subst_insert :: Atom -> Atom -> Substitution -> Substitution
+subst_insert a x sigma = sigma''
+  where
+    (sigma', c) = subst_desc sigma a
+    sigma'' = Map.insert c x sigma'
+
+-- | A singleton substitution. This is equivalent to 'subst_insert'
+-- /a/ /x/ 'subst_empty'.
+subst_singleton :: Atom -> Atom -> Substitution
+subst_singleton a x = Map.singleton a x
+
+-- | Apply a substitution to a term that contains no atoms at all.
+subst_const :: Substitution -> t -> (Substitution, t)
+subst_const sigma t = (sigma, t)
+
+-- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
+-- This is used to cache substitutions so that they can be optimized
+-- and applied all at once.
+-- 
+-- Implementation note: we will crucially (and experimentally) rely on
+-- the fact that swap (a,x) is only ever applied in the case where x
+-- is fresh (so that it is effectively a substitution and not a swap).
+data Defer t = Defer Substitution t
+
+instance Nominal (Defer t) where
+  swap (a, x) (Defer sigma t) = Defer sigma' t
+    where
+      sigma' = subst_insert a x sigma
+
+force :: (Nominal t) => Defer t -> t
+force (Defer sigma t) = t'
+  where
+    (sigma', t') = subst_apply sigma t
+
 -- Implementation note: we currently use an HOAS encoding. It remains
 -- to see whether this is efficient. An important invariant of the
 -- HOAS encoding is that the underlying function must only be applied
@@ -268,7 +369,13 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- It would also be possible to use a DeBruijn encoding or a nameful
 -- encoding. It remains to be seen which encoding is the most
 -- efficient in practice.
-data Bind a t = AtomAbstraction NameSuggestion (a -> t)
+data Bind a t = Bind NameSuggestion (a -> Defer t)
+
+-- | Atom abstraction: 'atom_abst' /a/ /t/ represents the equivalence
+-- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
+-- this for 'Atom' and later generalize to other 'Atomic' types.
+atom_abst :: Atom -> t -> Bind Atom t
+atom_abst a t = Bind (atom_names a) (\x -> Defer (subst_singleton a x) t)
 
 -- | Atom abstraction: (/a/./t/) represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
@@ -280,7 +387,10 @@ data Bind a t = AtomAbstraction NameSuggestion (a -> t)
 --
 -- > import Prelude hiding ((.))
 (.) :: (Atomic a, Nominal t) => a -> t -> Bind a t
-a.t = AtomAbstraction (atom_names (to_atom a)) (\x -> swap (to_atom a, to_atom x) t)
+a.t = Bind ns f
+  where
+    Bind ns g = atom_abst (to_atom a) t
+    f x = g (to_atom x)
 
 infixr 5 .
 
@@ -311,18 +421,18 @@ bind f = with_fresh (\x -> x . f x)
 -- To be referentially transparent and equivariant, the body is
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
-open :: (Atomic a) => Bind a t -> (a -> t -> s) -> s
-open (AtomAbstraction ns f) body =
-  with_fresh_namelist ns (\a -> body a (f a))
+open :: (Atomic a, Nominal t) => Bind a t -> (a -> t -> s) -> s
+open (Bind ns f) body =
+  with_fresh_namelist ns (\a -> body a (force (f a)))
 
-instance (Atomic a, Eq t) => Eq (Bind a t) where
-  AtomAbstraction n f == AtomAbstraction m g =
-    with_fresh (\a -> f a == g a)
+instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
+  Bind n f == Bind m g =
+    with_fresh (\a -> force (f a) == force (g a))
 
 instance (Nominal t) => Nominal (Bind a t) where
   -- Implementation note: here, we crucially use the assumption that
   -- in the HOAS encoding, f will only be applied to fresh names.
-  swap π (AtomAbstraction n f) = AtomAbstraction n (\x -> swap π (f x))
+  swap π (Bind n f) = Bind n (\x -> swap π (f x))
 
 -- | Sometimes, it is necessary to open two abstractions, using the
 -- /same/ fresh name for both of them. An example of this is the
@@ -366,22 +476,23 @@ instance (Nominal t) => Nominal (Bind a t) where
 -- concrete name of /y/ will be used if the name of /x/ would cause a
 -- clash.
 merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
-merge (AtomAbstraction ns f) (AtomAbstraction ns' g) = (AtomAbstraction ns'' h) where
+merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
   ns'' = combine_names ns ns'
-  h x = (f x, g x)
+  h x = Defer subst_empty (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
 
 -- | Something to be avoided can be an atom or a string.
 data Avoidee = A Atom | S String
-             deriving (Eq, Ord)
+             deriving (Eq, Ord, Show) -- ###
 
 -- | This type provides an internal representation for the support of
 -- a nominal term, i.e., the set of atoms occurring in it. This is an
 -- opaque type with no exposed structure. The only way to construct a
 -- value of type 'Support' is to use the function 'support'.
 newtype Support = Support (Set Avoidee)
+                  deriving (Show) -- ###
 
 support_empty :: Support
 support_empty = Support Set.empty
@@ -419,7 +530,7 @@ strings_of_support (Support s) = Set.map name s where
 -- the exception of function types (for which we cannot compute the
 -- support).
 
-class NominalShow t where
+class (Nominal t) => NominalShow t where
   -- | Compute a set of atoms and strings that should not be usd as
   -- the names of bound variables. Usually this is defined by
   -- straightforward recursive clauses. The recursive clauses must
@@ -474,16 +585,19 @@ instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) wh
 -- useful for building custom pretty-printers for nominal
 -- terms. Except in pretty-printers, 'open' is equivalent.
 open_for_printing :: (Atomic a, NominalShow t) => Bind a t -> (a -> t -> s) -> s
-open_for_printing t@(AtomAbstraction ns f) body =
-  with_fresh_named n1 (\a -> body a (f a))
+open_for_printing t@(Bind ns f) body =
+  with_fresh_named n1 (\a -> body a (force (f a)))
   where
     sup = support t
     n1 = rename_fresh (strings_of_support sup) ns
     name (A a) = show a
     name (S s) = s
-    
+
+instance (NominalShow t) => NominalShow (Defer t) where
+
+  
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
-  support (AtomAbstraction n f) =
+  support (Bind n f) =
     with_fresh (\a -> support_delete (to_atom a) (support (f a)))
 
 instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
