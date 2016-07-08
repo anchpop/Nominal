@@ -25,6 +25,7 @@ module Nominal {-(
   Literal(..),
   AtomKind(..),
   AtomOfKind,
+  cp,
 )-}
 where
 
@@ -147,7 +148,7 @@ atom_names (Atom x ns) = ns
 -- >   deriving (Atomic, Nominal, NominalShow, Eq, Ord)
 -- > 
 -- > instance Show Variable where
--- >   show (Variable x) = show x
+-- >   showsPrec = nominal_showsPrec
 class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
@@ -164,9 +165,6 @@ instance Atomic Atom where
   to_atom = id
   from_atom = id
   names a = default_names
-
-instance Show Atom where
-  show = show_atom
 
 -- ----------------------------------------------------------------------
 -- * High-level functions
@@ -266,7 +264,7 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- | The monoid of finitely supported permutations on atoms. This is
 -- carefully engineered for efficiency.
 newtype Perm = Perm (Map Atom Atom)
-             deriving (Eq, Show) -- ### for testing
+             deriving (Eq, Show)
 
 -- | The identity permutation. O(1).
 p_identity :: Perm
@@ -324,7 +322,7 @@ p_domain (Perm sigma) = Map.keys sigma
 -- permutation and its inverse. Because of laziness, the inverse will
 -- not be computed unless it is used.
 data Permutation = Permutation Perm Perm
-             deriving (Eq, Show) -- ### for testing
+             deriving (Eq)
 
 -- | The identity permutation. O(1).
 perm_identity :: Permutation
@@ -531,14 +529,13 @@ merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
 
 -- | Something to be avoided can be an atom or a string.
 data Avoidee = A Atom | S String
-             deriving (Eq, Ord, Show) -- ###
+             deriving (Eq, Ord, Show)
 
 -- | This type provides an internal representation for the support of
 -- a nominal term, i.e., the set of atoms occurring in it. This is an
 -- opaque type with no exposed structure. The only way to construct a
 -- value of type 'Support' is to use the function 'support'.
 newtype Support = Support (Set Avoidee)
-                  deriving (Show) -- ###
 
 support_empty :: Support
 support_empty = Support Set.empty
@@ -558,28 +555,24 @@ support_delete a (Support s) = Support (Set.delete (A a) s)
 support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
 
+strings_of_support :: Support -> Set String
+strings_of_support (Support s) = Set.map name s where
+  name (A a) = show a
+  name (S s) = s
+                 
 newtype Literal = Literal String
                 deriving (Show)
 
 instance Nominal Literal where
   π • t = t
 
-instance NominalShow Literal where
-  support (Literal s) = support_string s
-  nominal_showPrec sup = showPrec
-
-strings_of_support :: Support -> Set String
-strings_of_support (Support s) = Set.map name s where
-  name (A a) = show a
-  name (S s) = s
-                 
 -- | 'NominalShow' is a helper class to support pretty-printing of
 -- nominal values. Most 'Nominal' types are also 'NominalShow', with
 -- the exception of function types (for which we cannot compute the
 -- support).
 
 class (Nominal t) => NominalShow t where
-  -- | Compute a set of atoms and strings that should not be usd as
+  -- | Compute a set of atoms and strings that should not be used as
   -- the names of bound variables. Usually this is defined by
   -- straightforward recursive clauses. The recursive clauses must
   -- apply 'support' to a tuple or list (or combination thereof) of
@@ -600,77 +593,123 @@ class (Nominal t) => NominalShow t where
   -- >   support (Const str) = support (Literal str)
   support :: t -> Support
 
+  -- | A nominal version of 'showsPrec'. This function takes as its
+  -- first argument the support of /t/. This is then passed into the
+  -- subterms, making printing O(/n/) instead of O(/n/^2).
+  --
+  -- It is recommended to define a 'NominalShow' instance, rather than
+  -- a 'Show' instance, for each nominal type, and then define the
+  -- 'Show' instance using 'nominal_showsPrec'. For example:
+  --
+  -- > instance Show MyType where
+  -- >   showsPrec = nominal_showsPrec
+  --
+  -- Please note: in defining 'nominal_showsPrecSup', neither 'show'
+  -- nor 'nominal_show' should be used for the recursive cases, or
+  -- else the benefit of fast printing will be lost.
+  nominal_showsPrecSup :: Support -> Int -> t -> ShowS
+  nominal_showsPrecSup sup d t s = nominal_show t ++ s
+
+  -- | For primitive types that don't have any subterms, cannot contain
+  -- binders, and don't require parenthesis, it may be more convenient
+  -- to define 'nominal_show' instead of 'nominal_showsPrecSup'. For
+  -- such types, it is also okay to derive a 'Show' instance and
+  -- define 'nominal_show' as 'show'.
   nominal_show :: t -> String
-  nominal_show t = nominal_showPrec (support t) 0 t
+  nominal_show t = nominal_showsPrecSup (support t) 0 t ""
 
-  -- The idea is that if the support is already known, we do not need
-  -- to recompute it in the recursive cases. This makes printing O(n)
-  -- instead of O(n^2).
-  nominal_showPrec :: Support -> Int -> t -> String
+  {-# MINIMAL (nominal_showsPrecSup | nominal_show), support #-}
 
-showPrec :: (Show t) => Int -> t -> String
-showPrec d t = showsPrec d t ""
+-- | This function should be used in the definition of 'Show'
+-- instances for nominal types, like this:
+--
+-- > instance Show MyType where
+-- >   showsPrec = nominal_showsPrec
+nominal_showsPrec :: (NominalShow t) => Int -> t -> ShowS
+nominal_showsPrec d t = nominal_showsPrecSup (support t) d t
 
-paren :: Bool -> String -> String
-paren True s = "(" ++ s ++ ")"
-paren False s = s
+-- | Since we hide (.) from the standard library, and it is not legal syntax
+-- to write @Prelude..@, we provide 'cp' as an alternate notation for
+-- composition. This is particularly useful in defining 'showsPrec'
+-- and 'nominal_showsPrecSup'.
+cp :: (b -> c) -> (a -> b) -> (a -> c)
+cp g f x = g (f x)
 
 -- Primitive cases.
+instance Show Atom where
+  show = show_atom
+
 instance NominalShow Atom where
   support a = support_atom a
-  nominal_showPrec sup = showPrec
+  nominal_show = show_atom
+
+instance NominalShow Literal where
+  support (Literal s) = support_string s
+  nominal_show = show
 
 instance (NominalShow t) => NominalShow [t] where
   support ts = support_unions (map support ts)
-  nominal_showPrec sup d ts =
-    "[" ++ intercalate "," [ nominal_showPrec sup 0 t | t <- ts ]
+  nominal_showsPrecSup sup d ts =
+    showString ("[" ++ intercalate "," [ nominal_showsPrecSup sup 0 t "" | t <- ts ])
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
   support (t, s) = support_union (support t) (support s)
-  nominal_showPrec sup d (t, s) =
-    "(" ++ nominal_showPrec sup 0 t ++ "," ++ nominal_showPrec sup 0 s ++ ")"
+  nominal_showsPrecSup sup d (t, s) = showString $
+    "("
+    ++ nominal_showsPrecSup sup 0 t ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 s ""
+    ++ ")"
         
 instance NominalShow () where
   support t = support_empty
-  nominal_showPrec sup = showPrec
+  nominal_show = show
 
 -- Derived cases.
 instance NominalShow Integer where
   support t = support ()
-  nominal_showPrec sup = showPrec
+  nominal_show = show
 
 instance NominalShow Int where
   support t = support ()
-  nominal_showPrec sup = showPrec
+  nominal_show = show
 
 instance NominalShow Char where
   support t = support ()
-  nominal_showPrec sup = showPrec
+  nominal_show = show
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   support (t, s, r) = support (t, (s, r))
-  nominal_showPrec sup d (t, s, r) = "(" ++ nominal_showPrec sup 0 t ++ "," ++ nominal_showPrec sup 0 s ++ "," ++ nominal_showPrec sup 0 r ++ ")"
+  nominal_showsPrecSup sup d (t, s, r) = showString $
+    "("
+    ++ nominal_showsPrecSup sup 0 t ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 s ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 r ""
+    ++ ")"
 
 -- ... and so on for tuples.
 
 -- | A variant of 'open' which moreover attempts to choose a name for
--- the bound name that does not clash with any free name in its
+-- the bound atom that does not clash with any free name in its
 -- scope. This requires a 'NominalShow' instance. It is mostly
 -- useful for building custom pretty-printers for nominal
--- terms. Except in pretty-printers, 'open' is equivalent.
-open_for_printing :: (Atomic a, NominalShow t) => Bind a t -> (a -> t -> s) -> s
-open_for_printing t@(Bind ns f) body =
-  with_fresh_named n1 (\a -> body a (force (f a)))
-  where
-    sup = support t
-    n1 = rename_fresh (strings_of_support sup) ns
-    name (A a) = show a
-    name (S s) = s
-
--- | A variant of 'open_for_printing' that also receives the
--- pre-computed support of /t/, and returns a support to use for the subterm.
-open_for_printing_with_support :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-open_for_printing_with_support sup t@(Bind ns f) body =
+-- terms. Except in pretty-printers, it is equivalent to 'open'.
+--
+-- Usage:
+--
+-- > open_for_printing sup t (\x s sup' -> body)
+--
+-- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
+-- O(/n/)), the support must be pre-computed in a bottom-up fashion,
+-- and then passed into each subterm in a top-down fashion (rather
+-- than re-computing it at each level, which would be O(/n/^2)).  For
+-- this reason, 'open_for_printing' takes the support of /t/ as an
+-- additional argument, and provides /sup'/, the support of /s/, as an
+-- additional parameter to the body.
+open_for_printing :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+open_for_printing sup t@(Bind ns f) body =
   with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
   where
     n1 = rename_fresh (strings_of_support sup) ns
@@ -680,20 +719,18 @@ open_for_printing_with_support sup t@(Bind ns f) body =
 
 instance (NominalShow t) => NominalShow (Defer t) where
   support t = support (force t)
-  nominal_showPrec sup d t = nominal_showPrec sup d (force t)
+  nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
   
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
   support (Bind n f) =
     with_fresh (\a -> support_delete (to_atom a) (support (f a)))
-  nominal_showPrec sup d t =
-    open_for_printing_with_support sup t $ \a s sup' ->
-      paren (d > 5) $
-        show a ++ "." ++ nominal_showPrec sup' 5 s    
+  nominal_showsPrecSup sup d t =
+    open_for_printing sup t $ \a s sup' ->
+      showParen (d > 5) $
+        showString (show a ++ "." ++ nominal_showsPrecSup sup' 5 s "")
 
-instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
-  showsPrec d t = showString (nominal_showPrec sup d t)
-    where
-      sup = support t
+instance (Atomic a, NominalShow t) => Show (Bind a t) where
+  showsPrec = nominal_showsPrec
 
 -- ----------------------------------------------------------------------
 -- * Multiple atom types
