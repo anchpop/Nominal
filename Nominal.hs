@@ -302,9 +302,9 @@ p_apply_atom (Perm sigma) a =
     Nothing -> a
     Just b -> b
 
--- | A transposition. O(1)
-p_transpose :: Atom -> Atom -> Perm
-p_transpose a b
+-- | Swap /a/ and /b/. O(1)
+p_swap :: Atom -> Atom -> Perm
+p_swap a b
   | a == b = p_identity
   | otherwise = Perm (Map.singleton a b `Map.union` Map.singleton b a)
 
@@ -352,11 +352,11 @@ perm_invert (Permutation sigma sinv) = Permutation sinv sigma
 perm_apply_atom :: Permutation -> Atom -> Atom
 perm_apply_atom (Permutation sigma sinv) = p_apply_atom sigma
 
--- | A transposition. O(1).
-perm_transpose :: Atom -> Atom -> Permutation
-perm_transpose a b = Permutation sigma sigma
+-- | Swap /a/ and /b/. O(1).
+perm_swap :: Atom -> Atom -> Permutation
+perm_swap a b = Permutation sigma sigma
   where
-    sigma = p_transpose a b
+    sigma = p_swap a b
 
 -- | The domain of a permutation. O(/n/).
 perm_domain :: Permutation -> [Atom]
@@ -364,15 +364,15 @@ perm_domain (Permutation sigma sinv) = p_domain sigma
 
 -- | Make a permutation from a list of swaps. This is mostly useful
 -- for testing. O(/n/).
-perm_of_list :: [(Atom, Atom)] -> Permutation
-perm_of_list xs = aux xs where
+perm_of_swaps :: [(Atom, Atom)] -> Permutation
+perm_of_swaps xs = aux xs where
   aux [] = perm_identity
-  aux ((a,b):t) = perm_transpose a b `perm_composeL` perm_of_list t
+  aux ((a,b):t) = perm_swap a b `perm_composeL` perm_of_swaps t
 
 -- | Turn a permutation into a list of swaps. This is mostly useful
 -- for testing. O(/n/).
-list_of_perm :: Permutation -> [(Atom, Atom)]
-list_of_perm sigma = [ y | Just y <- ys ]
+swaps_of_perm :: Permutation -> [(Atom, Atom)]
+swaps_of_perm sigma = [ y | Just y <- ys ]
   where
     domain = perm_domain sigma
     (tau, ys) = mapAccumL f sigma domain
@@ -381,7 +381,7 @@ list_of_perm sigma = [ y | Just y <- ys ]
       | otherwise = (acc', Just (a, b))
       where
         b = perm_apply_atom acc a
-        acc' = perm_composeL (perm_transpose a b) acc
+        acc' = perm_composeL (perm_swap a b) acc
 
 -- ----------------------------------------------------------------------
 -- * Defer
@@ -418,7 +418,7 @@ data Bind a t = Bind NameSuggestion (a -> Defer t)
 -- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
 -- this for 'Atom' and later generalize to other 'Atomic' types.
 atom_abst :: Atom -> t -> Bind Atom t
-atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_transpose a x) t)
+atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_swap a x) t)
 
 -- | Atom abstraction: (/a/./t/) represents the equivalence class of pairs
 -- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
