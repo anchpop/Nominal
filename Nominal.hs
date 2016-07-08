@@ -535,12 +535,14 @@ support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
 
 newtype Literal = Literal String
+                deriving (Show)
 
 instance Nominal Literal where
   π • t = t
 
 instance NominalShow Literal where
   support (Literal s) = support_string s
+  nominal_showPrec sup = showPrec
 
 strings_of_support :: Support -> Set String
 strings_of_support (Support s) = Set.map name s where
@@ -573,31 +575,56 @@ class (Nominal t) => NominalShow t where
   -- >   support (Const str) = support (Literal str)
   support :: t -> Support
 
+  nominal_show :: t -> String
+  nominal_show t = nominal_showPrec (support t) 0 t
+
+  -- The idea is that if the support is already known, we do not need
+  -- to recompute it in the recursive cases. This makes printing O(n)
+  -- instead of O(n^2).
+  nominal_showPrec :: Support -> Int -> t -> String
+
+showPrec :: (Show t) => Int -> t -> String
+showPrec d t = showsPrec d t ""
+
+paren :: Bool -> String -> String
+paren True s = "(" ++ s ++ ")"
+paren False s = s
+
 -- Primitive cases.
 instance NominalShow Atom where
   support a = support_atom a
+  nominal_showPrec sup = showPrec
 
 instance (NominalShow t) => NominalShow [t] where
   support ts = support_unions (map support ts)
+  nominal_showPrec sup d ts =
+    "[" ++ intercalate "," [ nominal_showPrec sup 0 t | t <- ts ]
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
   support (t, s) = support_union (support t) (support s)
-
+  nominal_showPrec sup d (t, s) =
+    "(" ++ nominal_showPrec sup 0 t ++ "," ++ nominal_showPrec sup 0 s ++ ")"
+        
 instance NominalShow () where
   support t = support_empty
+  nominal_showPrec sup = showPrec
 
 -- Derived cases.
 instance NominalShow Integer where
   support t = support ()
+  nominal_showPrec sup = showPrec
 
 instance NominalShow Int where
   support t = support ()
+  nominal_showPrec sup = showPrec
 
 instance NominalShow Char where
   support t = support ()
+  nominal_showPrec sup = showPrec
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   support (t, s, r) = support (t, (s, r))
+  nominal_showPrec sup d (t, s, r) = "(" ++ nominal_showPrec sup 0 t ++ "," ++ nominal_showPrec sup 0 s ++ "," ++ nominal_showPrec sup 0 r ++ ")"
 
 -- ... and so on for tuples.
 
@@ -615,19 +642,33 @@ open_for_printing t@(Bind ns f) body =
     name (A a) = show a
     name (S s) = s
 
+-- | A variant of 'open_for_printing' that also receives the
+-- pre-computed support of /t/, and returns a support to use for the subterm.
+open_for_printing_with_support :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+open_for_printing_with_support sup t@(Bind ns f) body =
+  with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
+  where
+    n1 = rename_fresh (strings_of_support sup) ns
+    name (A a) = show a
+    name (S s) = s
+    sup' a = support_union sup (support_atom (to_atom a))
+
 instance (NominalShow t) => NominalShow (Defer t) where
   support t = support (force t)
+  nominal_showPrec sup d t = nominal_showPrec sup d (force t)
   
 instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
   support (Bind n f) =
     with_fresh (\a -> support_delete (to_atom a) (support (f a)))
+  nominal_showPrec sup d t =
+    open_for_printing_with_support sup t $ \a s sup' ->
+      paren (d > 5) $
+        show a ++ "." ++ nominal_showPrec sup' 5 s    
 
 instance (Atomic a, Show a, Show t, NominalShow t) => Show (Bind a t) where
-  showsPrec d t = open_for_printing t $ \a s ->
-    showParen (d > 5) $
-      showString (show a ++ ".") `compose` showsPrec 5 s
+  showsPrec d t = showString (nominal_showPrec sup d t)
     where
-      compose f g x = f (g x) -- because hidden from Prelude
+      sup = support t
 
 -- ----------------------------------------------------------------------
 -- * Multiple atom types

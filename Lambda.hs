@@ -27,6 +27,12 @@ instance NominalShow Term where
   support (Var x) = support x
   support (App t s) = support (t, s)
   support (Abs t) = support t
+  nominal_showPrec sup d (Var x) = nominal_showPrec sup d x
+  nominal_showPrec sup d (App m n) = paren (d > 10) $
+    nominal_showPrec sup 10 m ++ " " ++ nominal_showPrec sup 11 n
+  nominal_showPrec sup d (Abs t) = open_for_printing_with_support sup t $ \x s sup ->
+    paren (d > 1) $
+      "λ" ++ show x ++ "." ++ nominal_showPrec sup 1 s
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
@@ -60,12 +66,9 @@ compose f g x = f (g x)
 
 -- | Pretty-printing of lambda terms.
 instance Show Term where
-  showsPrec d (Var x) = showsPrec d x
-  showsPrec d (App m n) = showParen (d > 10) $
-    showsPrec 10 m `compose` showString " " `compose` showsPrec 11 n
-  showsPrec d (Abs t) = open_for_printing t $ \x s ->
-    showParen (d > 1) $
-      showString ("λ" ++ show x ++ ".") `compose` showsPrec 1 s
+  showsPrec d t = showString (nominal_showPrec sup d t)
+    where
+      sup = support t
 
 -- | Free variables.
 fv :: Term -> Set Variable
