@@ -618,6 +618,17 @@ class (Nominal t) => NominalShow t where
   nominal_show :: t -> String
   nominal_show t = nominal_showsPrecSup (support t) 0 t ""
 
+  -- | The method 'nominal_showList' is provided to allow the programmer to
+  -- give a specialised way of showing lists of values, similarly to
+  -- 'showList'. Mostly this is used in the 'NominalShow' instance of
+  -- the 'Char' type, so that strings are shown in double quotes,
+  -- rather than as character lists.
+  nominal_showList :: Support -> [t] -> ShowS
+  nominal_showList sup ts = showString $
+    "["
+    ++ intercalate "," [ nominal_showsPrecSup sup 0 t "" | t <- ts ]
+    ++ "]"
+
   {-# MINIMAL (nominal_showsPrecSup | nominal_show), support #-}
 
 -- | This function should be used in the definition of 'Show'
@@ -649,8 +660,7 @@ instance NominalShow Literal where
 
 instance (NominalShow t) => NominalShow [t] where
   support ts = support_unions (map support ts)
-  nominal_showsPrecSup sup d ts =
-    showString ("[" ++ intercalate "," [ nominal_showsPrecSup sup 0 t "" | t <- ts ])
+  nominal_showsPrecSup sup d ts = nominal_showList sup ts
 
 instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
   support (t, s) = support_union (support t) (support s)
@@ -677,6 +687,7 @@ instance NominalShow Int where
 instance NominalShow Char where
   support t = support ()
   nominal_show = show
+  nominal_showList sup ts = shows ts
 
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   support (t, s, r) = support (t, (s, r))
