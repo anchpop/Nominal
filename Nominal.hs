@@ -6,7 +6,7 @@
 -- atoms). This should include some proper alpha-renaming. This
 -- probably requires computing the free atoms of a term.
 
-module Nominal {-(
+module Nominal (
   Atom,
   Atomic,
   Bind,
@@ -26,7 +26,7 @@ module Nominal {-(
   AtomKind(..),
   AtomOfKind,
   cp,
-)-}
+)
 where
 
 import Prelude hiding ((.))
