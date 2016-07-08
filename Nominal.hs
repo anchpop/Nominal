@@ -546,6 +546,9 @@ support_unions xs = Support (Set.unions [ x | Support x <- xs ])
 support_union :: Support -> Support -> Support
 support_union (Support x) (Support y) = Support (Set.union x y)
 
+support_insert :: Atom -> Support -> Support
+support_insert a (Support x) = Support (Set.insert (A a) x)
+
 support_atom :: Atom -> Support
 support_atom a = Support (Set.singleton (A a))
 
@@ -726,7 +729,7 @@ open_for_printing sup t@(Bind ns f) body =
     n1 = rename_fresh (strings_of_support sup) ns
     name (A a) = show a
     name (S s) = s
-    sup' a = support_union sup (support_atom (to_atom a))
+    sup' a = support_insert (to_atom a) sup
 
 instance (NominalShow t) => NominalShow (Defer t) where
   support t = support (force t)
