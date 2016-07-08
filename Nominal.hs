@@ -266,7 +266,7 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- | The monoid of finitely supported permutations on atoms. This is
 -- carefully engineered for efficiency.
 newtype Perm = Perm (Map Atom Atom)
-             deriving (Show) -- ### for testing
+             deriving (Eq, Show) -- ### for testing
 
 -- | The identity permutation. O(1).
 p_identity :: Perm
@@ -310,6 +310,10 @@ p_transpose a b
   | a == b = p_identity
   | otherwise = Perm (Map.singleton a b `Map.union` Map.singleton b a)
 
+-- | Return the domain of a permutation. O(n).
+p_domain :: Perm -> [Atom]
+p_domain (Perm sigma) = Map.keys sigma
+
 -- ----------------------------------------------------------------------
 -- * The group of permutations
 
@@ -320,7 +324,7 @@ p_transpose a b
 -- permutation and its inverse. Because of laziness, the inverse will
 -- not be computed unless it is used.
 data Permutation = Permutation Perm Perm
-             deriving (Show) -- ### for testing
+             deriving (Eq, Show) -- ### for testing
 
 -- | The identity permutation. O(1).
 perm_identity :: Permutation
@@ -356,13 +360,33 @@ perm_transpose a b = Permutation sigma sigma
   where
     sigma = p_transpose a b
 
+-- | The domain of a permutation. O(/n/).
+perm_domain :: Permutation -> [Atom]
+perm_domain (Permutation sigma sinv) = p_domain sigma
 
 -- | Make a permutation from a list of swaps. This is mostly useful
--- for testing.
-perm_from_list :: [(Atom, Atom)] -> Permutation
-perm_from_list xs = aux (reverse xs) where
+-- for testing. O(/n/).
+perm_of_list :: [(Atom, Atom)] -> Permutation
+perm_of_list xs = aux xs where
   aux [] = perm_identity
-  aux ((a,b):t) = perm_from_list t `perm_composeR` perm_transpose a b
+  aux ((a,b):t) = perm_transpose a b `perm_composeL` perm_of_list t
+
+-- | Turn a permutation into a list of swaps. This is mostly useful
+-- for testing. O(/n/).
+list_of_perm :: Permutation -> [(Atom, Atom)]
+list_of_perm sigma = [ y | Just y <- ys ]
+  where
+    domain = perm_domain sigma
+    (tau, ys) = mapAccumL f sigma domain
+    f acc a
+      | a == b = (acc', Nothing)
+      | otherwise = (acc', Just (a, b))
+      where
+        b = perm_apply_atom acc a
+        acc' = perm_composeL (perm_transpose a b) acc
+
+-- ----------------------------------------------------------------------
+-- * Defer
 
 -- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
 -- This is used to cache substitutions so that they can be optimized
