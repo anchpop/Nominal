@@ -110,9 +110,9 @@ combine_names xs ys = xs ++ (ys \\ xs)
 data Atom = Atom Unique NameSuggestion
              deriving (Eq, Ord)
 
--- | Create a new atom with the given name suggestions.
-new_atom_namelist :: NameSuggestion -> IO Atom
-new_atom_namelist ns = do
+-- | Create a fresh atom with the given name suggestions.
+fresh_atom_namelist :: NameSuggestion -> IO Atom
+fresh_atom_namelist ns = do
   x <- newUnique
   return (Atom x ns)
 
@@ -216,7 +216,7 @@ with_fresh_named n = with_fresh_namelist [n]
 {-# NOINLINE with_fresh_namelist #-}
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
 with_fresh_namelist ns body = unsafePerformIO $ do
-  a <- new_atom_namelist ns
+  a <- fresh_atom_namelist ns
   return (body (from_atom a))
 
 -- ----------------------------------------------------------------------
@@ -582,7 +582,8 @@ class (Nominal t) => NominalShow t where
   -- | Compute a set of atoms and strings that should not be usd as
   -- the names of bound variables. Usually this is defined by
   -- straightforward recursive clauses. The recursive clauses must
-  -- apply 'support' to a tuple or list of immediate subterms.
+  -- apply 'support' to a tuple or list (or combination thereof) of
+  -- immediate subterms.
   --
   -- > instance NominalShow Term where
   -- >   support (Var x) = support x
