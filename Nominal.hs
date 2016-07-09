@@ -26,6 +26,7 @@ module Nominal (
   AtomKind(..),
   AtomOfKind,
   cp,
+  nominal_showsPrec,
 )
 where
 
