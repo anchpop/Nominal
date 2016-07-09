@@ -116,4 +116,10 @@ church n =
 -- | Another example of a recursively built term.
 multilam :: Integer -> Term -> Term
 multilam 0 t = t
-multilam n t = lam (\x -> multilam (n-1) (t @@ x))
+multilam n t = lam (\x -> multilam (n-1) t)
+
+-- | Another example of a recursively built term.
+nested :: Integer -> Term -> Term
+nested 0 t = t
+nested n t = lam (\x -> multilam (n-1) (t @@ x))
+

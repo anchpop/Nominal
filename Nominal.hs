@@ -110,7 +110,16 @@ combine_names xs ys = xs ++ (ys \\ xs)
 -- | An atom is an globally unique, opaque value with some optional
 -- name suggestions.
 data Atom = Atom Unique NameSuggestion
-             deriving (Eq, Ord)
+
+instance Eq Atom where
+  -- We only compare the unique identifier, because the name
+  -- suggestions may be large or even infinite.
+  Atom x ns == Atom x' ns' = x == x'
+
+instance Ord Atom where
+  -- We only compare the unique identifier, because the name
+  -- suggestions may be large or even infinite.
+  compare (Atom x ns) (Atom x' ns') = compare x x'
 
 -- | Create a fresh atom with the given name suggestions.
 fresh_atom_namelist :: NameSuggestion -> IO Atom
