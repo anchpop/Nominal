@@ -86,12 +86,15 @@ to_subscript '8' = '₈'
 to_subscript '9' = '₉'
 to_subscript c = c
 
+isAlphaOrWild :: Char -> Bool
+isAlphaOrWild c = isAlpha c || c == '_'
+
 -- | An infinite list of strings, based on the suggested names.
 varnames :: NameSuggestion -> [String]
 varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
   where
     xs1 = [ x | x <- xs0, x /= "" ]
-    xs2 = [ y | x <- xs0, let y = takeWhile isAlpha x, y /= "" ]
+    xs2 = [ y | x <- xs0, let y = takeWhile isAlphaOrWild x, y /= "" ]
     xs3 = if xs2 == [] then default_names else xs2
 
 -- | Compute a string that is not in the given set, and whose name is
