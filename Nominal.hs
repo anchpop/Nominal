@@ -15,6 +15,8 @@ module Nominal (
   with_fresh_namelist,
   (.),
   bind,
+  bind_named,
+  bind_namelist,
   open,
   open_for_printing,
   merge,
@@ -27,6 +29,7 @@ module Nominal (
   AtomOfKind,
   cp,
   nominal_showsPrec,
+  NameSuggestion,
 )
 where
 
@@ -210,7 +213,7 @@ instance Atomic Atom where
 -- then the programs will be referentially transparent (and all
 -- definable functions will be equivariant).
 with_fresh :: (Atomic a) => (a -> t) -> t
-with_fresh f = with_fresh_namelist [] f
+with_fresh = with_fresh_namelist []
 
 -- | A version of 'with_fresh' that permits a suggested name to be
 -- given to the atom. The name is only a suggestion, and will be
@@ -458,7 +461,16 @@ abst = (.)
 -- is a convenient way to write the atom abstraction (x.t),
 -- where /x/ is a fresh variable.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
-bind f = with_fresh (\x -> x . f x)
+bind = bind_namelist []
+
+-- | A version of 'bind' that also takes a suggested name for the bound atom.
+bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> Bind a t
+bind_named n = bind_namelist [n]
+
+-- | A version of 'bind' that also take a list of suggested names for the bound atom.
+bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> Bind a t
+bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
+
 
 -- | Pattern matching for atom abstraction. In an ideal programming
 -- idiom, we would be able to define a function on atom abstractions
