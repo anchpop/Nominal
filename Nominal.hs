@@ -172,9 +172,9 @@ class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   names :: a -> NameSuggestion
 
 show_atom :: (Atomic a) => a -> String
-show_atom a = head (varnames ns)
+show_atom a = head (varnames ns2)
   where
-    ns2 = case ns of [] -> names a; oetherwise -> ns
+    ns2 = case ns of [] -> names a; otherwise -> ns
     Atom x ns = to_atom a
 
 instance Atomic Atom where
@@ -794,10 +794,7 @@ instance (Atomic a, NominalShow t) => Show (Bind a t) where
 -- Then Zero, Succ Zero, Succ (Succ Zero), etc., will all be atom kinds.
 class AtomKind a where
   suggested_names :: a -> NameSuggestion
-  suggested_names a = names a'
-    where
-      a' :: Atom
-      a' = undefined
+  suggested_names a = default_names
 
 -- | The type of atoms of a given kind. For example:
 --
@@ -806,8 +803,8 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Nominal, NominalShow, Eq, Ord)
 
-instance Show (AtomOfKind a) where
-  show (AtomOfKind a) = show a
+instance (AtomKind a) => Show (AtomOfKind a) where
+  show = show_atom
 
 instance (AtomKind a) => Atomic (AtomOfKind a) where
   to_atom (AtomOfKind a) = a
