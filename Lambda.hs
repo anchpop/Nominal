@@ -2,6 +2,8 @@
 
 -- | An example of "Nominal": untyped lambda calculus.
 
+module Lambda where
+
 import Nominal
 import Prelude hiding ((.))
 import Data.Set (Set)
