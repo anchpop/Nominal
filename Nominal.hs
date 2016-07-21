@@ -137,6 +137,12 @@ fresh_atom_namelist ns = do
 atom_names :: Atom -> NameSuggestion
 atom_names (Atom x ns) = ns
 
+-- | Make sure the atom has name suggestions, by adding the specified
+-- ones if none are present.
+add_default_names :: NameSuggestion -> Atom -> Atom
+add_default_names ns (Atom x []) = Atom x ns
+add_default_names ns (Atom x ns') = Atom x ns'
+
 -- ----------------------------------------------------------------------
 -- * The 'Atomic' class
 
@@ -172,10 +178,9 @@ class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   names :: a -> NameSuggestion
 
 show_atom :: (Atomic a) => a -> String
-show_atom a = head (varnames ns2)
+show_atom a = head (varnames ns)
   where
-    ns2 = case ns of [] -> names a; otherwise -> ns
-    Atom x ns = to_atom a
+    Atom x ns = add_default_names (names a) (to_atom a)
 
 instance Atomic Atom where
   to_atom = id
@@ -751,10 +756,13 @@ open_for_printing :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t
 open_for_printing sup t@(Bind ns f) body =
   with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
   where
-    n1 = rename_fresh (strings_of_support sup) ns
+    ns1 = if null ns then names (un t) else ns
+    n1 = rename_fresh (strings_of_support sup) ns1
     name (A a) = show a
     name (S s) = s
     sup' a = support_insert (to_atom a) sup
+    un :: Bind a t -> a
+    un = undefined
 
 instance (NominalShow t) => NominalShow (Defer t) where
   support t = support (force t)
@@ -801,7 +809,11 @@ class AtomKind a where
 -- > type Variable = AtomOfKind VarName
 -- > type Type = AtomOfKind TypeName
 newtype AtomOfKind a = AtomOfKind Atom
-  deriving (Nominal, NominalShow, Eq, Ord)
+  deriving (Nominal, Eq, Ord)
+
+instance (AtomKind a) => NominalShow (AtomOfKind a) where
+  support a = support (add_default_names (names a) (to_atom a))
+  nominal_show = show_atom
 
 instance (AtomKind a) => Show (AtomOfKind a) where
   show = show_atom
