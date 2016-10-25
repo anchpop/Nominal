@@ -111,37 +111,65 @@ combine_names :: NameSuggestion -> NameSuggestion -> NameSuggestion
 combine_names xs ys = xs ++ (ys \\ xs)
 
 -- ----------------------------------------------------------------------
+-- * A global variable
+
+-- | A global variable holding a set of strings already used for free
+-- names.
+global_used :: IORef (Set String)
+global_used = unsafePerformIO $ do
+  newIORef Set.empty
+
+-- | Create a globally new concrete name based on the given name
+-- suggestion.
+global_new :: NameSuggestion -> String
+global_new ns = unsafePerformIO $ do
+  used <- readIORef global_used
+  let n = rename_fresh used ns
+  writeIORef global_used (Set.insert n used)
+  return n
+
+-- ----------------------------------------------------------------------
 -- * Atoms
 
--- | An atom is an globally unique, opaque value with some optional
--- name suggestions.
-data Atom = Atom Unique NameSuggestion
+-- | An atom is an globally unique, opaque value with a concrete name
+-- and some optional name suggestions.
+data Atom = Atom Unique String NameSuggestion
 
 instance Eq Atom where
   -- We only compare the unique identifier, because the name
   -- suggestions may be large or even infinite.
-  Atom x ns == Atom x' ns' = x == x'
+  Atom x n ns == Atom x' n' ns' = x == x'
 
 instance Ord Atom where
   -- We only compare the unique identifier, because the name
   -- suggestions may be large or even infinite.
-  compare (Atom x ns) (Atom x' ns') = compare x x'
+  compare (Atom x n ns) (Atom x' n' ns') = compare x x'
 
 -- | Create a fresh atom with the given name suggestions.
+
+-- Implementation note: the call to global_new is purposely done
+-- outside the IO monad, so that an actual concrete name will only be
+-- computed on demand.
 fresh_atom_namelist :: NameSuggestion -> IO Atom
 fresh_atom_namelist ns = do
   x <- newUnique
-  return (Atom x ns)
+  return (Atom x (global_new ns) ns)
+
+-- | Create a fresh atom with the given concrete name.
+fresh_atom_named :: String -> IO Atom
+fresh_atom_named n = do
+  x <- newUnique
+  return (Atom x n [n])
 
 -- | Return the suggested names of an atom.
 atom_names :: Atom -> NameSuggestion
-atom_names (Atom x ns) = ns
+atom_names (Atom x n ns) = ns
 
 -- | Make sure the atom has name suggestions, by adding the specified
 -- ones if none are present.
 add_default_names :: NameSuggestion -> Atom -> Atom
-add_default_names ns (Atom x []) = Atom x ns
-add_default_names ns (Atom x ns') = Atom x ns'
+add_default_names ns (Atom x n []) = Atom x n ns
+add_default_names ns (Atom x n ns') = Atom x n ns'
 
 -- ----------------------------------------------------------------------
 -- * The 'Atomic' class
@@ -178,9 +206,9 @@ class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   names :: a -> NameSuggestion
 
 show_atom :: (Atomic a) => a -> String
-show_atom a = head (varnames ns)
+show_atom a = n
   where
-    Atom x ns = add_default_names (names a) (to_atom a)
+    Atom x n ns = to_atom a
 
 instance Atomic Atom where
   to_atom = id
@@ -221,13 +249,19 @@ instance Atomic Atom where
 -- then the programs will be referentially transparent (and all
 -- definable functions will be equivariant).
 with_fresh :: (Atomic a) => (a -> t) -> t
-with_fresh = with_fresh_namelist []
+with_fresh body = with_fresh_namelist ns body
+  where
+    ns = names (un body)
+    un :: (a -> t) -> a
+    un = undefined
 
 -- | A version of 'with_fresh' that permits a suggested name to be
 -- given to the atom. The name is only a suggestion, and will be
 -- changed, if necessary, to avoid clashes.
 with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
-with_fresh_named n = with_fresh_namelist [n]
+with_fresh_named n body = unsafePerformIO $ do
+  a <- fresh_atom_named n
+  return (body (from_atom a))
 
 -- | A version of 'with_fresh' that permits a list of suggested names
 -- to be specified. The first suitable name in the list will be used
@@ -469,7 +503,11 @@ abst = (.)
 -- is a convenient way to write the atom abstraction (x.t),
 -- where /x/ is a fresh variable.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
-bind = bind_namelist []
+bind body = bind_namelist ns body
+  where
+    ns = names (un body)
+    un :: (a -> t) -> a
+    un = undefined
 
 -- | A version of 'bind' that also takes a suggested name for the bound atom.
 bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> Bind a t
