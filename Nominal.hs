@@ -862,4 +862,4 @@ instance (AtomKind a) => Atomic (AtomOfKind a) where
   names f = suggested_names (un f)
     where
       un :: AtomOfKind a -> a
-      un f = undefined
+      un = undefined
