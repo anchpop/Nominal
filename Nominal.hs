@@ -729,19 +729,6 @@ instance NominalShow Literal where
   support (Literal s) = support_string s
   nominal_show = show
 
-instance (NominalShow t) => NominalShow [t] where
-  support ts = support_unions (map support ts)
-  nominal_showsPrecSup sup d ts = nominal_showList sup ts
-
-instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  support (t, s) = support_union (support t) (support s)
-  nominal_showsPrecSup sup d (t, s) = showString $
-    "("
-    ++ nominal_showsPrecSup sup 0 t ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 s ""
-    ++ ")"
-        
 instance NominalShow () where
   support t = support_empty
   nominal_show = show
@@ -760,6 +747,15 @@ instance NominalShow Char where
   nominal_show = show
   nominal_showList sup ts = shows ts
 
+instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
+  support (t, s) = support_union (support t) (support s)
+  nominal_showsPrecSup sup d (t, s) = showString $
+    "("
+    ++ nominal_showsPrecSup sup 0 t ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 s ""
+    ++ ")"
+        
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   support (t, s, r) = support (t, (s, r))
   nominal_showsPrecSup sup d (t, s, r) = showString $
@@ -772,6 +768,17 @@ instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) wh
     ++ ")"
 
 -- ... and so on for tuples.
+
+instance (NominalShow t) => NominalShow [t] where
+  support ts = support_unions (map support ts)
+  nominal_showsPrecSup sup d ts = nominal_showList sup ts
+
+instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
+  π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
+
+instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (Map k v) where
+  support map = support (Map.toList map)
+  nominal_showsPrecSup sup = showsPrec
 
 -- | A variant of 'open' which moreover attempts to choose a name for
 -- the bound atom that does not clash with any free name in its
