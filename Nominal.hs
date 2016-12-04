@@ -22,6 +22,7 @@ module Nominal (
   merge,
   Nominal(..),
   Permutation,
+  NominalSupport(..),
   NominalShow(..),
   Support,
   Literal(..),
@@ -189,17 +190,17 @@ add_default_names ns (Atom x n ns') = Atom x n ns'
 -- > newtype MyName = AtomOfKind X
 -- 
 -- 2. By cloning an existing 'Atomic' type, deriving 'Atomic',
--- 'Nominal', 'NominalShow', 'Eq', and 'Ord', and defining a 'Show'
--- instance:
+-- 'Nominal', 'NominalSupport', 'NominalShow', 'Eq', and 'Ord', and
+-- defining a 'Show' instance:
 --
 -- > {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- >
 -- > newtype Variable = Variable Atom
--- >   deriving (Atomic, Nominal, NominalShow, Eq, Ord)
+-- >   deriving (Atomic, Nominal, NominalSupport, NominalShow, Eq, Ord)
 -- > 
 -- > instance Show Variable where
 -- >   showsPrec = nominal_showsPrec
-class (Nominal a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
+class (Nominal a, NominalSupport a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
   -- | The default variable names for the atom type.
@@ -637,12 +638,10 @@ newtype Literal = Literal String
 instance Nominal Literal where
   π • t = t
 
--- | 'NominalShow' is a helper class to support pretty-printing of
--- nominal values. Most 'Nominal' types are also 'NominalShow', with
--- the exception of function types (for which we cannot compute the
--- support).
-
-class (Nominal t) => NominalShow t where
+-- | 'NominalSupport' is a subclass of 'Nominal' consisting of those
+-- types for which the support can be calculated. With the exception
+-- of function types, most 'Nominal' types are also 'NominalSupport'.
+class (Nominal t) => NominalSupport t where
   -- | Compute a set of atoms and strings that should not be used as
   -- the names of bound variables. Usually this is defined by
   -- straightforward recursive clauses. The recursive clauses must
@@ -664,6 +663,12 @@ class (Nominal t) => NominalShow t where
   -- >   support (Const str) = support (Literal str)
   support :: t -> Support
 
+-- | 'NominalShow' is a helper class to support pretty-printing of
+-- nominal values. Most 'Nominal' types are also 'NominalShow', with
+-- the exception of function types (for which we cannot compute the
+-- support).
+
+class (NominalSupport t) => NominalShow t where
   -- | A nominal version of 'showsPrec'. This function takes as its
   -- first argument the support of /t/. This is then passed into the
   -- subterms, making printing O(/n/) instead of O(/n/^2).
@@ -682,7 +687,7 @@ class (Nominal t) => NominalShow t where
   nominal_showsPrecSup sup d t s = nominal_show t ++ s
 
   -- | For primitive types that don't have any subterms, cannot contain
-  -- binders, and don't require parenthesis, it may be more convenient
+  -- binders, and don't require parentheses, it may be more convenient
   -- to define 'nominal_show' instead of 'nominal_showsPrecSup'. For
   -- such types, it is also okay to derive a 'Show' instance and
   -- define 'nominal_show' as 'show'.
@@ -700,7 +705,7 @@ class (Nominal t) => NominalShow t where
     ++ intercalate "," [ nominal_showsPrecSup sup 0 t "" | t <- ts ]
     ++ "]"
 
-  {-# MINIMAL (nominal_showsPrecSup | nominal_show), support #-}
+  {-# MINIMAL (nominal_showsPrecSup | nominal_show) #-}
 
 -- | This function should be used in the definition of 'Show'
 -- instances for nominal types, like this:
@@ -721,34 +726,48 @@ cp g f x = g (f x)
 instance Show Atom where
   show = show_atom
 
-instance NominalShow Atom where
+instance NominalSupport Atom where
   support a = support_atom a
+
+instance NominalShow Atom where
   nominal_show = show_atom
 
-instance NominalShow Literal where
+instance NominalSupport Literal where
   support (Literal s) = support_string s
+
+instance NominalShow Literal where
   nominal_show = show
 
-instance NominalShow () where
+instance NominalSupport () where
   support t = support_empty
+
+instance NominalShow () where
   nominal_show = show
 
 -- Derived cases.
-instance NominalShow Integer where
+instance NominalSupport Integer where
   support t = support ()
+
+instance NominalShow Integer where
   nominal_show = show
+
+instance NominalSupport Int where
+  support t = support ()
 
 instance NominalShow Int where
-  support t = support ()
   nominal_show = show
 
-instance NominalShow Char where
+instance NominalSupport Char where
   support t = support ()
+
+instance NominalShow Char where
   nominal_show = show
   nominal_showList sup ts = shows ts
 
-instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
+instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s) where
   support (t, s) = support_union (support t) (support s)
+
+instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
   nominal_showsPrecSup sup d (t, s) = showString $
     "("
     ++ nominal_showsPrecSup sup 0 t ""
@@ -756,8 +775,10 @@ instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
     ++ nominal_showsPrecSup sup 0 s ""
     ++ ")"
         
-instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
+instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r) where
   support (t, s, r) = support (t, (s, r))
+
+instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
   nominal_showsPrecSup sup d (t, s, r) = showString $
     "("
     ++ nominal_showsPrecSup sup 0 t ""
@@ -769,15 +790,19 @@ instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) wh
 
 -- ... and so on for tuples.
 
-instance (NominalShow t) => NominalShow [t] where
+instance (NominalSupport t) => NominalSupport [t] where
   support ts = support_unions (map support ts)
+
+instance (NominalShow t) => NominalShow [t] where
   nominal_showsPrecSup sup d ts = nominal_showList sup ts
 
 instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
   π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
 
-instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (Map k v) where
+instance (Ord k, NominalSupport k, Show k, NominalSupport v, Show v) => NominalSupport (Map k v) where
   support map = support (Map.toList map)
+
+instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (Map k v) where
   nominal_showsPrecSup sup = showsPrec
 
 -- | A variant of 'open' which moreover attempts to choose a name for
@@ -809,13 +834,17 @@ open_for_printing sup t@(Bind ns f) body =
     un :: Bind a t -> a
     un = undefined
 
-instance (NominalShow t) => NominalShow (Defer t) where
+instance (NominalSupport t) => NominalSupport (Defer t) where
   support t = support (force t)
+
+instance (NominalShow t) => NominalShow (Defer t) where
   nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
   
-instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
+instance (Atomic a, NominalSupport t) => NominalSupport (Bind a t) where
   support (Bind n f) =
     with_fresh (\a -> support_delete (to_atom a) (support (f a)))
+
+instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
   nominal_showsPrecSup sup d t =
     open_for_printing sup t $ \a s sup' ->
       showParen (d > 5) $
@@ -856,8 +885,10 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Nominal, Eq, Ord)
 
-instance (AtomKind a) => NominalShow (AtomOfKind a) where
+instance (AtomKind a) => NominalSupport (AtomOfKind a) where
   support a = support (add_default_names (names a) (to_atom a))
+
+instance (AtomKind a) => NominalShow (AtomOfKind a) where
   nominal_show = show_atom
 
 instance (AtomKind a) => Show (AtomOfKind a) where
