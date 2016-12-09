@@ -18,6 +18,7 @@ module Nominal (
   bind_named,
   bind_namelist,
   open,
+  open2,
   open_for_printing,
   merge,
   Nominal(..),
@@ -536,6 +537,10 @@ bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 open :: (Atomic a, Nominal t) => Bind a t -> (a -> t -> s) -> s
 open (Bind ns f) body =
   with_fresh_namelist ns (\a -> body a (force (f a)))
+
+-- | Like 'open', but for a pair of binders. For convenience.
+open2 :: (Atomic a, Atomic b, Nominal t) => Bind a (Bind b t) -> (a -> b -> t -> s) -> s
+open2 term body = open term $ \a term' -> open term' $ \b t -> body a b t
 
 instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
   Bind n f == Bind m g =
