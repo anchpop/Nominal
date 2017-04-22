@@ -866,10 +866,10 @@ instance (Atomic a, NominalShow t) => Show (Bind a t) where
 -- For example:
 --
 -- > data VarName
--- > instance AtomKind VarName where suggested_names = ["x", "y", "z"]
+-- > instance AtomKind VarName where suggested_names a = ["x", "y", "z"]
 --
 -- > data TypeName
--- > instance AtomKind TypeName where suggested_names = ["a", "b", "c"]
+-- > instance AtomKind TypeName where suggested_names a = ["a", "b", "c"]
 --
 -- It is possible to have infinitely many kinds of atoms, for example:
 --
