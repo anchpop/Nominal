@@ -310,6 +310,9 @@ instance (Nominal t, Nominal s) => Nominal (t,s) where
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
   π • (t, s, r) = (π • t, π • s, π • r)
 
+instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q) where
+  π • (t, s, r, q) = (π • t, π • s, π • r, π • q)
+
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
   π • f = \x -> π • (f (π' • x))
     where
@@ -791,6 +794,21 @@ instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) wh
     ++ nominal_showsPrecSup sup 0 s ""
     ++ ","
     ++ nominal_showsPrecSup sup 0 r ""
+    ++ ")"
+
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q) where
+  support (t, s, r, q) = support ((t, s, r), q)
+
+instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => NominalShow (t,s,r,q) where
+  nominal_showsPrecSup sup d (t, s, r, q) = showString $
+    "("
+    ++ nominal_showsPrecSup sup 0 t ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 s ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 r ""
+    ++ ","
+    ++ nominal_showsPrecSup sup 0 q ""
     ++ ")"
 
 -- ... and so on for tuples.
