@@ -1,4 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 -- | A package for working with binders.
 
@@ -32,6 +35,8 @@ module Nominal (
   cp,
   nominal_showsPrec,
   NameSuggestion,
+  Bindable(..),
+  copen2
 )
 where
 
@@ -924,3 +929,21 @@ instance (AtomKind a) => Atomic (AtomOfKind a) where
     where
       un :: AtomOfKind a -> a
       un = undefined
+
+-- ----------------------------------------------------------------------
+-- * Generalized binders
+
+class Bindable a b | b -> a where
+  cabst :: (Nominal t) => a -> t -> b t
+  copen :: (Nominal t) => b t -> (a -> t -> s) -> s
+  cmerge :: (Nominal t, Nominal s) => b t -> b s -> b (t,s)
+  copen_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
+
+instance (Atomic a) => Bindable a (Bind a) where
+  cabst = abst
+  copen = open
+  cmerge = merge
+  copen_for_printing = open_for_printing
+
+copen2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
+copen2 term k = copen term $ \a term' -> copen term' $ \a' t -> k a a' t
