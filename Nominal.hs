@@ -9,7 +9,7 @@
 -- atoms). This should include some proper alpha-renaming. This
 -- probably requires computing the free atoms of a term.
 
-module Nominal (
+module Nominal {- ### (
   Atom,
   Atomic,
   Bind,
@@ -35,9 +35,8 @@ module Nominal (
   cp,
   nominal_showsPrec,
   NameSuggestion,
-  Bindable(..),
-  copen2
-)
+  Bindable(..)
+) -}
 where
 
 import Prelude hiding ((.))
@@ -485,26 +484,12 @@ data Bind a t = Bind NameSuggestion (a -> Defer t)
 atom_abst :: Atom -> t -> Bind Atom t
 atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_swap a x) t)
 
--- | Atom abstraction: (/a/./t/) represents the equivalence class of pairs
--- (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~ (/b/,/s/) iff
--- for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
---
--- We use the infix operator '.', which is normally bound to function
--- composition in the standard library. Thus, nominal programs should
--- import the standard library like this:
---
--- > import Prelude hiding ((.))
-(.) :: (Atomic a, Nominal t) => a -> t -> Bind a t
-a.t = Bind ns f
+-- | Like 'atom_abst', but for arbitrary 'Atomic' instances.
+atomic_abst :: (Atomic a, Nominal t) => a -> t -> Bind a t
+atomic_abst a t = Bind ns f
   where
     Bind ns g = atom_abst (to_atom a) t
     f x = g (to_atom x)
-
-infixr 5 .
-
--- | 'abst' /x/ /t/ is an alternative prefix notation for (/x/./t/).
-abst :: (Atomic a, Nominal t) => a -> t -> Bind a t
-abst = (.)
 
 -- | A convenience function for constructing binders. 
 --
@@ -527,7 +512,6 @@ bind_named n = bind_namelist [n]
 bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> Bind a t
 bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 
-
 -- | Pattern matching for atom abstraction. In an ideal programming
 -- idiom, we would be able to define a function on atom abstractions
 -- like this:
@@ -542,13 +526,9 @@ bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 -- To be referentially transparent and equivariant, the body is
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
-open :: (Atomic a, Nominal t) => Bind a t -> (a -> t -> s) -> s
-open (Bind ns f) body =
+atomic_open :: (Atomic a, Nominal t) => Bind a t -> (a -> t -> s) -> s
+atomic_open (Bind ns f) body =
   with_fresh_namelist ns (\a -> body a (force (f a)))
-
--- | Like 'open', but for a pair of binders. For convenience.
-open2 :: (Atomic a, Atomic b, Nominal t) => Bind a (Bind b t) -> (a -> b -> t -> s) -> s
-open2 term body = open term $ \a term' -> open term' $ \b t -> body a b t
 
 instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
   Bind n f == Bind m g =
@@ -601,8 +581,8 @@ instance (Nominal t) => Nominal (Bind a t) where
 -- then /z/ will be preferably given the concrete name of /x/, but the
 -- concrete name of /y/ will be used if the name of /x/ would cause a
 -- clash.
-merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
-merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
+atomic_merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
+atomic_merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
   ns'' = combine_names ns ns'
   h x = Defer perm_identity (force (f x), force (g x))
 
@@ -850,8 +830,8 @@ instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (M
 -- this reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
-open_for_printing :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-open_for_printing sup t@(Bind ns f) body =
+atomic_open_for_printing :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+atomic_open_for_printing sup t@(Bind ns f) body =
   with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
   where
     ns1 = if null ns then names (un t) else ns
@@ -934,16 +914,68 @@ instance (AtomKind a) => Atomic (AtomOfKind a) where
 -- * Generalized binders
 
 class Bindable a b | b -> a where
-  cabst :: (Nominal t) => a -> t -> b t
-  copen :: (Nominal t) => b t -> (a -> t -> s) -> s
-  cmerge :: (Nominal t, Nominal s) => b t -> b s -> b (t,s)
-  copen_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
+  -- | Atom abstraction: (/a/./t/) represents the equivalence class of
+  -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
+  -- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
+  --
+  -- We use the infix operator '.', which is normally bound to
+  -- function composition in the standard library. Thus, nominal
+  -- programs should import the standard library like this:
+  --
+  -- > import Prelude hiding ((.))
+  abst :: (Nominal t) => a -> t -> b t
+  
+  -- | Pattern matching for atom abstraction. In an ideal programming
+  -- idiom, we would be able to define a function on atom abstractions
+  -- like this:
+  --
+  -- > f (x.s) = body.
+  --
+  -- Haskell doesn't let us provide this syntax, but the 'open'
+  -- function provides the equivalent syntax
+  --
+  -- > f t = open t (\x s -> body).
+  --
+  -- To be referentially transparent and equivariant, the body is
+  -- subject to the same restriction as 'with_fresh', namely, /x/ must
+  -- be fresh for the body (in symbols /x/ # /body/).
+  open :: (Nominal t) => b t -> (a -> t -> s) -> s
+  merge :: (Nominal t, Nominal s) => b t -> b s -> b (t,s)
+
+  -- | Pattern matching for atom abstraction. In an ideal programming
+  -- idiom, we would be able to define a function on atom abstractions
+  -- like this:
+  --
+  -- > f (x.s) = body.
+  --
+  -- Haskell doesn't let us provide this syntax, but the 'open'
+  -- function provides the equivalent syntax
+  --
+  -- > f t = open t (\x s -> body).
+  --
+  -- To be referentially transparent and equivariant, the body is
+  -- subject to the same restriction as 'with_fresh', namely, /x/ must
+  -- be fresh for the body (in symbols /x/ # /body/).
+  open_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
 
 instance (Atomic a) => Bindable a (Bind a) where
-  cabst = abst
-  copen = open
-  cmerge = merge
-  copen_for_printing = open_for_printing
+  abst = atomic_abst
+  open = atomic_open
+  merge = atomic_merge
+  open_for_printing = atomic_open_for_printing
 
-copen2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
-copen2 term k = copen term $ \a term' -> copen term' $ \a' t -> k a a' t
+-- | Atom abstraction: (/a/./t/) represents the equivalence class of
+-- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
+-- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
+--
+-- We use the infix operator '.', which is normally bound to function
+-- composition in the standard library. Thus, nominal programs should
+-- import the standard library like this:
+--
+-- > import Prelude hiding ((.))
+(.) :: (Bindable a b, Nominal t) => a -> t -> b t
+(.) = abst
+infixr 5 .
+
+open2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
+open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
