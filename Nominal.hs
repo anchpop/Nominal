@@ -5,25 +5,16 @@
 
 -- | A package for working with binders.
 
--- Todo: implement a proper Show instance for nominal types (and
--- atoms). This should include some proper alpha-renaming. This
--- probably requires computing the free atoms of a term.
-
-module Nominal {- ### (
+module Nominal (
   Atom,
   Atomic,
   Bind,
   with_fresh,
   with_fresh_named,
   with_fresh_namelist,
-  (.),
   bind,
   bind_named,
   bind_namelist,
-  open,
-  open2,
-  open_for_printing,
-  merge,
   Nominal(..),
   Permutation,
   NominalSupport(..),
@@ -35,8 +26,10 @@ module Nominal {- ### (
   cp,
   nominal_showsPrec,
   NameSuggestion,
-  Bindable(..)
-) -}
+  Bindable(..),
+  open2,
+  (.)
+)
 where
 
 import Prelude hiding ((.))
@@ -92,6 +85,7 @@ to_subscript '8' = '₈'
 to_subscript '9' = '₉'
 to_subscript c = c
 
+-- | Check if the character is a letter or underscore.
 isAlphaOrWild :: Char -> Bool
 isAlphaOrWild c = isAlpha c || c == '_'
 
@@ -137,7 +131,7 @@ global_new ns = unsafePerformIO $ do
 -- ----------------------------------------------------------------------
 -- * Atoms
 
--- | An atom is an globally unique, opaque value with a concrete name
+-- | An atom is a globally unique, opaque value with a concrete name
 -- and some optional name suggestions.
 data Atom = Atom Unique String NameSuggestion
 
@@ -463,13 +457,13 @@ instance Nominal (Defer t) where
 force :: (Nominal t) => Defer t -> t
 force (Defer sigma t) = sigma • t
 
--- | Bind a t is the type of atom abstractions, denoted [a]t
+-- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
 -- in the nominal logic literature. Its elements are of the form (a.v)
 -- modulo alpha-equivalence. For more details on what this means, see
 -- Definition 4 of [Pitts 2002].
 
 -- Implementation note: we currently use an HOAS encoding. It remains
--- to see whether this is efficient. An important invariant of the
+-- to be seen whether this is efficient. An important invariant of the
 -- HOAS encoding is that the underlying function must only be applied
 -- to /fresh/ atoms.
 -- 
@@ -483,13 +477,6 @@ data Bind a t = Bind NameSuggestion (a -> Defer t)
 -- this for 'Atom' and later generalize to other 'Atomic' types.
 atom_abst :: Atom -> t -> Bind Atom t
 atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_swap a x) t)
-
--- | Like 'atom_abst', but for arbitrary 'Atomic' instances.
-atomic_abst :: (Atomic a, Nominal t) => a -> t -> Bind a t
-atomic_abst a t = Bind ns f
-  where
-    Bind ns g = atom_abst (to_atom a) t
-    f x = g (to_atom x)
 
 -- | A convenience function for constructing binders. 
 --
@@ -512,24 +499,6 @@ bind_named n = bind_namelist [n]
 bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> Bind a t
 bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 
--- | Pattern matching for atom abstraction. In an ideal programming
--- idiom, we would be able to define a function on atom abstractions
--- like this:
---
--- > f (x.s) = body.
---
--- Haskell doesn't let us provide this syntax, but the 'open' function
--- provides the equivalent syntax
---
--- > f t = open t (\x s -> body).
---
--- To be referentially transparent and equivariant, the body is
--- subject to the same restriction as 'with_fresh', namely,
--- /x/ must be fresh for the body (in symbols /x/ # /body/).
-atomic_open :: (Atomic a, Nominal t) => Bind a t -> (a -> t -> s) -> s
-atomic_open (Bind ns f) body =
-  with_fresh_namelist ns (\a -> body a (force (f a)))
-
 instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
   Bind n f == Bind m g =
     with_fresh (\a -> force (f a) == force (g a))
@@ -539,52 +508,6 @@ instance (Nominal t) => Nominal (Bind a t) where
   -- in the HOAS encoding, the binder will only be opened with fresh
   -- atoms.
   π • (Bind n f) = Bind n (\x -> π • (f x))
-
--- | Sometimes, it is necessary to open two abstractions, using the
--- /same/ fresh name for both of them. An example of this is the
--- typing rule for lambda abstraction in dependent type theory:
---
--- >           Gamma, x:t  |-  e : s
--- >      ------------------------------------
--- >        Gamma |-  Lam (x.e) : Pi t (x.s)
---
--- In the bottom-up reading of this rule, we are given the terms
--- @Lam@ /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/
--- and terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ = (/x/./s/).
--- Crucially, the same atom /x/ should be used in both /e/ and /s/,
--- because we subsequently need to check that /e/ has type /s/ in some
--- scope that is common to /e/ and /s/.
---
--- The 'merge' primitive permits us to deal with such situations.
--- Its defining property is
---
--- > merge (x.e) (x.s) = (x.(e,s)).
---
--- We can therefore solve the above problem:
---
--- > open (merge body body') (\x (e,s) -> .....)
---
--- Moreover, the 'merge' primitive can be used to define other
--- merge-like functionality. For example, it is easy to define a function
---
--- > merge_list :: (Atomic a, Nominal t) => [Bind a t] -> Bind a [t]
---
--- in terms of it.
---
--- Semantically, the 'merge' operation implements the isomorphism of
--- nominal sets [A]T x [A]S = [A](T x S).
---
--- If /x/ and /y/ are atoms with user-suggested concrete names and
---
--- > (z.(t',s')) = merge (x.t) (y.s),
---
--- then /z/ will be preferably given the concrete name of /x/, but the
--- concrete name of /y/ will be used if the name of /x/ would cause a
--- clash.
-atomic_merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
-atomic_merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
-  ns'' = combine_names ns ns'
-  h x = Defer perm_identity (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -813,35 +736,6 @@ instance (Ord k, NominalSupport k, Show k, NominalSupport v, Show v) => NominalS
 instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (Map k v) where
   nominal_showsPrecSup sup = showsPrec
 
--- | A variant of 'open' which moreover attempts to choose a name for
--- the bound atom that does not clash with any free name in its
--- scope. This requires a 'NominalShow' instance. It is mostly
--- useful for building custom pretty-printers for nominal
--- terms. Except in pretty-printers, it is equivalent to 'open'.
---
--- Usage:
---
--- > open_for_printing sup t (\x s sup' -> body)
---
--- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
--- O(/n/)), the support must be pre-computed in a bottom-up fashion,
--- and then passed into each subterm in a top-down fashion (rather
--- than re-computing it at each level, which would be O(/n/^2)).  For
--- this reason, 'open_for_printing' takes the support of /t/ as an
--- additional argument, and provides /sup'/, the support of /s/, as an
--- additional parameter to the body.
-atomic_open_for_printing :: (Atomic a, NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-atomic_open_for_printing sup t@(Bind ns f) body =
-  with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
-  where
-    ns1 = if null ns then names (un t) else ns
-    n1 = rename_fresh (strings_of_support sup) ns1
-    name (A a) = show a
-    name (S s) = s
-    sup' a = support_insert (to_atom a) sup
-    un :: Bind a t -> a
-    un = undefined
-
 instance (NominalSupport t) => NominalSupport (Defer t) where
   support t = support (force t)
 
@@ -940,29 +834,94 @@ class Bindable a b | b -> a where
   -- subject to the same restriction as 'with_fresh', namely, /x/ must
   -- be fresh for the body (in symbols /x/ # /body/).
   open :: (Nominal t) => b t -> (a -> t -> s) -> s
+
+  -- | Sometimes, it is necessary to open two abstractions, using the
+  -- /same/ fresh name for both of them. An example of this is the
+  -- typing rule for lambda abstraction in dependent type theory:
+  --
+  -- >           Gamma, x:t  |-  e : s
+  -- >      ------------------------------------
+  -- >        Gamma |-  Lam (x.e) : Pi t (x.s)
+  --
+  -- In the bottom-up reading of this rule, we are given the terms
+  -- @Lam@ /body/ and @Pi@ /t/ /body'/, and we require a fresh name
+  -- /x/ and terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ =
+  -- (/x/./s/).  Crucially, the same atom /x/ should be used in both
+  -- /e/ and /s/, because we subsequently need to check that /e/ has
+  -- type /s/ in some scope that is common to /e/ and /s/.
+  --
+  -- The 'merge' primitive permits us to deal with such situations.
+  -- Its defining property is
+  --
+  -- > merge (x.e) (x.s) = (x.(e,s)).
+  --
+  -- We can therefore solve the above problem:
+  --
+  -- > open (merge body body') (\x (e,s) -> .....)
+  --
+  -- Moreover, the 'merge' primitive can be used to define other
+  -- merge-like functionality. For example, it is easy to define a
+  -- function
+  --
+  -- > merge_list :: (Atomic a, Nominal t) => [Bind a t] -> Bind a [t]
+  --
+  -- in terms of it.
+  --
+  -- Semantically, the 'merge' operation implements the isomorphism of
+  -- nominal sets [A]T x [A]S = [A](T x S).
+  --
+  -- If /x/ and /y/ are atoms with user-suggested concrete names and
+  --
+  -- > (z.(t',s')) = merge (x.t) (y.s),
+  --
+  -- then /z/ will be preferably given the concrete name of /x/, but
+  -- the concrete name of /y/ will be used if the name of /x/ would
+  -- cause a clash.
   merge :: (Nominal t, Nominal s) => b t -> b s -> b (t,s)
 
-  -- | Pattern matching for atom abstraction. In an ideal programming
-  -- idiom, we would be able to define a function on atom abstractions
-  -- like this:
+  -- | A variant of 'open' which moreover attempts to choose a name
+  -- for the bound atom that does not clash with any free name in its
+  -- scope. This requires a 'NominalShow' instance. It is mostly
+  -- useful for building custom pretty-printers for nominal
+  -- terms. Except in pretty-printers, it is equivalent to 'open'.
   --
-  -- > f (x.s) = body.
+  -- Usage:
   --
-  -- Haskell doesn't let us provide this syntax, but the 'open'
-  -- function provides the equivalent syntax
+  -- > open_for_printing sup t (\x s sup' -> body)
   --
-  -- > f t = open t (\x s -> body).
-  --
-  -- To be referentially transparent and equivariant, the body is
-  -- subject to the same restriction as 'with_fresh', namely, /x/ must
-  -- be fresh for the body (in symbols /x/ # /body/).
+  -- Here, /sup/ = 'support' /t/. For printing to be efficient
+  -- (roughly O(/n/)), the support must be pre-computed in a bottom-up
+  -- fashion, and then passed into each subterm in a top-down fashion
+  -- (rather than re-computing it at each level, which would be
+  -- O(/n/^2)).  For this reason, 'open_for_printing' takes the
+  -- support of /t/ as an additional argument, and provides /sup'/,
+  -- the support of /s/, as an additional parameter to the body.
   open_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
 
 instance (Atomic a) => Bindable a (Bind a) where
-  abst = atomic_abst
-  open = atomic_open
-  merge = atomic_merge
-  open_for_printing = atomic_open_for_printing
+  abst a t = Bind ns f
+    where
+      Bind ns g = atom_abst (to_atom a) t
+      f x = g (to_atom x)
+
+  open (Bind ns f) body =
+    with_fresh_namelist ns (\a -> body a (force (f a)))
+
+  merge (Bind ns f) (Bind ns' g) = (Bind ns'' h) where
+    ns'' = combine_names ns ns'
+    h x = Defer perm_identity (force (f x), force (g x))
+
+  open_for_printing sup t@(Bind ns f) body =
+    with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
+    where
+      ns1 = if null ns then names (un t) else ns
+      n1 = rename_fresh (strings_of_support sup) ns1
+      name (A a) = show a
+      name (S s) = s
+      sup' a = support_insert (to_atom a) sup
+      un :: Bind a t -> a
+      un = undefined
+
 
 -- | Atom abstraction: (/a/./t/) represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
@@ -977,5 +936,12 @@ instance (Atomic a) => Bindable a (Bind a) where
 (.) = abst
 infixr 5 .
 
+-- | Open two abstractions at once. So
+--
+-- > f t = open t (\x y s -> body)
+--
+-- is equivalent to the nominal pattern matching
+--
+-- > f (x.y.s) = body
 open2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
