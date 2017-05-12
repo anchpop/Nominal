@@ -9,7 +9,7 @@
 module Nominal (
   Atom,
   Atomic,
-  Bind,
+  BindX,
   with_fresh,
   with_fresh_named,
   with_fresh_namelist,
@@ -361,21 +361,6 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- ----------------------------------------------------------------------
 -- * Atom abstraction
 
--- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
--- in the nominal logic literature. Its elements are of the form (a.v)
--- modulo alpha-equivalence. For more details on what this means, see
--- Definition 4 of [Pitts 2002].
-
--- Implementation note: we currently use an HOAS encoding. It remains
--- to be seen whether this is efficient. An important invariant of the
--- HOAS encoding is that the underlying function must only be applied
--- to /fresh/ atoms.
--- 
--- It would also be possible to use a DeBruijn encoding or a nameful
--- encoding. It remains to be seen which encoding is the most
--- efficient in practice.
-data Bind a t = Bind NameSuggestion (a -> Defer t)
-
 -- | 'BindAtom' /t/ is the type of atom abstractions, denoted [a]t in
 -- the nominal logic literature. Its elements are of the form (a.v)
 -- modulo alpha-equivalence. For more details on what this means, see
@@ -708,16 +693,6 @@ bind_named n = bind_namelist [n]
 bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> BindX a t
 bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 
-instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
-  Bind n f == Bind m g =
-    with_fresh (\a -> force (f a) == force (g a))
-
-instance (Nominal t) => Nominal (Bind a t) where
-  -- Implementation note: here, we crucially use the assumption that
-  -- in the HOAS encoding, the binder will only be opened with fresh
-  -- atoms.
-  π • (Bind n f) = Bind n (\x -> π • (f x))
-
 -- ----------------------------------------------------------------------
 -- * High-level functions
 
@@ -1008,19 +983,6 @@ instance (NominalSupport t) => NominalSupport (Defer t) where
 instance (NominalShow t) => NominalShow (Defer t) where
   nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
   
-instance (Atomic a, NominalSupport t) => NominalSupport (Bind a t) where
-  support (Bind n f) =
-    with_fresh (\a -> support_delete (to_atom a) (support (f a)))
-
-instance (Atomic a, NominalShow t) => NominalShow (Bind a t) where
-  nominal_showsPrecSup sup d t =
-    open_for_printing sup t $ \a s sup' ->
-      showParen (d > 5) $
-        showString (show a ++ "." ++ nominal_showsPrecSup sup' 5 s "")
-
-instance (Atomic a, NominalShow t) => Show (Bind a t) where
-  showsPrec = nominal_showsPrec
-
 -- ----------------------------------------------------------------------
 -- * Multiple atom types
 
@@ -1119,27 +1081,6 @@ class Bindable a b | b -> a where
   -- support of /t/ as an additional argument, and provides /sup'/,
   -- the support of /s/, as an additional parameter to the body.
   open_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
-
-instance (Atomic a) => Bindable a (Bind a) where
-  abst a t = Bind ns f
-    where
-      BindAtom ns g = atom_abstX (to_atom a) t
-      f x = g (to_atom x)
-
-  open (Bind ns f) body =
-    with_fresh_namelist ns (\a -> body a (force (f a)))
-
-  open_for_printing sup t@(Bind ns f) body =
-    with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
-    where
-      ns1 = if null ns then names (un t) else ns
-      n1 = rename_fresh (strings_of_support sup) ns1
-      name (A a) = show a
-      name (S s) = s
-      sup' a = support_insert (to_atom a) sup
-      un :: Bind a t -> a
-      un = undefined
-
 
 -- | Open two abstractions at once. So
 --
