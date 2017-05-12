@@ -945,3 +945,38 @@ infixr 5 .
 -- > f (x.y.s) = body
 open2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
+
+-- | A type of atoms that are equipped with additional information.
+-- The information should not itself be nominal. Examples are: bound
+-- variables that are equipped with information about the binding
+-- site; type variables that are equipped with flags or boolean
+-- constraints.
+--
+-- Here, /a/ is an 'Atomic' instance, and /t/ is the type of the
+-- additional information stored in the atom.
+data AtomPlus a t = AtomPlus a t
+  deriving (Show)
+
+instance (Nominal a) => Nominal (AtomPlus a t) where
+  π • AtomPlus a t = AtomPlus (π • a) t
+
+instance (Eq a) => Eq (AtomPlus a t) where
+  -- We only compare the unique identifier, for efficiency.
+  AtomPlus x t == AtomPlus x' t' = x == x'
+
+instance (Ord a) => Ord (AtomPlus a t) where
+  -- We only compare the unique identifier, for efficiency.
+  compare (AtomPlus x t) (AtomPlus x' t') = compare x x'
+
+instance (NominalSupport a) => NominalSupport (AtomPlus a t) where
+  support (AtomPlus x t) = support x
+
+instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
+  nominal_show x = show x
+
+data BindAP a t b s = BindAP t (b s)
+
+instance (Bindable a b) => Bindable (AtomPlus a t) (BindAP a t b) where
+  abst (AtomPlus a t) body = BindAP t (a.body)
+  open (BindAP t abs) k = open abs $ \a body -> k (AtomPlus a t) body
+  open_for_printing sup (BindAP t abs) k = open_for_printing sup abs $ \a body sup' -> k (AtomPlus a t) body sup'
