@@ -9,7 +9,7 @@
 module Nominal (
   Atom,
   Atomic,
-  BindX,
+{-  Bind, -}
   with_fresh,
   with_fresh_named,
   with_fresh_namelist,
@@ -27,8 +27,8 @@ module Nominal (
   cp,
   nominal_showsPrec,
   NameSuggestion,
-  Bindable(..),
-  open2,
+{-  Bindable(..), -}
+{-  open2, -}
   (.),
   AtomPlus
 )
@@ -1031,66 +1031,6 @@ instance (AtomKind a) => Atomic (AtomOfKind a) where
     where
       un :: AtomOfKind a -> a
       un = undefined
-
--- ----------------------------------------------------------------------
--- * Generalized binders
-
-class Bindable a b | b -> a where
-  -- | Atom abstraction: (/a/./t/) represents the equivalence class of
-  -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
-  -- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
-  --
-  -- We use the infix operator '.', which is normally bound to
-  -- function composition in the standard library. Thus, nominal
-  -- programs should import the standard library like this:
-  --
-  -- > import Prelude hiding ((.))
-  abst :: (Nominal t) => a -> t -> b t
-  
-  -- | Pattern matching for atom abstraction. In an ideal programming
-  -- idiom, we would be able to define a function on atom abstractions
-  -- like this:
-  --
-  -- > f (x.s) = body.
-  --
-  -- Haskell doesn't let us provide this syntax, but the 'open'
-  -- function provides the equivalent syntax
-  --
-  -- > f t = open t (\x s -> body).
-  --
-  -- To be referentially transparent and equivariant, the body is
-  -- subject to the same restriction as 'with_fresh', namely, /x/ must
-  -- be fresh for the body (in symbols /x/ # /body/).
-  open :: (Nominal t) => b t -> (a -> t -> s) -> s
-
-  -- | A variant of 'open' which moreover attempts to choose a name
-  -- for the bound atom that does not clash with any free name in its
-  -- scope. This requires a 'NominalShow' instance. It is mostly
-  -- useful for building custom pretty-printers for nominal
-  -- terms. Except in pretty-printers, it is equivalent to 'open'.
-  --
-  -- Usage:
-  --
-  -- > open_for_printing sup t (\x s sup' -> body)
-  --
-  -- Here, /sup/ = 'support' /t/. For printing to be efficient
-  -- (roughly O(/n/)), the support must be pre-computed in a bottom-up
-  -- fashion, and then passed into each subterm in a top-down fashion
-  -- (rather than re-computing it at each level, which would be
-  -- O(/n/^2)).  For this reason, 'open_for_printing' takes the
-  -- support of /t/ as an additional argument, and provides /sup'/,
-  -- the support of /s/, as an additional parameter to the body.
-  open_for_printing :: (NominalShow t) => Support -> b t -> (a -> t -> Support -> s) -> s
-
--- | Open two abstractions at once. So
---
--- > f t = open t (\x y s -> body)
---
--- is equivalent to the nominal pattern matching
---
--- > f (x.y.s) = body
-open2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
-open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
 
 -- ----------------------------------------------------------------------
 -- * AtomPlus
