@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | A package for working with binders.
 
@@ -28,7 +29,8 @@ module Nominal (
   NameSuggestion,
   Bindable(..),
   open2,
-  (.)
+  (.),
+  AtomPlus
 )
 where
 
@@ -199,7 +201,7 @@ add_default_names ns (Atom x n ns') = Atom x n ns'
 -- > 
 -- > instance Show Variable where
 -- >   showsPrec = nominal_showsPrec
-class (Nominal a, NominalSupport a, NominalShow a, Eq a, Ord a, Show a) => Atomic a where
+class (Nominal a, NominalSupport a, NominalShow a, Eq a, Ord a, Show a, BindableX a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
   -- | The default variable names for the atom type.
@@ -484,7 +486,7 @@ atom_abst a t = Bind (atom_names a) (\x -> Defer (perm_swap a x) t)
 --
 -- is a convenient way to write the atom abstraction (x.t),
 -- where /x/ is a fresh variable.
-bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
+bind :: (Atomic a, Nominal t) => (a -> t) -> BindX a t
 bind body = bind_namelist ns body
   where
     ns = names (un body)
@@ -492,12 +494,30 @@ bind body = bind_namelist ns body
     un = undefined
 
 -- | A version of 'bind' that also takes a suggested name for the bound atom.
-bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> Bind a t
+bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> BindX a t
 bind_named n = bind_namelist [n]
 
 -- | A version of 'bind' that also take a list of suggested names for the bound atom.
-bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> Bind a t
+bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> BindX a t
 bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
+
+-- | Pattern matching for atom abstraction. In an ideal programming
+-- idiom, we would be able to define a function on atom abstractions
+-- like this:
+--
+-- > f (x.s) = body.
+--
+-- Haskell doesn't let us provide this syntax, but the 'open' function
+-- provides the equivalent syntax
+--
+-- > f t = open t (\x s -> body).
+--
+-- To be referentially transparent and equivariant, the body is
+-- subject to the same restriction as 'with_fresh', namely,
+-- /x/ must be fresh for the body (in symbols /x/ # /body/).
+atom_open :: (Nominal t) => Bind Atom t -> (Atom -> t -> s) -> s
+atom_open (Bind ns f) body =
+  with_fresh_namelist ns (\a -> body a (force (f a)))
 
 instance (Atomic a, Nominal t, Eq t) => Eq (Bind a t) where
   Bind n f == Bind m g =
@@ -508,6 +528,36 @@ instance (Nominal t) => Nominal (Bind a t) where
   -- in the HOAS encoding, the binder will only be opened with fresh
   -- atoms.
   π • (Bind n f) = Bind n (\x -> π • (f x))
+
+-- | A variant of 'open' which moreover attempts to choose a name for
+-- the bound atom that does not clash with any free name in its
+-- scope. This requires a 'NominalShow' instance. It is mostly
+-- useful for building custom pretty-printers for nominal
+-- terms. Except in pretty-printers, it is equivalent to 'open'.
+--
+-- Usage:
+--
+-- > open_for_printing sup t (\x s sup' -> body)
+--
+-- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
+-- O(/n/)), the support must be pre-computed in a bottom-up fashion,
+-- and then passed into each subterm in a top-down fashion (rather
+-- than re-computing it at each level, which would be O(/n/^2)).  For
+-- this reason, 'open_for_printing' takes the support of /t/ as an
+-- additional argument, and provides /sup'/, the support of /s/, as an
+-- additional parameter to the body.
+atom_open_for_printing :: (NominalShow t) => Support -> Bind Atom t -> (Atom -> t -> Support -> s) -> s
+atom_open_for_printing sup t@(Bind ns f) body =
+  with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
+  where
+    ns1 = if null ns then names (un t) else ns
+    n1 = rename_fresh (strings_of_support sup) ns1
+    name (A a) = show a
+    name (S s) = s
+    sup' a = support_insert (to_atom a) sup
+    un :: Bind a t -> a
+    un = undefined
+
 
 -- | Sometimes, it is necessary to open two abstractions, using the
 -- /same/ fresh name for both of them. An example of this is the
@@ -922,19 +972,6 @@ instance (Atomic a) => Bindable a (Bind a) where
       un = undefined
 
 
--- | Atom abstraction: (/a/./t/) represents the equivalence class of
--- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
--- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
---
--- We use the infix operator '.', which is normally bound to function
--- composition in the standard library. Thus, nominal programs should
--- import the standard library like this:
---
--- > import Prelude hiding ((.))
-(.) :: (Bindable a b, Nominal t) => a -> t -> b t
-(.) = abst
-infixr 5 .
-
 -- | Open two abstractions at once. So
 --
 -- > f t = open t (\x y s -> body)
@@ -944,6 +981,9 @@ infixr 5 .
 -- > f (x.y.s) = body
 open2 :: (Bindable a b, Bindable a' b', Nominal t, Nominal (b' t)) => b (b' t) -> (a -> a' -> t -> s) -> s
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
+
+-- ----------------------------------------------------------------------
+-- * AtomPlus
 
 -- | A type of atoms that are equipped with additional information.
 -- The information should not itself be nominal. Examples are: bound
@@ -973,9 +1013,86 @@ instance (NominalSupport a) => NominalSupport (AtomPlus a t) where
 instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
   nominal_show x = show x
 
-data BindAP a t b s = BindAP t (b s)
+-- ----------------------------------------------------------------------
+-- * Another attempt
 
-instance (Bindable a b) => Bindable (AtomPlus a t) (BindAP a t b) where
-  abst (AtomPlus a t) body = BindAP t (a.body)
-  open (BindAP t abs) k = open abs $ \a body -> k (AtomPlus a t) body
-  open_for_printing sup (BindAP t abs) k = open_for_printing sup abs $ \a body sup' -> k (AtomPlus a t) body sup'
+class BindableX a where
+  data BindX a t
+  -- | Atom abstraction: (/a/./t/) represents the equivalence class of
+  -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
+  -- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
+  --
+  -- We use the infix operator '.', which is normally bound to
+  -- function composition in the standard library. Thus, nominal
+  -- programs should import the standard library like this:
+  --
+  -- > import Prelude hiding ((.))
+  abstX :: (Nominal t) => a -> t -> BindX a t
+  
+  -- | Pattern matching for atom abstraction. In an ideal programming
+  -- idiom, we would be able to define a function on atom abstractions
+  -- like this:
+  --
+  -- > f (x.s) = body.
+  --
+  -- Haskell doesn't let us provide this syntax, but the 'open'
+  -- function provides the equivalent syntax
+  --
+  -- > f t = open t (\x s -> body).
+  --
+  -- To be referentially transparent and equivariant, the body is
+  -- subject to the same restriction as 'with_fresh', namely, /x/ must
+  -- be fresh for the body (in symbols /x/ # /body/).
+  openX :: (Nominal t) => BindX a t -> (a -> t -> s) -> s
+
+  -- | A variant of 'open' which moreover attempts to choose a name
+  -- for the bound atom that does not clash with any free name in its
+  -- scope. This requires a 'NominalShow' instance. It is mostly
+  -- useful for building custom pretty-printers for nominal
+  -- terms. Except in pretty-printers, it is equivalent to 'open'.
+  --
+  -- Usage:
+  --
+  -- > open_for_printing sup t (\x s sup' -> body)
+  --
+  -- Here, /sup/ = 'support' /t/. For printing to be efficient
+  -- (roughly O(/n/)), the support must be pre-computed in a bottom-up
+  -- fashion, and then passed into each subterm in a top-down fashion
+  -- (rather than re-computing it at each level, which would be
+  -- O(/n/^2)).  For this reason, 'open_for_printing' takes the
+  -- support of /t/ as an additional argument, and provides /sup'/,
+  -- the support of /s/, as an additional parameter to the body.
+  openX_for_printing :: (NominalShow t) => Support -> BindX a t -> (a -> t -> Support -> s) -> s
+
+instance BindableX Atom where
+  newtype BindX Atom t = BindXA (Bind Atom t)
+  abstX a t = BindXA (atom_abst a t)
+  openX (BindXA body) k = atom_open body k
+  openX_for_printing sup (BindXA body) k = atom_open_for_printing sup body k
+
+instance (BindableX a) => BindableX (AtomPlus a t) where
+  data BindX (AtomPlus a t) s = BindXAP t (BindX a s)
+  abstX (AtomPlus a t) body = BindXAP t (abstX a body)
+  openX (BindXAP t body) k = openX body $ \a s -> k (AtomPlus a t) s
+  openX_for_printing sup (BindXAP t body) k = openX_for_printing sup body $ \a s -> k (AtomPlus a t) s
+
+instance (AtomKind a) => BindableX (AtomOfKind a) where
+  newtype BindX (AtomOfKind a) t = BindXAK (Bind Atom t)
+  abstX a t = BindXAK body where
+    BindXA body = (abstX (to_atom a) t)
+  openX (BindXAK body) k = openX (BindXA body) (\a t -> k (from_atom a) t)
+  openX_for_printing sup (BindXAK body) k = openX_for_printing sup (BindXA body) (\a t -> k (from_atom a) t)
+
+-- | Atom abstraction: (/a/./t/) represents the equivalence class of
+-- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
+-- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
+--
+-- We use the infix operator '.', which is normally bound to function
+-- composition in the standard library. Thus, nominal programs should
+-- import the standard library like this:
+--
+-- > import Prelude hiding ((.))
+(.) :: (BindableX a, Nominal t) => a -> t -> BindX a t
+(.) = abstX
+infixr 5 .
+
