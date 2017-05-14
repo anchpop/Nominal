@@ -481,7 +481,7 @@ atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
 -- ----------------------------------------------------------------------
 -- * The Bindable class
 
-class (Nominal a) => Bindable a where
+class (Eq a, Nominal a) => Bindable a where
   -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
   -- in the nominal logic literature. Its elements are of the form
   -- (a.v) modulo alpha-equivalence. For more details on what this
@@ -498,10 +498,9 @@ class (Nominal a) => Bindable a where
   -- 'NominalSupport' instance of 'Bind' /a/ /t/.
   bindable_support :: (NominalSupport t) => Bind a t -> Support
 
-  -- | Convert a pair of abstractions to a pair of pairs of a binder
-  -- and a body, in a way suitable for equality testing (i.e., both
-  -- binders use the same underlying atom, similar to merge).
-  merge_plus :: (Nominal t, Nominal s) => Bind a t -> Bind a s -> (a -> a -> t -> s -> r) -> r
+  -- | This is the equality test. We need to define it here on a
+  -- per-instance basis to get the 'Eq' instance of 'Bind' /a/ /t/.
+  bindable_eq :: (Nominal t, Eq t) => Bind a t -> Bind a t -> Bool
   
   -- | Atom abstraction: (/a/./t/) represents the equivalence class of
   -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
@@ -576,7 +575,7 @@ open2 :: (Bindable a, Bindable b, Nominal t) => Bind a (Bind b t) -> (a -> b -> 
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
 
 instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
-  b1 == b2 = merge_plus b1 b2 $ \a1 a2 t1 t2 -> a1 == a2 && t1 == t2
+  (==) = bindable_eq
 
 -- ----------------------------------------------------------------------
 -- * Bindable instances
@@ -585,8 +584,7 @@ instance Bindable Atom where
   newtype Bind Atom t = BindA (BindAtom t)
   bindable_action π (BindA body) = BindA (π • body)
   bindable_support (BindA body) = support body
-  merge_plus (BindA b1) (BindA b2) k =
-    atom_open (atom_merge b1 b2) $ \a (t1,t2) -> k a a t1 t2
+  bindable_eq (BindA b1) (BindA b2) = b1 == b2
   abst a t = BindA (atom_abst a t)
   open (BindA body) k = atom_open body k
   open_for_printing sup (BindA body) k = atom_open_for_printing default_names sup body k
@@ -595,9 +593,7 @@ instance (Bindable a) => Bindable (AtomPlus a t) where
   data Bind (AtomPlus a t) s = BindAP t (Bind a s)
   bindable_action π (BindAP t body) = BindAP t (π • body)
   bindable_support (BindAP t body) = support body
-  merge_plus (BindAP t1 b1) (BindAP t2 b2) k =
-    merge_plus b1 b2 $ \a1 a2 s1 s2 ->
-      k (AtomPlus a1 t1) (AtomPlus a2 t2) s1 s2
+  bindable_eq (BindAP t1 b1) (BindAP t2 b2) = open b1 $ \a _ -> AtomPlus a t1 == AtomPlus a t2 && b1 == b2
   abst (AtomPlus a t) body = BindAP t (abst a body)
   open (BindAP t body) k = open body $ \a s -> k (AtomPlus a t) s
   open_for_printing sup (BindAP t body) k = open_for_printing sup body $ \a s -> k (AtomPlus a t) s
@@ -606,9 +602,7 @@ instance (AtomKind a) => Bindable (AtomOfKind a) where
   newtype Bind (AtomOfKind a) t = BindAK (BindAtom t)
   bindable_action π (BindAK body) = BindAK (π • body)
   bindable_support (BindAK body) = support body
-  merge_plus (BindAK b1) (BindAK b2) k =
-    atom_open (atom_merge b1 b2) $ \a (t1,t2) ->
-      let a' = from_atom a in k a' a' t1 t2
+  bindable_eq (BindAK b1) (BindAK b2) = b1 == b2
   abst a t = BindAK body where
     BindA body = (abst (to_atom a) t)
   open (BindAK body) k = open (BindA body) (\a t -> k (from_atom a) t)
