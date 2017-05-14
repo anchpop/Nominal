@@ -1,7 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | A package for working with binders.
@@ -357,6 +354,12 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
     where
       π' = perm_invert π
 
+instance (Nominal t) => Nominal (BindAtom t) where
+  π • body = atom_open body $ \a t -> atom_abst (π • a) (π • t)
+
+instance (Nominal t, Eq t) => Eq (BindAtom t) where
+  b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2
+
 -- ----------------------------------------------------------------------
 -- * Atom abstraction
 
@@ -475,7 +478,20 @@ atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
 -- * The Bindable class
 
 class (Nominal a) => Bindable a where
+  -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
+  -- in the nominal logic literature. Its elements are of the form
+  -- (a.v) modulo alpha-equivalence. For more details on what this
+  -- means, see Definition 4 of [Pitts 2002].
   data Bind a t
+
+  -- | Return the set of atoms bound in a binder.
+  binding :: a -> Set Atom
+
+  -- | Convert a pair of abstractions to a pair of pairs of a binder
+  -- and a body, in a way suitable for equality testing (i.e., both
+  -- binders use the same underlying atom, similar to merge).
+  merge_plus :: (Nominal t, Nominal s) => Bind a t -> Bind a s -> (a -> a -> t -> s -> r) -> r
+  
   -- | Atom abstraction: (/a/./t/) represents the equivalence class of
   -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
   -- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
@@ -548,24 +564,37 @@ infixr 5 .
 open2 :: (Bindable a, Bindable b, Nominal t) => Bind a (Bind b t) -> (a -> b -> t -> s) -> s
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
 
+instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
+  b1 == b2 = merge_plus b1 b2 $ \a1 a2 t1 t2 -> a1 == a2 && t1 == t2
+
 -- ----------------------------------------------------------------------
 -- * Bindable instances
 
 instance Bindable Atom where
   newtype Bind Atom t = BindA (BindAtom t)
+  merge_plus (BindA b1) (BindA b2) k =
+    atom_open (atom_merge b1 b2) $ \a (t1,t2) -> k a a t1 t2
+  binding a = Set.singleton a
   abst a t = BindA (atom_abst a t)
   open (BindA body) k = atom_open body k
   open_for_printing sup (BindA body) k = atom_open_for_printing default_names sup body k
 
 instance (Bindable a) => Bindable (AtomPlus a t) where
   data Bind (AtomPlus a t) s = BindAP t (Bind a s)
+  binding (AtomPlus a t) = binding a
+  merge_plus (BindAP t1 b1) (BindAP t2 b2) k =
+    merge_plus b1 b2 $ \a1 a2 s1 s2 ->
+      k (AtomPlus a1 t1) (AtomPlus a2 t2) s1 s2
   abst (AtomPlus a t) body = BindAP t (abst a body)
   open (BindAP t body) k = open body $ \a s -> k (AtomPlus a t) s
   open_for_printing sup (BindAP t body) k = open_for_printing sup body $ \a s -> k (AtomPlus a t) s
 
-
 instance (AtomKind a) => Bindable (AtomOfKind a) where
   newtype Bind (AtomOfKind a) t = BindAK (BindAtom t)
+  binding (AtomOfKind a) = binding a
+  merge_plus (BindAK b1) (BindAK b2) k =
+    atom_open (atom_merge b1 b2) $ \a (t1,t2) ->
+      let a' = from_atom a in k a' a' t1 t2
   abst a t = BindAK body where
     BindA body = (abst (to_atom a) t)
   open (BindAK body) k = open (BindA body) (\a t -> k (from_atom a) t)
@@ -777,8 +806,8 @@ support_insert a (Support x) = Support (Set.insert (A a) x)
 support_atom :: Atom -> Support
 support_atom a = Support (Set.singleton (A a))
 
-support_delete :: Atom -> Support -> Support
-support_delete a (Support s) = Support (Set.delete (A a) s)
+support_delete :: Set Atom -> Support -> Support
+support_delete a (Support s) = Support (Set.difference s (Set.map A a))
 
 support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
@@ -981,7 +1010,20 @@ instance (NominalSupport t) => NominalSupport (Defer t) where
 
 instance (NominalShow t) => NominalShow (Defer t) where
   nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
-  
+
+instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
+  support body = open body $ \a t ->
+    support_delete (binding a) (support t)
+
+instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
+  nominal_showsPrecSup sup d t =
+    open_for_printing sup t $ \a s sup' ->
+      showParen (d > 5) $
+        showString (nominal_show a ++ "." ++ nominal_showsPrecSup sup' 5 s "")
+
+instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
+  showsPrec = nominal_showsPrec
+
 -- ----------------------------------------------------------------------
 -- * Multiple atom types
 
