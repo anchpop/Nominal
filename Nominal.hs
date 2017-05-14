@@ -355,7 +355,11 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
       π' = perm_invert π
 
 instance (Nominal t) => Nominal (BindAtom t) where
-  π • body = atom_open body $ \a t -> atom_abst (π • a) (π • t)
+  π • (BindAtom n f) = BindAtom n (\x -> π • (f x))
+
+instance (NominalSupport t) => NominalSupport (BindAtom t) where
+  support (BindAtom n f) =
+    with_fresh (\a -> support_delete a (support (f a)))
 
 instance (Nominal t, Eq t) => Eq (BindAtom t) where
   b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2
@@ -484,8 +488,15 @@ class (Nominal a) => Bindable a where
   -- means, see Definition 4 of [Pitts 2002].
   data Bind a t
 
-  -- | Return the set of atoms bound in a binder.
-  binding :: a -> Set Atom
+  -- | This is the '(•)' function of 'Nominal'. We need to define it
+  -- here on a per-instance basis to get the 'Nominal' instance of
+  -- 'Bind' /a/ /t/.
+  bindable_action :: (Nominal t) => Permutation -> Bind a t -> Bind a t
+
+  -- | This is the 'support' function of 'NominalSupport'. We need to
+  -- define it here on a per-instance basis to get the
+  -- 'NominalSupport' instance of 'Bind' /a/ /t/.
+  bindable_support :: (NominalSupport t) => Bind a t -> Support
 
   -- | Convert a pair of abstractions to a pair of pairs of a binder
   -- and a body, in a way suitable for equality testing (i.e., both
@@ -539,7 +550,7 @@ class (Nominal a) => Bindable a where
   open_for_printing :: (NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
-  π • body = open body $ \a t -> (π • a) . (π • t)
+  π • body = bindable_action π body
 
 -- | Atom abstraction: (/a/./t/) represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
@@ -572,16 +583,18 @@ instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
 
 instance Bindable Atom where
   newtype Bind Atom t = BindA (BindAtom t)
+  bindable_action π (BindA body) = BindA (π • body)
+  bindable_support (BindA body) = support body
   merge_plus (BindA b1) (BindA b2) k =
     atom_open (atom_merge b1 b2) $ \a (t1,t2) -> k a a t1 t2
-  binding a = Set.singleton a
   abst a t = BindA (atom_abst a t)
   open (BindA body) k = atom_open body k
   open_for_printing sup (BindA body) k = atom_open_for_printing default_names sup body k
 
 instance (Bindable a) => Bindable (AtomPlus a t) where
   data Bind (AtomPlus a t) s = BindAP t (Bind a s)
-  binding (AtomPlus a t) = binding a
+  bindable_action π (BindAP t body) = BindAP t (π • body)
+  bindable_support (BindAP t body) = support body
   merge_plus (BindAP t1 b1) (BindAP t2 b2) k =
     merge_plus b1 b2 $ \a1 a2 s1 s2 ->
       k (AtomPlus a1 t1) (AtomPlus a2 t2) s1 s2
@@ -591,7 +604,8 @@ instance (Bindable a) => Bindable (AtomPlus a t) where
 
 instance (AtomKind a) => Bindable (AtomOfKind a) where
   newtype Bind (AtomOfKind a) t = BindAK (BindAtom t)
-  binding (AtomOfKind a) = binding a
+  bindable_action π (BindAK body) = BindAK (π • body)
+  bindable_support (BindAK body) = support body
   merge_plus (BindAK b1) (BindAK b2) k =
     atom_open (atom_merge b1 b2) $ \a (t1,t2) ->
       let a' = from_atom a in k a' a' t1 t2
@@ -806,8 +820,8 @@ support_insert a (Support x) = Support (Set.insert (A a) x)
 support_atom :: Atom -> Support
 support_atom a = Support (Set.singleton (A a))
 
-support_delete :: Set Atom -> Support -> Support
-support_delete a (Support s) = Support (Set.difference s (Set.map A a))
+support_delete :: Atom -> Support -> Support
+support_delete a (Support s) = Support (Set.delete (A a) s)
 
 support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
@@ -1012,8 +1026,7 @@ instance (NominalShow t) => NominalShow (Defer t) where
   nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
 
 instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
-  support body = open body $ \a t ->
-    support_delete (binding a) (support t)
+  support = bindable_support
 
 instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
   nominal_showsPrecSup sup d t =
