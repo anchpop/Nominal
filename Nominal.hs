@@ -27,7 +27,9 @@ module Nominal (
   open2,
   (.),
   AtomPlus(..),
-  with_fresh_named_plus
+  with_fresh_plus,
+  with_fresh_named_plus,
+  with_fresh_namelist_plus
 )
 where
 
@@ -1112,6 +1114,15 @@ instance (NominalSupport a) => NominalSupport (AtomPlus a t) where
 instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
   nominal_show x = show x
 
+with_fresh_plus :: (Atomic a) => t -> (AtomPlus a t -> s) -> s
+with_fresh_plus t k =
+  with_fresh $ \a -> k (AtomPlus a t)
+    
+
 with_fresh_named_plus :: (Atomic a) => t -> String -> (AtomPlus a t -> s) -> s
 with_fresh_named_plus t n k =
   with_fresh_named n $ \a -> k (AtomPlus a t)
+
+with_fresh_namelist_plus :: (Atomic a) => t -> NameSuggestion -> (AtomPlus a t -> s) -> s
+with_fresh_namelist_plus t n k =
+  with_fresh_namelist n $ \a -> k (AtomPlus a t)
