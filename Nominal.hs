@@ -26,7 +26,8 @@ module Nominal (
   Bindable(..),
   open2,
   (.),
-  AtomPlus
+  AtomPlus(..),
+  with_fresh_named_plus
 )
 where
 
@@ -1111,3 +1112,6 @@ instance (NominalSupport a) => NominalSupport (AtomPlus a t) where
 instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
   nominal_show x = show x
 
+with_fresh_named_plus :: (Atomic a) => t -> String -> (AtomPlus a t -> s) -> s
+with_fresh_named_plus t n k =
+  with_fresh_named n $ \a -> k (AtomPlus a t)
