@@ -25,6 +25,7 @@ module Nominal (
   NameSuggestion,
   Bindable(..),
   open2,
+  merge,
   (.),
   AtomPlus(..),
   with_fresh_plus,
