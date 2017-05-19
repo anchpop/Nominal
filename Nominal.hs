@@ -427,7 +427,7 @@ atom_open (BindAtom ns f) body =
 -- this reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
-atom_open_for_printing :: (NominalShow t) => NameSuggestion -> Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
+atom_open_for_printing :: (Nominal t) => NameSuggestion -> Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
 atom_open_for_printing ns2 sup t@(BindAtom ns f) body =
   with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
   where
@@ -550,7 +550,7 @@ class (Eq a, Nominal a) => Bindable a where
   -- O(/n/^2)).  For this reason, 'open_for_printing' takes the
   -- support of /t/ as an additional argument, and provides /sup'/,
   -- the support of /s/, as an additional parameter to the body.
-  open_for_printing :: (NominalShow t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+  open_for_printing :: (Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
   π • body = bindable_action π body
