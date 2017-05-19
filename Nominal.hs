@@ -20,7 +20,7 @@ module Nominal (
   Literal(..),
   AtomKind(..),
   AtomOfKind,
-  cp,
+  (∘),
   nominal_showsPrec,
   NameSuggestion,
   Bindable(..),
@@ -913,11 +913,11 @@ nominal_showsPrec :: (NominalShow t) => Int -> t -> ShowS
 nominal_showsPrec d t = nominal_showsPrecSup (support t) d t
 
 -- | Since we hide (.) from the standard library, and it is not legal syntax
--- to write @Prelude..@, we provide 'cp' as an alternate notation for
+-- to write @Prelude..@, we provide '∘' as an alternate notation for
 -- composition. This is particularly useful in defining 'showsPrec'
 -- and 'nominal_showsPrecSup'.
-cp :: (b -> c) -> (a -> b) -> (a -> c)
-cp g f x = g (f x)
+(∘) :: (b -> c) -> (a -> b) -> (a -> c)
+(g ∘ f) x = g (f x)
 
 -- Primitive cases.
 instance Show Atom where
