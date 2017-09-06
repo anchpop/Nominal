@@ -306,14 +306,14 @@ swaps_of_perm sigma = [ y | Just y <- ys ]
 -- and applied all at once.
 data Defer t = Defer Permutation t
 
+force :: (Nominal t) => Defer t -> t
+force (Defer sigma t) = sigma • t
+
 instance Nominal (Defer t) where
   -- This is where 'Defer' pays off. Rather than using 'force',
   -- we compile the permutations for later efficient use.
   π • (Defer sigma t) = Defer (perm_composeR π sigma) t
   
-force :: (Nominal t) => Defer t -> t
-force (Defer sigma t) = sigma • t
-
 -- ----------------------------------------------------------------------
 -- * Nominal types
 
