@@ -578,6 +578,10 @@ infixr 5 .
 open2 :: (Bindable a, Bindable b, Nominal t) => Bind a (Bind b t) -> (a -> b -> t -> s) -> s
 open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
 
+-- | Like 'open2', but open two abstractions for printing.
+open2_for_printing :: (Bindable a, Bindable b, Nominal t) => Support -> Bind a (Bind b t) -> (a -> b -> t -> Support -> s) -> s
+open2_for_printing sup term k = open_for_printing sup term $ \a term' sup' -> open_for_printing sup' term' $ \a' t sup'' -> k a a' t sup''
+
 instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
   (==) = bindable_eq
 
@@ -615,6 +619,61 @@ instance (AtomKind a) => Bindable (AtomOfKind a) where
       ns = names (un b)
       un :: Bind a t -> a
       un = undefined
+
+instance Bindable () where
+  newtype Bind () t = BindUnit t
+  bindable_action π (BindUnit body) = BindUnit (π • body)
+  bindable_support (BindUnit body) = support body
+  bindable_eq (BindUnit b1) (BindUnit b2) = b1 == b2
+  abst () t = BindUnit t
+  open (BindUnit t) k = k () t
+  open_for_printing sup (BindUnit body) k = k () body sup
+
+instance (Bindable a, Bindable b) => Bindable (a, b) where
+  newtype Bind (a, b) t = BindPair (Bind a (Bind b t))
+  bindable_action π (BindPair body) = BindPair (π • body)
+  bindable_support (BindPair body) = support body
+  bindable_eq (BindPair b1) (BindPair b2) = b1 == b2
+  abst (a, b) t = BindPair (a . b . t)
+  open (BindPair body) k = open2 body $ \a b s -> k (a, b) s
+  open_for_printing sup (BindPair body) k = open2_for_printing sup body $ \a b -> k (a, b)
+
+instance (Bindable a, Bindable b, Bindable c) => Bindable (a, b, c) where
+  newtype Bind (a, b, c) t = BindTriple (Bind ((a, b), c) t)
+  bindable_action π (BindTriple body) = BindTriple (π • body)
+  bindable_support (BindTriple body) = support body
+  bindable_eq (BindTriple b1) (BindTriple b2) = b1 == b2
+  abst (a, b, c) t = BindTriple (((a, b), c) . t)
+  open (BindTriple body) k = open body $ \((a, b), c) -> k (a, b, c)
+  open_for_printing sup (BindTriple body) k = open_for_printing sup body $ \((a, b), c) -> k (a, b, c)
+
+instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, d) where
+  newtype Bind (a, b, c, d) t = BindQuadruple (Bind (((a, b), c), d) t)
+  bindable_action π (BindQuadruple body) = BindQuadruple (π • body)
+  bindable_support (BindQuadruple body) = support body
+  bindable_eq (BindQuadruple b1) (BindQuadruple b2) = b1 == b2
+  abst (a, b, c, d) t = BindQuadruple ((((a, b), c), d) . t)
+  open (BindQuadruple body) k = open body $ \(((a, b), c), d) -> k (a, b, c, d)
+  open_for_printing sup (BindQuadruple body) k = open_for_printing sup body $ \(((a, b), c), d) -> k (a, b, c, d)
+
+instance (Bindable a) => Bindable [a] where
+  data Bind [a] t =
+    BindNil t
+    | BindCons (Bind a (Bind [a] t))
+  bindable_action π (BindNil body) = BindNil (π • body)
+  bindable_action π (BindCons body) = BindCons (π • body)
+  bindable_support (BindNil body) = support body
+  bindable_support (BindCons body) = support body
+  bindable_eq (BindNil b1) (BindNil b2) = b1 == b2
+  bindable_eq (BindCons b1) (BindCons b2) = b1 == b2
+  bindable_eq _ _ = False
+  abst [] t = BindNil t
+  abst (a:as) t = BindCons (a . as . t)
+  open (BindNil t) k = k [] t
+  open (BindCons body) k = open2 body $ \a as -> k (a:as)
+  open_for_printing sup (BindNil body) k = k [] body sup
+  open_for_printing sup (BindCons body) k = open2_for_printing sup body $ \a as -> k (a:as)
+  
 
 -- ----------------------------------------------------------------------
 -- * The 'Atomic' class
