@@ -24,7 +24,6 @@ module Nominal (
   nominal_showsPrec,
   NameSuggestion,
   Bindable(..),
-  open2,
   merge,
   (.),
   AtomPlus(..),
