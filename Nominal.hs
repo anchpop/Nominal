@@ -1069,11 +1069,13 @@ instance (NominalShow t) => NominalShow [t] where
 instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
   π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
 
-instance (Ord k, NominalSupport k, Show k, NominalSupport v, Show v) => NominalSupport (Map k v) where
+instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v) where
   support map = support (Map.toList map)
 
-instance (Ord k, NominalShow k, Show k, NominalShow v, Show v) => NominalShow (Map k v) where
-  nominal_showsPrecSup sup = showsPrec
+instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
+  nominal_showsPrecSup sup d m =
+    showParen (d > 10) $
+      showString "fromList " ∘ nominal_showsPrecSup sup 11 (Map.toList m)
 
 instance (NominalSupport t) => NominalSupport (Defer t) where
   support t = support (force t)
