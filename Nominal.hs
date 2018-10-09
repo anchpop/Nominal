@@ -346,20 +346,11 @@ instance Nominal Int where
 instance Nominal Char where
   π • t = t
 
-instance (Nominal t) => Nominal [t] where
-  π • t = map (π •) t
-
-instance Nominal () where
-  π • t = t
-
-instance (Nominal t, Nominal s) => Nominal (t,s) where
-  π • (t, s) = (π • t, π • s)
-
-instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r) where
-  π • (t, s, r) = (π • t, π • s, π • r)
-
-instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q) where
-  π • (t, s, r, q) = (π • t, π • s, π • r, π • q)
+instance (Nominal t) => Nominal [t]
+instance Nominal ()
+instance (Nominal t, Nominal s) => Nominal (t,s)
+instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r)
+instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q)
 
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
   π • f = \x -> π • (f (π' • x))
@@ -939,7 +930,7 @@ class (NominalSupport t) => NominalShow t where
   -- | A nominal version of 'showsPrec'. This function takes as its
   -- first argument the support of /t/. This is then passed into the
   -- subterms, making printing O(/n/) instead of O(/n/^2).
-  --
+  -- 
   -- It is recommended to define a 'NominalShow' instance, rather than
   -- a 'Show' instance, for each nominal type, and then define the
   -- 'Show' instance using 'nominal_showsPrec'. For example:
@@ -968,7 +959,7 @@ class (NominalSupport t) => NominalShow t where
     ++ "]"
 
   default nominal_showsPrecSup :: (Generic t, GNominalShow (Rep t)) => Support -> Int -> t -> ShowS
-  nominal_showsPrecSup sup d x = gnominal_showsPrecSup sup d (from x)
+  nominal_showsPrecSup sup d x = gnominal_showsPrecSup Pre sup d (from x)
 
 -- | This function should be used in the definition of 'Show'
 -- instances for nominal types, like this:
@@ -1007,11 +998,8 @@ instance NominalSupport Literal where
 instance NominalShow Literal where
   nominal_showsPrecSup = simple_showsPrecSup
 
-instance NominalSupport () where
-  support t = support_empty
-
-instance NominalShow () where
-  nominal_showsPrecSup = simple_showsPrecSup
+instance NominalSupport ()
+instance NominalShow ()
 
 -- Derived cases.
 instance NominalSupport Integer where
@@ -1033,52 +1021,17 @@ instance NominalShow Char where
   nominal_showsPrecSup = simple_showsPrecSup
   nominal_showList sup ts = shows ts
 
-instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s) where
-  support (t, s) = support_union (support t) (support s)
-
-instance (NominalShow t, NominalShow s) => NominalShow (t,s) where
-  nominal_showsPrecSup sup d (t, s) = showString $
-    "("
-    ++ nominal_showsPrecSup sup 0 t ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 s ""
-    ++ ")"
-        
-instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r) where
-  support (t, s, r) = support (t, (s, r))
-
-instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r) where
-  nominal_showsPrecSup sup d (t, s, r) = showString $
-    "("
-    ++ nominal_showsPrecSup sup 0 t ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 s ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 r ""
-    ++ ")"
-
-instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q) where
-  support (t, s, r, q) = support ((t, s, r), q)
-
-instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => NominalShow (t,s,r,q) where
-  nominal_showsPrecSup sup d (t, s, r, q) = showString $
-    "("
-    ++ nominal_showsPrecSup sup 0 t ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 s ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 r ""
-    ++ ","
-    ++ nominal_showsPrecSup sup 0 q ""
-    ++ ")"
+instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
+instance (NominalShow t, NominalShow s) => NominalShow (t,s)
+instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
+instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q)
+instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => NominalShow (t,s,r,q)
 
 -- ... and so on for tuples.
 
-instance (NominalSupport t) => NominalSupport [t] where
-  support ts = support_unions (map support ts)
-
-instance (NominalShow t) => NominalShow [t] where
-  nominal_showsPrecSup sup d ts = nominal_showList sup ts
+instance (NominalSupport t) => NominalSupport [t]
+instance (NominalShow t) => NominalShow [t]
 
 instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
   π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
@@ -1104,7 +1057,7 @@ instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) wh
   nominal_showsPrecSup sup d t =
     open_for_printing sup t $ \a s sup' ->
       showParen (d > 5) $
-        showString (nominal_show a ++ "." ++ nominal_showsPrecSup sup' 5 s "")
+        showString (nominal_show a ++ " . " ++ nominal_showsPrecSup sup' 5 s "")
 
 instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
   showsPrec = nominal_showsPrec
@@ -1214,6 +1167,9 @@ with_fresh_namelist_plus t n k =
 --
 -- to any nominal datatype.
 
+-- ----------------------------------------------------------------------
+-- ** Generic Nominal instances
+
 class GNominal f where
   gbullet :: Permutation -> f a -> f a
 
@@ -1235,6 +1191,9 @@ instance (GNominal a) => GNominal (M1 i c a) where
 
 instance (Nominal a) => GNominal (K1 i a) where
   gbullet π (K1 x) = K1 (π • x)
+
+-- ----------------------------------------------------------------------
+-- ** Generic NominalSupport instances
 
 class GNominalSupport f where
   gsupport :: f a -> Support
@@ -1258,39 +1217,84 @@ instance (GNominalSupport a) => GNominalSupport (M1 i c a) where
 instance (NominalSupport a) => GNominalSupport (K1 i a) where
   gsupport (K1 x) = support x
 
--- Implementation comment: the generic 'Show' instance can be
--- improved. We currently ignore fixity and record notation.
+-- ----------------------------------------------------------------------
+-- ** Generic NominalShow instances
+
+-- The implementation follows along similar lines as
+-- "Generics.Deriving.Show".
+
+-- | Precendence of application.
+appPrec :: Int
+appPrec = 2
+
+-- | This type keeps track of which separator to use for the next tuple.
+data Separator = Rec | Tup | Inf String | Pre
+
 class GNominalShow f where
-  gnominal_showsPrecSup :: Support -> Int -> f a -> ShowS
+  gnominal_showsPrecSup :: Separator -> Support -> Int -> f a -> ShowS
+  isNullary :: f a -> Bool
+  isNullary x = False
 
 instance GNominalShow V1 where
-  gnominal_showsPrecSup sup d t s = undefined -- Does not occur, because V1 is an empty type.
+  -- Does not occur, because V1 is an empty type.
+  gnominal_showsPrecSup sep sup d t s = undefined 
   
 instance GNominalShow U1 where
-  gnominal_showsPrecSup sup d t s = s
+  gnominal_showsPrecSup sep sup d t s = s
+  isNullary x = True
 
 instance (GNominalShow a, GNominalShow b) => GNominalShow (a :*: b) where
-  gnominal_showsPrecSup sup d (x :*: y) = 
-    gnominal_showsPrecSup sup 11 x
-    ∘ showString " "
-    ∘ gnominal_showsPrecSup sup 11 y
+  gnominal_showsPrecSup sep sup d (x :*: y) = 
+    gnominal_showsPrecSup sep sup prec x
+    ∘ showString separator
+    ∘ gnominal_showsPrecSup sep sup prec y
+    where
+      (separator, prec) = case sep of
+        Rec -> (", ", d)
+        Tup -> (",", d)
+        Inf s -> (" " ++ s ++ " ", d)
+        Pre -> (" ", 11)
 
 instance (GNominalShow a, GNominalShow b) => GNominalShow (a :+: b) where
-  gnominal_showsPrecSup sup d (L1 x) = gnominal_showsPrecSup sup d x
-  gnominal_showsPrecSup sup d (R1 x) = gnominal_showsPrecSup sup d x
+  gnominal_showsPrecSup sep sup d (L1 x) = gnominal_showsPrecSup sep sup d x
+  gnominal_showsPrecSup sep sup d (R1 x) = gnominal_showsPrecSup sep sup d x
 
 instance (GNominalShow a) => GNominalShow (M1 D c a) where
-  gnominal_showsPrecSup sup d (M1 x) = gnominal_showsPrecSup sup d x
+  gnominal_showsPrecSup sep sup d (M1 x) = gnominal_showsPrecSup sep sup d x
 
 instance (GNominalShow a, Constructor c) => GNominalShow (M1 C c a) where
-  gnominal_showsPrecSup sup d c@(M1 x) = showParen (d > 10) $
-    showString (conName c)
-    ∘ showString " "
-    ∘ gnominal_showsPrecSup sup 11 x
+  gnominal_showsPrecSup sep sup d c@(M1 x) =
+    case fixity of
+      Prefix
+        | isNullary x -> showString name
+        | isTuple name -> showParen True $ gnominal_showsPrecSup Tup sup 0 x
+        | conIsRecord c -> showParen (d > 10) $
+          showString name
+          ∘ showString " "
+          ∘ showString "{"
+          ∘ gnominal_showsPrecSup Rec sup 0 x
+          ∘ showString "}"
+        | otherwise -> showParen (d > 10) $
+        showString name
+        ∘ showString " "
+        ∘ gnominal_showsPrecSup Pre sup 11 x
+      Infix assoc prec -> showParen (d > prec) $
+        gnominal_showsPrecSup (Inf name) sup (prec+1) x
+    where
+      name = conName c
+      fixity = conFixity c
+      isTuple ('(' : ',' : _) = True
+      isTuple _ = False
 
--- Ignore record selectors, for now.
 instance (GNominalShow a, Selector c) => GNominalShow (M1 S c a) where
-  gnominal_showsPrecSup sup d (M1 x) = gnominal_showsPrecSup sup d x
+  gnominal_showsPrecSup sep sup d s@(M1 x)
+    | null name = gnominal_showsPrecSup sep sup d x
+    | otherwise =
+      showString name
+      ∘ showString " = "
+      ∘ gnominal_showsPrecSup sep sup d x
+    where
+      name = selName s
 
 instance (NominalShow a) => GNominalShow (K1 i a) where
-  gnominal_showsPrecSup sup d (K1 x) = nominal_showsPrecSup sup d x
+  gnominal_showsPrecSup sep sup d (K1 x) = nominal_showsPrecSup sup d x
