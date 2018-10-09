@@ -1,5 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- | An example of "Nominal": untyped lambda calculus.
 
 module Lambda where
@@ -17,7 +15,7 @@ type Variable = AtomOfKind V
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
                                            deriving (Eq)
 
--- In an ideal programming language, this instance would be
+-- In an ideal programming language, the following instances would be
 -- automatically derived with \"deriving\". We could probably make
 -- this even simpler.
 instance Nominal Term where
@@ -25,16 +23,18 @@ instance Nominal Term where
   π • App t s = App (π • t) (π • s)
   π • Abs t = Abs (π • t)
 
-instance NominalShow Term where
+instance NominalSupport Term where
   support (Var x) = support x
   support (App t s) = support (t, s)
   support (Abs t) = support t
+
+instance NominalShow Term where
   nominal_showsPrecSup sup d (Var x) = showString (show x)
   nominal_showsPrecSup sup d (App m n) = showParen (d > 10) $
-    nominal_showsPrecSup sup 10 m `cp` showString " " `cp` nominal_showsPrecSup sup 11 n
+    nominal_showsPrecSup sup 10 m ∘ showString " " ∘ nominal_showsPrecSup sup 11 n
   nominal_showsPrecSup sup d (Abs t) = open_for_printing sup t $ \x s sup ->
     showParen (d > 1) $
-      showString ("λ" ++ show x ++ ".") `cp` nominal_showsPrecSup sup 1 s
+      showString ("λ" ++ show x ++ ".") ∘ nominal_showsPrecSup sup 1 s
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
@@ -93,15 +93,15 @@ z = lam_named "s" $ \s -> lam_named "z" $ \z -> z
 
 -- | Successor of Church numeral.
 s :: Term
-s = lam$ \n -> lam_named "s" $ \s -> lam_named "z" $ \z -> s @@ (n @@ s @@ z)
+s = lam $ \n -> lam_named "s" $ \s -> lam_named "z" $ \z -> s @@ (n @@ s @@ z)
 
 -- | Addition of Church numerals.
 plus :: Term
-plus = lam$ \n -> lam$ \m -> n @@ s @@ m
+plus = lam $ \n -> lam $ \m -> n @@ s @@ m
 
 -- | Multiplication of Church numerals.
 times :: Term
-times = lam$ \n -> lam$ \m -> n @@ (plus @@ m) @@ z
+times = lam $ \n -> lam $ \m -> n @@ (plus @@ m) @@ z
 
 -- | The Church numeral /n/. This function demonstrates a use of
 -- 'with_fresh' to build lambda terms from names.
@@ -123,5 +123,5 @@ multilam n t = lam (\x -> multilam (n-1) t)
 -- | Another example of a recursively built term.
 nested :: Integer -> Term -> Term
 nested 0 t = t
-nested n t = lam (\x -> multilam (n-1) (t @@ x))
+nested n t = lam (\x -> nested (n-1) (t @@ x))
 
