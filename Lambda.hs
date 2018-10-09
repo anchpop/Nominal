@@ -16,17 +16,7 @@ type Variable = AtomOfKind V
 
 -- | The type of lambda terms, up to alpha-equivalence.
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
-          deriving (Eq, Generic, Nominal, NominalSupport, NominalShow)
-
-{-
-instance NominalShow Term where
-  nominal_showsPrecSup sup d (Var x) = showString (show x)
-  nominal_showsPrecSup sup d (App m n) = showParen (d > 10) $
-    nominal_showsPrecSup sup 10 m ∘ showString " " ∘ nominal_showsPrecSup sup 11 n
-  nominal_showsPrecSup sup d (Abs t) = open_for_printing sup t $ \x s sup ->
-    showParen (d > 1) $
-      showString ("λ" ++ show x ++ ".") ∘ nominal_showsPrecSup sup 1 s
--}
+          deriving (Eq, Generic, Nominal, NominalSupport, NominalShow, Show)
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
@@ -57,10 +47,6 @@ subst m x (Abs t) = open t (\y s -> Abs (y . subst m x s))
 -- from the "Prelude".
 compose :: (b -> c) -> (a -> b) -> (a -> c)
 compose f g x = f (g x)
-
--- | Pretty-printing of lambda terms.
-instance Show Term where
-  showsPrec = nominal_showsPrec
 
 -- | Free variables.
 fv :: Term -> Set Variable
