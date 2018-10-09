@@ -351,6 +351,9 @@ instance Nominal ()
 instance (Nominal t, Nominal s) => Nominal (t,s)
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r)
 instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p) => Nominal (t,s,r,q,p)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o) => Nominal (t,s,r,q,p,o)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o, Nominal n) => Nominal (t,s,r,q,p,o,n)
 
 instance (Nominal t, Nominal s) => Nominal (t -> s) where
   π • f = \x -> π • (f (π' • x))
@@ -1022,11 +1025,18 @@ instance NominalShow Char where
   nominal_showList sup ts = shows ts
 
 instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
-instance (NominalShow t, NominalShow s) => NominalShow (t,s)
 instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
-instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r)
 instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p) => NominalSupport (t,s,r,q,p)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o) => NominalSupport (t,s,r,q,p,o)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o, NominalSupport n) => NominalSupport (t,s,r,q,p,o,n)
+
+instance (NominalShow t, NominalShow s) => NominalShow (t,s)
+instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => NominalShow (t,s,r,q)
+instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p) => NominalShow (t,s,r,q,p)
+instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o) => NominalShow (t,s,r,q,p,o)
+instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o, NominalShow n) => NominalShow (t,s,r,q,p,o,n)
 
 -- ... and so on for tuples.
 
