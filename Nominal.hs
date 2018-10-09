@@ -1233,10 +1233,6 @@ instance (NominalSupport a) => GNominalSupport (K1 i a) where
 -- The implementation follows along similar lines as
 -- "Generics.Deriving.Show".
 
--- | Precendence of application.
-appPrec :: Int
-appPrec = 2
-
 -- | This type keeps track of which separator to use for the next tuple.
 data Separator = Rec | Tup | Inf String | Pre
 
