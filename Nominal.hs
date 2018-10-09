@@ -1041,7 +1041,10 @@ instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalSho
 -- ... and so on for tuples.
 
 instance (NominalSupport t) => NominalSupport [t]
-instance (NominalShow t) => NominalShow [t]
+
+instance (NominalShow t) => NominalShow [t] where
+  -- Lists require special treatment.
+  nominal_showsPrecSup sup d ts = nominal_showList sup ts
 
 instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
   π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
