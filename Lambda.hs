@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+
 -- | An example of "Nominal": untyped lambda calculus.
 
 module Lambda where
@@ -13,21 +16,9 @@ type Variable = AtomOfKind V
 
 -- | The type of lambda terms, up to alpha-equivalence.
 data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
-                                           deriving (Eq)
+          deriving (Eq, Generic, Nominal, NominalSupport, NominalShow)
 
--- In an ideal programming language, the following instances would be
--- automatically derived with \"deriving\". We could probably make
--- this even simpler.
-instance Nominal Term where
-  π • Var x = Var (π • x)
-  π • App t s = App (π • t) (π • s)
-  π • Abs t = Abs (π • t)
-
-instance NominalSupport Term where
-  support (Var x) = support x
-  support (App t s) = support (t, s)
-  support (Abs t) = support t
-
+{-
 instance NominalShow Term where
   nominal_showsPrecSup sup d (Var x) = showString (show x)
   nominal_showsPrecSup sup d (App m n) = showParen (d > 10) $
@@ -35,6 +26,7 @@ instance NominalShow Term where
   nominal_showsPrecSup sup d (Abs t) = open_for_printing sup t $ \x s sup ->
     showParen (d > 1) $
       showString ("λ" ++ show x ++ ".") ∘ nominal_showsPrecSup sup 1 s
+-}
 
 -- | A convenience constructor for abstractions. This allows us to
 -- write @lam (\x -> App x x)@ instead of @Abs (x.App (Var x) (Var x))@
