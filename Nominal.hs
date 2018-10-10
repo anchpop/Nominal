@@ -34,7 +34,7 @@ module Nominal (
   with_fresh_plus,
   with_fresh_named_plus,
   with_fresh_namelist_plus,
-  Generic
+  module GHC.Generics
 )
 where
 
