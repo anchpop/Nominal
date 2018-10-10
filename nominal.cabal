@@ -56,7 +56,8 @@ extra-source-files:
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Nominal
+  exposed-modules:     Nominal,
+                       Nominal.ConcreteNames
   
   -- Modules included in this library but not exported.
   -- other-modules:       
