@@ -45,7 +45,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Char
 import Data.List
 import Data.Unique
 import GHC.Generics
@@ -55,19 +54,42 @@ import Nominal.ConcreteNames
 -- * A global variable
 
 -- | A global variable holding a set of strings already used for free
--- names.
+-- names. The use of 'unsafePerformIO' in this function is safe,
+-- because it is only called once and serves to create a global
+-- reference cell.
+{-# NOINLINE global_used #-}
 global_used :: IORef (Set String)
 global_used = unsafePerformIO $ do
   newIORef Set.empty
 
 -- | Create a globally new concrete name based on the given name
--- suggestion.
+-- suggestion. The use of 'unsafePerformIO' in this function is safe
+-- only if the user respects the correctness condition (see
+-- 'with_fresh' and other analogous functions). In that case, globally
+-- fresh names will never be generated, the globally new names are
+-- never used, and referential transparency holds. However, the
+-- 'global_new' mechanism is a useful convenience, for example for the
+-- generation of useful error messages inside a scope where fresh
+-- names exist.
+{-# NOINLINE global_new #-}
 global_new :: NameSuggestion -> String
 global_new ns = unsafePerformIO $ do
   used <- readIORef global_used
   let n = rename_fresh used ns
   writeIORef global_used (Set.insert n used)
   return n
+
+-- | Perform a subcomputation in the presence of a globally unique
+-- value. This is similar to 'newUnique', but uses a continuation
+-- monad instead of the 'IO' monad. This is only safe if the user
+-- respects the correctness condition (see 'with_fresh' and other
+-- analogous functions). The unique value must not escape the function
+-- body.
+{-# NOINLINE with_unique #-}
+with_unique :: (Unique -> a) -> a
+with_unique body = unsafePerformIO $ do
+  x <- newUnique
+  return (body x)
 
 -- ----------------------------------------------------------------------
 -- * Atoms
@@ -86,21 +108,23 @@ instance Ord Atom where
   -- suggestions may be large or even infinite.
   compare (Atom x n ns) (Atom x' n' ns') = compare x x'
 
--- | Create a fresh atom with the given name suggestions.
+-- | Create a fresh atom with the given name and name suggestions.
+with_fresh_atom_named_namelist :: String -> NameSuggestion -> (Atom -> a) -> a
+with_fresh_atom_named_namelist n ns body =
+  with_unique (\x -> body (Atom x n ns))
+  
+-- | Create a fresh atom with the given name suggestion.
 
--- Implementation note: the call to global_new is purposely done
--- outside the IO monad, so that an actual concrete name will only be
--- computed on demand.
-fresh_atom_namelist :: NameSuggestion -> IO Atom
-fresh_atom_namelist ns = do
-  x <- newUnique
-  return (Atom x (global_new ns) ns)
+-- Implementation note: the call to global_new is done lazily, so an
+-- actual concrete name will only be computed on demand.
+with_fresh_atom_namelist :: NameSuggestion -> (Atom -> a) -> a
+with_fresh_atom_namelist ns body =
+  with_fresh_atom_named_namelist (global_new ns) ns body
 
 -- | Create a fresh atom with the given concrete name.
-fresh_atom_named :: String -> IO Atom
-fresh_atom_named n = do
-  x <- newUnique
-  return (Atom x n [n])
+with_fresh_atom_named :: String -> (Atom -> a) -> a
+with_fresh_atom_named n body =
+  with_fresh_atom_named_namelist n [n] body
 
 -- | Return the suggested names of an atom.
 atom_names :: Atom -> NameSuggestion
@@ -772,18 +796,15 @@ with_fresh body = with_fresh_namelist ns body
 -- given to the atom. The name is only a suggestion, and will be
 -- changed, if necessary, to avoid clashes.
 with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
-with_fresh_named n body = unsafePerformIO $ do
-  a <- fresh_atom_named n
-  return (body (from_atom a))
+with_fresh_named n body =
+  with_fresh_atom_named n (\a -> body (from_atom a))
 
 -- | A version of 'with_fresh' that permits a list of suggested names
 -- to be specified. The first suitable name in the list will be used
 -- if possible.
-{-# NOINLINE with_fresh_namelist #-}
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
-with_fresh_namelist ns body = unsafePerformIO $ do
-  a <- fresh_atom_namelist ns
-  return (body (from_atom a))
+with_fresh_namelist ns body =
+  with_fresh_atom_namelist ns (\a -> body (from_atom a))
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
