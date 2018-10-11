@@ -60,7 +60,8 @@ library
                        Nominal.ConcreteNames,
                        Nominal.Unsafe,
                        Nominal.Atoms,
-                       Nominal.Permutations
+                       Nominal.Permutations,
+                       Nominal.Nominal
   
   -- Modules included in this library but not exported.
   -- other-modules:       
