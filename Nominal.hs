@@ -54,22 +54,6 @@ import Nominal.Nominal
 import Nominal.NominalSupport
 
 -- ----------------------------------------------------------------------
--- * Defer
-
--- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
--- This is used to cache substitutions so that they can be optimized
--- and applied all at once.
-data Defer t = Defer Permutation t
-
-force :: (Nominal t) => Defer t -> t
-force (Defer sigma t) = sigma • t
-
-instance Nominal (Defer t) where
-  -- This is where 'Defer' pays off. Rather than using 'force',
-  -- we compile the permutations for later efficient use.
-  π • (Defer sigma t) = Defer (perm_composeR π sigma) t
-  
--- ----------------------------------------------------------------------
 
 instance (Nominal t) => Nominal (BindAtom t) where
   π • (BindAtom n f) = BindAtom n (\x -> π • (f x))
@@ -80,48 +64,6 @@ instance (NominalSupport t) => NominalSupport (BindAtom t) where
 
 instance (Nominal t, Eq t) => Eq (BindAtom t) where
   b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2
-
--- ----------------------------------------------------------------------
--- * Atom abstraction
-
--- | 'BindAtom' /t/ is the type of atom abstractions, denoted [a]t in
--- the nominal logic literature. Its elements are of the form (a.v)
--- modulo alpha-equivalence. For more details on what this means, see
--- Definition 4 of [Pitts 2002].
-
--- Implementation note: we currently use an HOAS encoding. It remains
--- to be seen whether this is efficient. An important invariant of the
--- HOAS encoding is that the underlying function must only be applied
--- to /fresh/ atoms.
--- 
--- It would also be possible to use a DeBruijn encoding or a nameful
--- encoding. It remains to be seen which encoding is the most
--- efficient in practice.
-data BindAtom t = BindAtom NameSuggestion (Atom -> Defer t)
-
--- | Atom abstraction: 'atom_abst' /a/ /t/ represents the equivalence
--- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
--- this for 'Atom' and later generalize to other 'Atomic' types.
-atom_abst :: Atom -> t -> BindAtom t
-atom_abst a t = BindAtom (atom_names a) (\x -> Defer (perm_swap a x) t)
-
--- | Pattern matching for atom abstraction. In an ideal programming
--- idiom, we would be able to define a function on atom abstractions
--- like this:
---
--- > f (x.s) = body.
---
--- Haskell doesn't let us provide this syntax, but the 'open' function
--- provides the equivalent syntax
---
--- > f t = open t (\x s -> body).
---
--- To be referentially transparent and equivariant, the body is
--- subject to the same restriction as 'with_fresh', namely,
--- /x/ must be fresh for the body (in symbols /x/ # /body/).
-atom_open :: (Nominal t) => BindAtom t -> (Atom -> t -> s) -> s
-atom_open (BindAtom ns f) body =
-  with_fresh_namelist ns (\a -> body a (force (f a)))
 
 -- | A variant of 'open' which moreover attempts to choose a name for
 -- the bound atom that does not clash with any free name in its
