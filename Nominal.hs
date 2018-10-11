@@ -461,9 +461,7 @@ class (Nominal a, NominalSupport a, NominalShow a, Eq a, Ord a, Show a, Bindable
   names :: a -> NameSuggestion
 
 show_atomic :: (Atomic a) => a -> String
-show_atomic a = n
-  where
-    Atom x n ns = to_atom a
+show_atomic a = show_atom (to_atom a)
 
 to_bindatom :: (Atomic a, Nominal t) => Bind a t -> BindAtom t
 to_bindatom body = open body $ \a t -> atom_abst (to_atom a) t
@@ -817,37 +815,8 @@ instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) wh
 instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
   showsPrec = nominal_showsPrec
 
--- ----------------------------------------------------------------------
--- * Multiple atom types
-
--- | The type class 'AtomKind' requires a single method, which is
--- moreover optional: a list of suggested names for this kind of atom.
--- For example:
---
--- > data VarName
--- > instance AtomKind VarName where suggested_names a = ["x", "y", "z"]
---
--- > data TypeName
--- > instance AtomKind TypeName where suggested_names a = ["a", "b", "c"]
---
--- It is possible to have infinitely many kinds of atoms, for example:
---
--- > data Zero
--- > data Succ a
--- > instance AtomKind Zero
--- > instance AtomKind (Succ a)
---
--- Then Zero, Succ Zero, Succ (Succ Zero), etc., will all be atom kinds.
-class AtomKind a where
-  suggested_names :: a -> NameSuggestion
-  suggested_names a = default_names
-
--- | The type of atoms of a given kind. For example:
---
--- > type Variable = AtomOfKind VarName
--- > type Type = AtomOfKind TypeName
-newtype AtomOfKind a = AtomOfKind Atom
-  deriving (Nominal, Eq, Ord)
+instance (AtomKind a) => Nominal (AtomOfKind a) where
+  π • a = from_atom (π • to_atom a)
 
 instance (AtomKind a) => NominalSupport (AtomOfKind a) where
   support a = support (add_default_names (names a) (to_atom a))
