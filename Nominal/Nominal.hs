@@ -68,7 +68,7 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
       π' = perm_invert π
 
 -- ----------------------------------------------------------------------
--- ** Generic Nominal instances
+-- * Generic Nominal instances
 
 -- | A version of the 'Nominal' class suitable for generic programming.
 class GNominal f where

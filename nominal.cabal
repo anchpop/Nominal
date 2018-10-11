@@ -61,7 +61,8 @@ library
                        Nominal.Unsafe,
                        Nominal.Atoms,
                        Nominal.Permutations,
-                       Nominal.Nominal
+                       Nominal.Nominal,
+                       Nominal.NominalSupport
   
   -- Modules included in this library but not exported.
   -- other-modules:       
