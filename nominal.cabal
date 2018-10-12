@@ -17,7 +17,7 @@ description:
 
   An efficient and easy-to-use library for defining datatypes with
   binders, and automatically handling alpha-equivalence. It is based
-  on Gabbay and Pitts's nominal set theory.
+  on Gabbay and Pitts's theory of nominal sets.
 
 -- URL for the project homepage or repository.
 homepage:            http://www.mathstat.dal.ca/~selinger/nominal/
@@ -64,6 +64,7 @@ library
                        Nominal.Nominal,
                        Nominal.NominalSupport,
                        Nominal.Bindable
+                       Nominal.Atomic
   
   -- Modules included in this library but not exported.
   -- other-modules:       

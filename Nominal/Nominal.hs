@@ -22,6 +22,8 @@
 
 module Nominal.Nominal where
 
+import Data.Map (Map)
+import qualified Data.Map as Map
 import GHC.Generics
 
 import Nominal.ConcreteNames
@@ -40,7 +42,7 @@ class Nominal t where
   default (•) :: (Generic t, GNominal (Rep t)) => Permutation -> t -> t
   π • x = to (gbullet π (from x))
 
--- Some common instances
+-- Instances: some base cases
 
 instance Nominal Atom where
   (•) = perm_apply_atom
@@ -57,6 +59,8 @@ instance Nominal Int where
 instance Nominal Char where
   π • t = t
 
+-- Instances: generic
+
 instance (Nominal t) => Nominal [t]
 instance Nominal ()
 instance (Nominal t, Nominal s) => Nominal (t,s)
@@ -70,6 +74,9 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
   π • f = \x -> π • (f (π' • x))
     where
       π' = perm_invert π
+
+instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
+  π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
 
 -- ----------------------------------------------------------------------
 -- * Deferred permutation

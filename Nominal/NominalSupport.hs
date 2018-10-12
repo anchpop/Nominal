@@ -12,6 +12,8 @@
 
 module Nominal.NominalSupport where
 
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import GHC.Generics
@@ -114,6 +116,40 @@ class (Nominal t) => NominalSupport t where
 
   default support :: (Generic t, GNominalSupport (Rep t)) => t -> Support
   support x = gsupport (from x)
+
+-- Instances: some base cases
+
+instance NominalSupport Atom where
+  support a = support_atom a
+
+instance (AtomKind a) => NominalSupport (AtomOfKind a) where
+  support b@(AtomOfKind a) = support (add_default_names (atomofkind_names b) a)
+
+instance NominalSupport Integer where
+  support t = support ()
+
+instance NominalSupport Int where
+  support t = support ()
+
+instance NominalSupport Char where
+  support t = support ()
+
+instance NominalSupport Literal where
+  support (Literal s) = support_string s
+
+-- Instances: generic
+
+instance (NominalSupport t) => NominalSupport [t]
+instance NominalSupport ()
+instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
+instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p) => NominalSupport (t,s,r,q,p)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o) => NominalSupport (t,s,r,q,p,o)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o, NominalSupport n) => NominalSupport (t,s,r,q,p,o,n)
+
+instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v) where
+  support map = support (Map.toList map)
 
 instance (NominalSupport t) => NominalSupport (BindAtom t) where
   support (BindAtom n f) =
