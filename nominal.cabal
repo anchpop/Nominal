@@ -63,6 +63,7 @@ library
                        Nominal.Permutation,
                        Nominal.Nominal,
                        Nominal.NominalSupport,
+                       Nominal.NominalShow,
                        Nominal.Bindable
                        Nominal.Atomic
   

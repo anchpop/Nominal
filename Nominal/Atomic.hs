@@ -206,13 +206,8 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Eq, Ord)
 
--- | Return the list of default names associated with the /kind/ of
--- the given atom (not the name(s) of the atom itself).
-atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
-atomofkind_names f = suggested_names (un f)
-  where
-    un :: AtomOfKind a -> a
-    un = undefined
+instance (AtomKind a) => Show (AtomOfKind a) where
+  show = show_atomic
 
 instance (AtomKind a) => Nominal (AtomOfKind a) where
   π • (AtomOfKind a) = AtomOfKind (π • a)
@@ -235,3 +230,15 @@ instance (AtomKind a) => Bindable (AtomOfKind a) where
       un :: Bind a t -> a
       un = undefined
 
+instance (AtomKind a) => Atomic (AtomOfKind a) where
+  to_atom (AtomOfKind a) = a
+  from_atom a = AtomOfKind a
+  names f = atomofkind_names f
+
+-- | Return the list of default names associated with the /kind/ of
+-- the given atom (not the name(s) of the atom itself).
+atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
+atomofkind_names f = suggested_names (un f)
+  where
+    un :: AtomOfKind a -> a
+    un = undefined

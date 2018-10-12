@@ -101,11 +101,17 @@ instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
 -- We use the infix operator '.', which is normally bound to function
 -- composition in the standard library. Thus, nominal programs should
 -- import the standard library like this:
---
+-- 
 -- > import Prelude hiding ((.))
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 (.) = abst
 infixr 5 .
+
+-- | Since we hide (.) from the standard library, and it is not legal
+-- syntax to write \"̈@Prelude..@\", we provide '∘' as an alternate
+-- notation for composition.
+(∘) :: (b -> c) -> (a -> b) -> (a -> c)
+(g ∘ f) x = g (f x)
 
 -- | Open two abstractions at once. So
 --

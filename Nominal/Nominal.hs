@@ -7,8 +7,8 @@
 -- acts on it. We can abstract over an atom in such a type.
 --
 -- We also provide some generic programming so that instances of
--- 'Nominal' can be automatically derived in most cases. All the user
--- has to do is add the language options @DeriveGeneric@ and
+-- 'Nominal' can be automatically derived in most cases. To take
+-- advantage of this, add the language options @DeriveGeneric@ and
 -- @DeriveAnyClass@ and import "GHC.Generics". Then @deriving
 -- (Generic, Nominal)@ can be added to most datatype declarations.
 -- Example:
@@ -33,8 +33,9 @@ import Nominal.Permutation
 -- ----------------------------------------------------------------------
 -- * The Nominal class
 
--- | A type is 'Nominal' if the group of finitely supported permutations
--- of atoms acts on it.
+-- | A type is 'Nominal' if the group of finitely supported
+-- permutations of atoms acts on it. In most cases, instances of
+-- 'Nominal' can be automatically derived.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
   (•) :: Permutation -> t -> t
