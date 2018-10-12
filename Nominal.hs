@@ -45,8 +45,8 @@ import Data.List
 import GHC.Generics
 
 import Nominal.ConcreteNames
-import Nominal.Atoms
-import Nominal.Permutations
+import Nominal.Atom
+import Nominal.Permutation
 import Nominal.Nominal
 import Nominal.NominalSupport
 import Nominal.Bindable

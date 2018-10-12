@@ -2,7 +2,7 @@
 -- unique identifier that also has a concrete name, as well as
 -- additional name suggestions (in case it must be renamed).
 
-module Nominal.Atoms where
+module Nominal.Atom where
 
 import Data.Unique
 

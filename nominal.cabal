@@ -59,8 +59,8 @@ library
   exposed-modules:     Nominal,
                        Nominal.ConcreteNames,
                        Nominal.Unsafe,
-                       Nominal.Atoms,
-                       Nominal.Permutations,
+                       Nominal.Atom,
+                       Nominal.Permutation,
                        Nominal.Nominal,
                        Nominal.NominalSupport,
                        Nominal.Bindable

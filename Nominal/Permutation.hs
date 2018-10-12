@@ -2,13 +2,13 @@
 -- supported permutations of atoms.  Compositions and inverses can
 -- both be computed with O(/n/) 'Map' lookup operations.
 
-module Nominal.Permutations where
+module Nominal.Permutation where
 
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Nominal.Atoms
+import Nominal.Atom
 
 -- ----------------------------------------------------------------------
 -- * The monoid of permutations

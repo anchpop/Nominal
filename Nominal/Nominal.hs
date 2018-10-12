@@ -27,8 +27,8 @@ import qualified Data.Map as Map
 import GHC.Generics
 
 import Nominal.ConcreteNames
-import Nominal.Atoms
-import Nominal.Permutations
+import Nominal.Atom
+import Nominal.Permutation
 
 -- ----------------------------------------------------------------------
 -- * The Nominal class

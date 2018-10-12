@@ -7,7 +7,7 @@ module Nominal.Atomic where
 import Prelude hiding ((.))
 
 import Nominal.ConcreteNames
-import Nominal.Atoms
+import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
 import Nominal.Bindable

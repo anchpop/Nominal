@@ -19,7 +19,7 @@ import qualified Data.Set as Set
 import GHC.Generics
 
 import Nominal.ConcreteNames
-import Nominal.Atoms
+import Nominal.Atom
 import Nominal.Nominal
 
 -- ----------------------------------------------------------------------
