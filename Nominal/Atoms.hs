@@ -99,6 +99,8 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Eq, Ord)
 
+-- | Return the list of default names associated with the /kind/ of
+-- the given atom (not the name(s) of the atom itself).
 atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
 atomofkind_names f = suggested_names (un f)
   where

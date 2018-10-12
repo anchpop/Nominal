@@ -2,6 +2,7 @@
 
 -- | This model provides three primitive functions that use
 -- 'unsafePerformIO'. These functions are only safe if used correctly.
+-- How to use each function correctly is specified in its documentation.
 
 module Nominal.Unsafe where
 
@@ -24,17 +25,16 @@ global_used = unsafePerformIO $ do
   newIORef Set.empty
 
 -- | Create a globally new concrete name based on the given name
--- suggestion.
+-- suggestion. This ensures that fresh names have distinct names when
+-- they are not bound. (The naming of bound names is handled by a
+-- different mechanism). Although technically there should never be
+-- any global fresh names, this is still a useful convenience, for
+-- example when generating an error message from inside a function
+-- body where fresh names are in scope.
 -- 
--- The use of 'unsafePerformIO' in this function is safe only if the
--- user respects the correctness condition (see 'with_fresh' and other
--- analogous functions). In that case, globally fresh names will never
--- be generated, the globally new names are never used, and
--- referential transparency holds.
---
--- However, the mechanism provided by 'global_new' a useful
--- convenience, for example for the generation of error messages from
--- inside a function body where fresh names are in scope.
+-- The use of 'unsafePerformIO' in this function is safe if the user
+-- respects the correctness conditions associated with the function
+-- 'with_fresh' and other analogous functions.
 {-# NOINLINE global_new #-}
 global_new :: NameSuggestion -> String
 global_new ns = unsafePerformIO $ do
@@ -48,9 +48,9 @@ global_new ns = unsafePerformIO $ do
 -- monad instead of the 'IO' monad. To ensure referential
 -- transparency, the unique value must not escape the function body.
 --
--- The use of 'unsafePerformIO' in this function is only safe if the
--- user respects the correctness condition (see 'with_fresh' and other
--- analogous functions).
+-- The use of 'unsafePerformIO' in this function is safe if the user
+-- respects the correctness conditions associated with the function
+-- 'with_fresh' and other analogous functions.
 {-# NOINLINE with_unique #-}
 with_unique :: (Unique -> a) -> a
 with_unique body = unsafePerformIO $ do

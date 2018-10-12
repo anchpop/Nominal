@@ -79,6 +79,7 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 -- and applied all at once.
 data Defer t = Defer Permutation t
 
+-- | Apply a deferred permutation.
 force :: (Nominal t) => Defer t -> t
 force (Defer sigma t) = sigma • t
 

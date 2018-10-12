@@ -3,9 +3,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | This module provides the 'NominalSupport' type class. It consists
--- of those typesfor which the support can be calculated. With the
+-- of those types for which the support can be calculated. With the
 -- exception of function types, most 'Nominal' types are also
--- 'NominalSupport'.
+-- in 'NominalSupport'.
 --
 -- We also provide some generic programming so that instances of
 -- 'NominalSupport' can be automatically derived in most cases.
@@ -23,6 +23,12 @@ import Nominal.Nominal
 -- ----------------------------------------------------------------------
 -- * Literal strings
 
+-- | A wrapper around strings. This is used to denote any literal
+-- strings whose values should not clash with the names of bound
+-- variables. For example, if a term contains a constant symbol /c/,
+-- the name /c/ should not also be used as the name of a bound
+-- variable. See 'NominalSupport' for more information on how this
+-- should be used.
 newtype Literal = Literal String
                 deriving (Show)
 
@@ -42,27 +48,35 @@ data Avoidee = A Atom | S String
 -- value of type 'Support' is to use the function 'support'.
 newtype Support = Support (Set Avoidee)
 
+-- | The empty support.
 support_empty :: Support
 support_empty = Support Set.empty
 
+-- | The union of a list of supports.
 support_unions :: [Support] -> Support
 support_unions xs = Support (Set.unions [ x | Support x <- xs ])
 
+-- | The union of two supports.
 support_union :: Support -> Support -> Support
 support_union (Support x) (Support y) = Support (Set.union x y)
 
+-- | Add an atom to the support.
 support_insert :: Atom -> Support -> Support
 support_insert a (Support x) = Support (Set.insert (A a) x)
 
+-- | A singleton support.
 support_atom :: Atom -> Support
 support_atom a = Support (Set.singleton (A a))
 
+-- | Delete an atom from the support.
 support_delete :: Atom -> Support -> Support
 support_delete a (Support s) = Support (Set.delete (A a) s)
 
+-- | Add a literal string to the support.
 support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
 
+-- | Convert the support to a list of strings.
 strings_of_support :: Support -> Set String
 strings_of_support (Support s) = Set.map name s where
   name (A a) = show a
@@ -73,7 +87,7 @@ strings_of_support (Support s) = Set.map name s where
 
 -- | 'NominalSupport' is a subclass of 'Nominal' consisting of those
 -- types for which the support can be calculated. With the exception
--- of function types, most 'Nominal' types are also 'NominalSupport'.
+-- of function types, most 'Nominal' types are also in 'NominalSupport'.
 --
 -- Instances of 'NominalSupport' are usually defined by
 -- straightforward recursive clauses. The recursive clauses must apply
@@ -139,6 +153,7 @@ atom_open_for_printing ns2 sup t@(BindAtom ns f) body =
 -- ----------------------------------------------------------------------
 -- * Generic NominalSupport instances
 
+-- | A version of the 'NominalSupport' class suitable for generic programming.
 class GNominalSupport f where
   gsupport :: f a -> Support
 

@@ -1,5 +1,9 @@
 {-# LANGUAGE TypeFamilies #-}
 
+-- | This module provides a type class 'Bindable' of things (such as
+-- atoms, tuples of atoms, etc.) that can be abstracted by binders.
+-- Moreover, for each bindable type /a/ and nominal type /t/, it
+-- defines a type 'Bind' /a/ /t/ of abstractions. 
 
 module Nominal.Bindable where
 
@@ -13,6 +17,9 @@ import Nominal.NominalSupport
 
 -- ----------------------------------------------------------------------
 -- * The Bindable class
+
+-- | The 'Bindable' class contains types of things (such as atoms,
+-- tuples of atoms, etc.) that can be abstracted by binders.
 
 class (Eq a, Nominal a) => Bindable a where
   -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
@@ -118,7 +125,7 @@ instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
   (==) = bindable_eq
 
 -- ----------------------------------------------------------------------
--- * Bindable instances
+-- Bindable instances
 
 instance Bindable Atom where
   newtype Bind Atom t = BindA (BindAtom t)
