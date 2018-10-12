@@ -16,6 +16,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import GHC.Generics
 
+import Nominal.ConcreteNames
 import Nominal.Atoms
 import Nominal.Nominal
 
@@ -99,6 +100,41 @@ class (Nominal t) => NominalSupport t where
 
   default support :: (Generic t, GNominalSupport (Rep t)) => t -> Support
   support x = gsupport (from x)
+
+instance (NominalSupport t) => NominalSupport (BindAtom t) where
+  support (BindAtom n f) =
+    with_fresh_atom_namelist n (\a -> support_delete a (support (f a)))
+
+instance (NominalSupport t) => NominalSupport (Defer t) where
+  support t = support (force t)
+
+-- ----------------------------------------------------------------------
+-- * Open for printing
+
+-- | A variant of 'open' which moreover attempts to choose a name for
+-- the bound atom that does not clash with any free name in its
+-- scope. This requires a 'NominalSupport' instance. It is mostly
+-- useful for building custom pretty-printers for nominal
+-- terms. Except in pretty-printers, it is equivalent to 'open'.
+--
+-- Usage:
+--
+-- > open_for_printing sup t (\x s sup' -> body)
+--
+-- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
+-- O(/n/)), the support must be pre-computed in a bottom-up fashion,
+-- and then passed into each subterm in a top-down fashion (rather
+-- than re-computing it at each level, which would be O(/n/^2)).  For
+-- this reason, 'open_for_printing' takes the support of /t/ as an
+-- additional argument, and provides /sup'/, the support of /s/, as an
+-- additional parameter to the body.
+atom_open_for_printing :: (Nominal t) => NameSuggestion -> Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
+atom_open_for_printing ns2 sup t@(BindAtom ns f) body =
+  with_fresh_atom_named n1 (\a -> body a (force (f a)) (sup' a))
+  where
+    ns1 = if null ns then ns2 else ns
+    n1 = rename_fresh (strings_of_support sup) ns1
+    sup' a = support_insert a sup
 
 -- ----------------------------------------------------------------------
 -- * Generic NominalSupport instances

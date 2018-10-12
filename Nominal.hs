@@ -54,90 +54,6 @@ import Nominal.Nominal
 import Nominal.NominalSupport
 
 -- ----------------------------------------------------------------------
-
-instance (Nominal t) => Nominal (BindAtom t) where
-  π • (BindAtom n f) = BindAtom n (\x -> π • (f x))
-
-instance (NominalSupport t) => NominalSupport (BindAtom t) where
-  support (BindAtom n f) =
-    with_fresh (\a -> support_delete a (support (f a)))
-
-instance (Nominal t, Eq t) => Eq (BindAtom t) where
-  b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2
-
--- | A variant of 'open' which moreover attempts to choose a name for
--- the bound atom that does not clash with any free name in its
--- scope. This requires a 'NominalShow' instance. It is mostly
--- useful for building custom pretty-printers for nominal
--- terms. Except in pretty-printers, it is equivalent to 'open'.
---
--- Usage:
---
--- > open_for_printing sup t (\x s sup' -> body)
---
--- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
--- O(/n/)), the support must be pre-computed in a bottom-up fashion,
--- and then passed into each subterm in a top-down fashion (rather
--- than re-computing it at each level, which would be O(/n/^2)).  For
--- this reason, 'open_for_printing' takes the support of /t/ as an
--- additional argument, and provides /sup'/, the support of /s/, as an
--- additional parameter to the body.
-atom_open_for_printing :: (Nominal t) => NameSuggestion -> Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
-atom_open_for_printing ns2 sup t@(BindAtom ns f) body =
-  with_fresh_named n1 (\a -> body a (force (f a)) (sup' a))
-  where
-    ns1 = if null ns then ns2 else ns
-    n1 = rename_fresh (strings_of_support sup) ns1
-    sup' a = support_insert a sup
-
--- | Sometimes, it is necessary to open two abstractions, using the
--- /same/ fresh name for both of them. An example of this is the
--- typing rule for lambda abstraction in dependent type theory:
---
--- >           Gamma, x:t  |-  e : s
--- >      ------------------------------------
--- >        Gamma |-  Lam (x.e) : Pi t (x.s)
---
--- In the bottom-up reading of this rule, we are given the terms @Lam@
--- /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/ and
--- terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ =
--- (/x/./s/).  Crucially, the same atom /x/ should be used in both /e/
--- and /s/, because we subsequently need to check that /e/ has type
--- /s/ in some scope that is common to /e/ and /s/.
---
--- The 'merge' primitive permits us to deal with such situations.  Its
--- defining property is
---
--- > merge (x.e) (x.s) = (x.(e,s)).
---
--- We can therefore solve the above problem:
---
--- > open (merge body body') (\x (e,s) -> .....)
---
--- Moreover, the 'merge' primitive can be used to define other
--- merge-like functionality. For example, it is easy to define a
--- function
---
--- > merge_list :: (Atomic a, Nominal t) => [Bind a t] -> Bind a [t]
---
--- in terms of it.
---
--- Semantically, the 'merge' operation implements the isomorphism of
--- nominal sets [A]T x [A]S = [A](T x S).
---
--- If /x/ and /y/ are atoms with user-suggested concrete names and
---
--- > (z.(t',s')) = merge (x.t) (y.s),
---
--- then /z/ will be preferably given the concrete name of /x/, but the
--- concrete name of /y/ will be used if the name of /x/ would cause a
--- clash.
-atom_merge :: (Nominal t, Nominal s) => BindAtom t -> BindAtom s -> BindAtom (t,s)
-atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
-  ns'' = combine_names ns ns'
-  h x = Defer perm_identity (force (f x), force (g x))
-
--- ----------------------------------------------------------------------
 -- * The Bindable class
 
 class (Eq a, Nominal a) => Bindable a where
@@ -632,9 +548,6 @@ instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
   nominal_showsPrecSup sup d m =
     showParen (d > 10) $
       showString "fromList " ∘ nominal_showsPrecSup sup 11 (Map.toList m)
-
-instance (NominalSupport t) => NominalSupport (Defer t) where
-  support t = support (force t)
 
 instance (NominalShow t) => NominalShow (Defer t) where
   nominal_showsPrecSup sup d t = nominal_showsPrecSup sup d (force t)
