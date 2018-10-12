@@ -50,6 +50,16 @@ add_default_names ns (Atom x n ns') = Atom x n ns'
 -- ** Creation of fresh atoms in a scope
 
 -- | Create a fresh atom with the given name and name suggestions.
+
+-- Implementation note: the use of 'unsafePerformIO' in 'with_unique'
+-- makes this function not referentially transparent. For example, we
+-- have
+--
+-- > with_fresh id /= with_fresh id.
+--
+-- However, if the above-mentioned correctness criterion is satisfied,
+-- then the programs will be referentially transparent (and all
+-- definable functions will be equivariant).
 with_fresh_atom_named_namelist :: String -> NameSuggestion -> (Atom -> a) -> a
 with_fresh_atom_named_namelist n ns body =
   with_unique (\x -> body (Atom x n ns))

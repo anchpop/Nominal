@@ -221,7 +221,7 @@ instance (Bindable a) => Bindable (AtomPlus a t) where
 with_fresh_plus :: (Atomic a) => t -> (AtomPlus a t -> s) -> s
 with_fresh_plus t k =
   with_fresh $ \a -> k (AtomPlus a t)
-    
+ 
 
 with_fresh_named_plus :: (Atomic a) => t -> String -> (AtomPlus a t -> s) -> s
 with_fresh_named_plus t n k =
