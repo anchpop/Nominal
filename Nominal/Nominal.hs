@@ -45,6 +45,9 @@ class Nominal t where
 instance Nominal Atom where
   (•) = perm_apply_atom
 
+instance (AtomKind a) => Nominal (AtomOfKind a) where
+  π • (AtomOfKind a) = AtomOfKind (π • a)
+
 instance Nominal Integer where
   π • t = t
 

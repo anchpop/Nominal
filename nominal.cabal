@@ -62,7 +62,8 @@ library
                        Nominal.Atoms,
                        Nominal.Permutations,
                        Nominal.Nominal,
-                       Nominal.NominalSupport
+                       Nominal.NominalSupport,
+                       Nominal.Bindable
   
   -- Modules included in this library but not exported.
   -- other-modules:       

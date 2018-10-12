@@ -99,3 +99,8 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Eq, Ord)
 
+atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
+atomofkind_names f = suggested_names (un f)
+  where
+    un :: AtomOfKind a -> a
+    un = undefined
