@@ -64,8 +64,9 @@ library
                        Nominal.Nominal,
                        Nominal.NominalSupport,
                        Nominal.NominalShow,
-                       Nominal.Bindable
-                       Nominal.Atomic
+                       Nominal.Bindable,
+                       Nominal.Atomic,
+                       Nominal.AtomPlus
   
   -- Modules included in this library but not exported.
   -- other-modules:       
