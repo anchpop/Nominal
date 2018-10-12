@@ -136,21 +136,6 @@ instance Bindable Atom where
   open (BindA body) k = atom_open body k
   open_for_printing sup (BindA body) k = atom_open_for_printing default_names sup body k
 
-instance (AtomKind a) => Bindable (AtomOfKind a) where
-  newtype Bind (AtomOfKind a) t = BindAK (BindAtom t)
-  bindable_action π (BindAK body) = BindAK (π • body)
-  bindable_support (BindAK body) = support body
-  bindable_eq (BindAK b1) (BindAK b2) = b1 == b2
-  abst (AtomOfKind a) t = BindAK body where
-    BindA body = (abst a t)
-  open (BindAK body) k = open (BindA body) (\a t -> k (AtomOfKind a) t)
-  open_for_printing sup b@(BindAK body) k = atom_open_for_printing ns sup body (\a t -> k (AtomOfKind a) t)
-    where
-      ns :: NameSuggestion
-      ns = atomofkind_names (un b)
-      un :: Bind a t -> a
-      un = undefined
-
 instance Bindable () where
   newtype Bind () t = BindUnit t
   bindable_action π (BindUnit body) = BindUnit (π • body)

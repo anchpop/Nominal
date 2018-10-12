@@ -122,9 +122,6 @@ class (Nominal t) => NominalSupport t where
 instance NominalSupport Atom where
   support a = support_atom a
 
-instance (AtomKind a) => NominalSupport (AtomOfKind a) where
-  support b@(AtomOfKind a) = support (add_default_names (atomofkind_names b) a)
-
 instance NominalSupport Integer where
   support t = support ()
 

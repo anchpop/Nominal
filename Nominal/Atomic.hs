@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 -- | This module provides the class 'Atomic', which generalizes the
 -- type 'Atom'. The purpose of this is to allow users to define more
 -- than one type of atoms.
@@ -11,7 +13,6 @@ import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
 import Nominal.Bindable
-
 
 -- ----------------------------------------------------------------------
 -- * The 'Atomic' class
@@ -172,4 +173,65 @@ from_bindatom body = atom_open body $ \a t -> (from_atom a . t)
 -- clash.
 merge :: (Atomic a, Nominal t, Nominal s) => Bind a t -> Bind a s -> Bind a (t,s)
 merge at as = from_bindatom (atom_merge (to_bindatom at) (to_bindatom as))
+
+-- ----------------------------------------------------------------------
+-- * Multiple atom types
+
+-- | The type class 'AtomKind' requires a single method, which is
+-- moreover optional: a list of suggested names for this kind of atom.
+-- For example:
+--
+-- > data VarName
+-- > instance AtomKind VarName where suggested_names a = ["x", "y", "z"]
+--
+-- > data TypeName
+-- > instance AtomKind TypeName where suggested_names a = ["a", "b", "c"]
+--
+-- It is possible to have infinitely many kinds of atoms, for example:
+--
+-- > data Zero
+-- > data Succ a
+-- > instance AtomKind Zero
+-- > instance AtomKind (Succ a)
+--
+-- Then Zero, Succ Zero, Succ (Succ Zero), etc., will all be atom kinds.
+class AtomKind a where
+  suggested_names :: a -> NameSuggestion
+  suggested_names a = default_names
+
+-- | The type of atoms of a given kind. For example:
+--
+-- > type Variable = AtomOfKind VarName
+-- > type Type = AtomOfKind TypeName
+newtype AtomOfKind a = AtomOfKind Atom
+  deriving (Eq, Ord)
+
+-- | Return the list of default names associated with the /kind/ of
+-- the given atom (not the name(s) of the atom itself).
+atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
+atomofkind_names f = suggested_names (un f)
+  where
+    un :: AtomOfKind a -> a
+    un = undefined
+
+instance (AtomKind a) => Nominal (AtomOfKind a) where
+  π • (AtomOfKind a) = AtomOfKind (π • a)
+
+instance (AtomKind a) => NominalSupport (AtomOfKind a) where
+  support b@(AtomOfKind a) = support (add_default_names (atomofkind_names b) a)
+
+instance (AtomKind a) => Bindable (AtomOfKind a) where
+  newtype Bind (AtomOfKind a) t = BindAK (BindAtom t)
+  bindable_action π (BindAK body) = BindAK (π • body)
+  bindable_support (BindAK body) = support body
+  bindable_eq (BindAK b1) (BindAK b2) = b1 == b2
+  abst (AtomOfKind a) t = BindAK body where
+    BindA body = (abst a t)
+  open (BindAK body) k = open (BindA body) (\a t -> k (AtomOfKind a) t)
+  open_for_printing sup b@(BindAK body) k = atom_open_for_printing ns sup body (\a t -> k (AtomOfKind a) t)
+    where
+      ns :: NameSuggestion
+      ns = atomofkind_names (un b)
+      un :: Bind a t -> a
+      un = undefined
 
