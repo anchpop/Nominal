@@ -22,9 +22,9 @@ import Nominal.NominalSupport
 -- tuples of atoms, etc.) that can be abstracted by binders.
 
 class (Eq a, Nominal a) => Bindable a where
-  -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [a]t
-  -- in the nominal logic literature. Its elements are of the form
-  -- (a.v) modulo alpha-equivalence. For more details on what this
+  -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/a/]/t/
+  -- in the nominal logic literature. Its elements are pairs of the form
+  -- (/a/./v/) modulo alpha-equivalence. For more details on what this
   -- means, see Definition 4 of [Pitts 2002].
   data Bind a t
 
@@ -46,7 +46,7 @@ class (Eq a, Nominal a) => Bindable a where
   -- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
   -- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
   --
-  -- We use the infix operator '.', which is normally bound to
+  -- We use the infix operator @(@'.'@)@, which is normally bound to
   -- function composition in the standard library. Thus, nominal
   -- programs should import the standard library like this:
   --

@@ -68,12 +68,13 @@ p_domain (Perm sigma) = Map.keys sigma
 -- ----------------------------------------------------------------------
 -- * The group of permutations
 
--- | The group of finitely supported permutations on atoms.
--- 
--- If we used 'Perm' directly, inverting a permutation would be
--- O(n). We make inverting O(1) by storing a permutation together with
--- its inverse. Because of laziness, the inverse will not be computed
--- unless it is used.
+-- | The group of finitely supported permutations on atoms.  This is
+-- an opaque type.
+
+-- Implementation note: If we used 'Perm' directly, inverting a
+-- permutation would be O(n). We make inverting O(1) by storing a
+-- permutation together with its inverse. Because of laziness, the
+-- inverse will not be computed unless it is used.
 data Permutation = Permutation Perm Perm
              deriving (Eq)
 

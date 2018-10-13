@@ -21,6 +21,10 @@ instance Eq Atom where
   -- suggestions may be large or even infinite.
   Atom x n ns == Atom x' n' ns' = x == x'
 
+-- | User code should /not/ explicitly compare atoms for relative
+-- ordering, because this is not referentially transparent (can be
+-- unsound).  However, we define an 'Ord' instance for atoms anyway,
+-- because it permits atoms to be used as keys in 'Set's and 'Map's.
 instance Ord Atom where
   -- We only compare the unique identifier, because the name
   -- suggestions may be large or even infinite.

@@ -19,16 +19,16 @@ import Nominal.Bindable
 
 -- | A type class for atom types.
 --
--- The suggested way to generate a type of atoms is to define some new
--- empty type /X/ that is an instance of 'AtomKind'.  Optionally, a
+-- The suggested way to define a type of atoms is to define a new
+-- empty type /t/ that is an instance of 'AtomKind'.  Optionally, a
 -- list of suggested names for the new atoms can be provided.  (These
 -- will be used as the names of bound variables unless otherwise
--- specified). Then 'AtomOfKind' /X/ is a new type of atoms.
+-- specified). Then 'AtomOfKind' /t/ is a new type of atoms.
 -- 
--- > data X
--- > instance AtomKind X where
+-- > data VarName
+-- > instance AtomKind VarName where
 -- >   suggested_names = ["x", "y", "z"]
--- > newtype MyName = AtomOfKind X
+-- > newtype Variable = AtomOfKind VarName
 class (Nominal a, NominalSupport a, Eq a, Ord a, Show a, Bindable a) => Atomic a where
   to_atom :: a -> Atom
   from_atom :: Atom -> a
@@ -82,6 +82,9 @@ with_fresh body = with_fresh_namelist ns body
 -- | A version of 'with_fresh' that permits a suggested name to be
 -- given to the atom. The name is only a suggestion, and will be
 -- changed, if necessary, to avoid clashes.
+--
+-- This function is subject to the same correctness condition as
+-- 'with_fresh'.
 with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
 with_fresh_named n body =
   with_fresh_atom_named n (\a -> body (from_atom a))
@@ -89,6 +92,9 @@ with_fresh_named n body =
 -- | A version of 'with_fresh' that permits a list of suggested names
 -- to be specified. The first suitable name in the list will be used
 -- if possible.
+--
+-- This function is subject to the same correctness condition as
+-- 'with_fresh'.
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
 with_fresh_namelist ns body =
   with_fresh_atom_namelist ns (\a -> body (from_atom a))
@@ -177,15 +183,16 @@ merge at as = from_bindatom (atom_merge (to_bindatom at) (to_bindatom as))
 -- ----------------------------------------------------------------------
 -- * Multiple atom types
 
--- | The type class 'AtomKind' requires a single method, which is
--- moreover optional: a list of suggested names for this kind of atom.
--- For example:
+-- | The type class 'AtomKind' has a single, optional method: a list
+-- of suggested names for this kind of atom.  For example:
 --
 -- > data VarName
--- > instance AtomKind VarName where suggested_names a = ["x", "y", "z"]
+-- > instance AtomKind VarName where
+-- >   suggested_names a = ["x", "y", "z"]
 --
 -- > data TypeName
--- > instance AtomKind TypeName where suggested_names a = ["a", "b", "c"]
+-- > instance AtomKind TypeName where
+-- >   suggested_names a = ["a", "b", "c"]
 --
 -- It is possible to have infinitely many kinds of atoms, for example:
 --

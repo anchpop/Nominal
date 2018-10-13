@@ -41,7 +41,7 @@ subst m x (Var y)
   | x == y = m
   | otherwise = Var y
 subst m x (App t s) = App (subst m x t) (subst m x s)
-subst m x (Abs t) = open t (\y s -> Abs (y . subst m x s))
+subst m x (Abs body) = open body (\y s -> Abs (y . subst m x s))
 
 -- | Function composition, re-defined here because we are hiding '.'
 -- from the "Prelude".

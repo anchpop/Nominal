@@ -35,7 +35,8 @@ import Nominal.Permutation
 
 -- | A type is 'Nominal' if the group of finitely supported
 -- permutations of atoms acts on it. In most cases, instances of
--- 'Nominal' can be automatically derived.
+-- 'Nominal' can be automatically derived. See
+-- <#NOMINAL Nominal types> for more information on how to do so.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
   (•) :: Permutation -> t -> t

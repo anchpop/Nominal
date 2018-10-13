@@ -16,8 +16,9 @@ synopsis:            Binders and alpha-equivalence made easy
 description:         
 
   An efficient and easy-to-use library for defining datatypes with
-  binders, and automatically handling alpha-equivalence. It is based
-  on Gabbay and Pitts's theory of nominal sets.
+  binders, and automatically handling bound variables and
+  alpha-equivalence. It is based on Gabbay and Pitts's theory of
+  nominal sets.
 
 -- URL for the project homepage or repository.
 homepage:            http://www.mathstat.dal.ca/~selinger/nominal/
@@ -56,8 +57,9 @@ extra-source-files:
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Nominal,
-                       Nominal.ConcreteNames,
+  exposed-modules:     Nominal
+
+  other-modules:       Nominal.ConcreteNames,
                        Nominal.Unsafe,
                        Nominal.Atom,
                        Nominal.Permutation,
