@@ -1,3 +1,6 @@
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | This module provides a type class 'Bindable' of things (such as
@@ -8,6 +11,7 @@
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
+import GHC.Generics
 
 import Nominal.ConcreteNames
 import Nominal.Atom
@@ -127,7 +131,7 @@ open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
 open2_for_printing :: (Bindable a, Bindable b, Nominal t) => Support -> Bind a (Bind b t) -> (a -> b -> t -> Support -> s) -> s
 open2_for_printing sup term k = open_for_printing sup term $ \a term' sup' -> open_for_printing sup' term' $ \a' t sup'' -> k a a' t sup''
 
-instance (Bindable a, Eq a, Nominal t, Eq t) => Eq (Bind a t) where
+instance (Bindable a, Nominal t, Eq t) => Eq (Bind a t) where
   (==) = bindable_eq
 
 -- ----------------------------------------------------------------------
@@ -196,4 +200,90 @@ instance (Bindable a) => Bindable [a] where
   open_for_printing sup (BindNil body) k = k [] body sup
   open_for_printing sup (BindCons body) k = open2_for_printing sup body $ \a as -> k (a:as)
   
+-- ----------------------------------------------------------------------
+-- * Generic Bindable instances
+
+-- | A version of the 'Bindable' class suitable for generic programming.
+class (GNominal f) => GBindable f where
+  data GBind f t
+  gbindable_action :: (Nominal t) => Permutation -> GBind f t -> GBind f t
+  gbindable_support :: (NominalSupport t) => GBind f t -> Support
+  gbindable_eq :: (Nominal t, Eq t) => GBind f t -> GBind f t -> Bool
+  gabst :: (Nominal t) => f a -> t -> GBind f t
+  gopen :: (Nominal t) => GBind f t -> (f a -> t -> s) -> s
+  gopen_for_printing :: (Nominal t) => Support -> GBind f t -> (f a -> t -> Support -> s) -> s
+
+instance (GBindable a, Nominal t) => Nominal (GBind a t) where
+  π • body = gbindable_action π body
+
+instance (GBindable a, NominalSupport t) => NominalSupport (GBind a t) where
+  support = gbindable_support
+
+instance (GBindable a, Nominal t, Eq t) => Eq (GBind a t) where
+  (==) = gbindable_eq
+
+instance GBindable V1 where
+  data GBind V1 t -- empty type
+  gbindable_action π x = undefined -- Never occurs, because V1 is empty
+  gbindable_support x = undefined
+  gbindable_eq x y = undefined
+  gabst a t = undefined
+  gopen x body = undefined
+  gopen_for_printing sup x body = undefined
+
+instance GBindable U1 where
+  newtype GBind U1 t = GBindU1 t
+  gbindable_action π (GBindU1 t) = GBindU1 (π • t)
+  gbindable_support (GBindU1 t) = support t
+  gbindable_eq (GBindU1 t) (GBindU1 s) = t == s
+  gabst U1 t = GBindU1 t
+  gopen (GBindU1 t) body = body U1 t
+  gopen_for_printing sup (GBindU1 t) body = body U1 t sup
+
+instance (GBindable a, GBindable b) => GBindable (a :*: b) where
+  newtype GBind (a :*: b) t = GBindPair (GBind a (GBind b t))
+  gbindable_action π (GBindPair body) = GBindPair (π • body)
+  gbindable_support (GBindPair body) = support body
+  gbindable_eq (GBindPair b1) (GBindPair b2) = b1 == b2
+  gabst (a :*: b) t = GBindPair (gabst a (gabst b t))
+  gopen (GBindPair body) k =
+    gopen body $ \a body2 -> gopen body2 $ \b t -> k (a :*: b) t
+  gopen_for_printing sup (GBindPair body) k =
+    gopen_for_printing sup body $ \a body2 sup2 ->
+      gopen_for_printing sup2 body2 $ \b t sup3 ->
+        k (a :*: b) t sup3   
+
+instance (GBindable a, GBindable b) => GBindable (a :+: b) where
+  data GBind (a :+: b) t = GBindL1 (GBind a t) | GBindR1 (GBind b t)
+  gbindable_action π (GBindL1 body) = GBindL1 (π • body)
+  gbindable_action π (GBindR1 body) = GBindR1 (π • body)
+  gbindable_support (GBindL1 body) = support body
+  gbindable_support (GBindR1 body) = support body
+  gbindable_eq (GBindL1 b1) (GBindL1 b2) = b1 == b2
+  gbindable_eq (GBindR1 b1) (GBindR1 b2) = b1 == b2
+  gbindable_eq _ _ = False
+  gabst (L1 a) t = GBindL1 (gabst a t)
+  gabst (R1 a) t = GBindR1 (gabst a t)
+  gopen (GBindL1 body) k = gopen body $ \a t -> k (L1 a) t
+  gopen (GBindR1 body) k = gopen body $ \a t -> k (R1 a) t
+  gopen_for_printing sup (GBindL1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (L1 a) t sup2
+  gopen_for_printing sup (GBindR1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (R1 a) t sup2
+
+instance (GBindable a) => GBindable (M1 i c a) where
+  data GBind (M1 i c a) t = GBindM1 (GBind a t)
+  gbindable_action π (GBindM1 body) = GBindM1 (π • body)
+  gbindable_support (GBindM1 body) = support body
+  gbindable_eq (GBindM1 b1) (GBindM1 b2) = b1 == b2
+  gabst (M1 a) t = GBindM1 (gabst a t)
+  gopen (GBindM1 body) k = gopen body $ \a t -> k (M1 a) t
+  gopen_for_printing sup (GBindM1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (M1 a) t sup2
+
+instance (Bindable a) => GBindable (K1 i a) where
+  data GBind (K1 i a) t = GBindK1 (Bind a t)
+  gbindable_action π (GBindK1 body) = GBindK1 (π • body)
+  gbindable_support (GBindK1 body) = support body
+  gbindable_eq (GBindK1 b1) (GBindK1 b2) = b1 == b2
+  gabst (K1 a) t = GBindK1 (a . t)
+  gopen (GBindK1 body) k = open body $ \a t -> k (K1 a) t
+  gopen_for_printing sup (GBindK1 body) k = open_for_printing sup body $ \a t sup2 -> k (K1 a) t sup2
 
