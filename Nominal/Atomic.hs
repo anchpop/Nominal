@@ -1,4 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -- | This module provides the class 'Atomic', which generalizes the
 -- type 'Atom'. The purpose of this is to allow users to define more
@@ -7,6 +9,7 @@
 module Nominal.Atomic where
 
 import Prelude hiding ((.))
+import GHC.Generics
 
 import Nominal.ConcreteNames
 import Nominal.Atom
@@ -211,7 +214,7 @@ class AtomKind a where
 -- > type Variable = AtomOfKind VarName
 -- > type Type = AtomOfKind TypeName
 newtype AtomOfKind a = AtomOfKind Atom
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic, Bindable)
 
 instance (AtomKind a) => Show (AtomOfKind a) where
   show = show_atomic
@@ -221,21 +224,6 @@ instance (AtomKind a) => Nominal (AtomOfKind a) where
 
 instance (AtomKind a) => NominalSupport (AtomOfKind a) where
   support b@(AtomOfKind a) = support (add_default_names (atomofkind_names b) a)
-
-instance (AtomKind a) => Bindable (AtomOfKind a) where
-  type Bind' (AtomOfKind a) t = BindAtom t
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst (AtomOfKind a) t = Bind body where
-    Bind body = (abst a t)
-  open (Bind body) k = open (Bind body) (\a t -> k (AtomOfKind a) t)
-  open_for_printing sup b@(Bind body) k = atom_open_for_printing ns sup body (\a t -> k (AtomOfKind a) t)
-    where
-      ns :: NameSuggestion
-      ns = atomofkind_names (un b)
-      un :: Bind a t -> a
-      un = undefined
 
 instance (AtomKind a) => Atomic (AtomOfKind a) where
   to_atom (AtomOfKind a) = a

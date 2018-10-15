@@ -177,59 +177,14 @@ instance Bindable Atom where
   open (Bind body) k = atom_open body k
   open_for_printing sup (Bind body) k = atom_open_for_printing default_names sup body k
 
-instance Bindable () where
-  type Bind' () t = t
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst () t = Bind t
-  open (Bind t) k = k () t
-  open_for_printing sup (Bind body) k = k () body sup
-
-instance (Bindable a, Bindable b) => Bindable (a, b) where
-  type Bind' (a, b) t = Bind a (Bind b t)
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst (a, b) t = Bind (a . b . t)
-  open (Bind body) k = open2 body $ \a b s -> k (a, b) s
-  open_for_printing sup (Bind body) k = open2_for_printing sup body $ \a b -> k (a, b)
-
-instance (Bindable a, Bindable b, Bindable c) => Bindable (a, b, c) where
-  type Bind' (a, b, c) t = Bind ((a, b), c) t
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst (a, b, c) t = Bind (((a, b), c) . t)
-  open (Bind body) k = open body $ \((a, b), c) -> k (a, b, c)
-  open_for_printing sup (Bind body) k = open_for_printing sup body $ \((a, b), c) -> k (a, b, c)
-
-instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, d) where
-  type Bind' (a, b, c, d) t = Bind (((a, b), c), d) t
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst (a, b, c, d) t = Bind ((((a, b), c), d) . t)
-  open (Bind body) k = open body $ \(((a, b), c), d) -> k (a, b, c, d)
-  open_for_printing sup (Bind body) k = open_for_printing sup body $ \(((a, b), c), d) -> k (a, b, c, d)
-
-data BindList a t = BindNil t | BindCons (Bind a (Bind [a] t))
-
-instance (Bindable a) => Bindable [a] where
-  type Bind' [a] t = BindList a t
-  bindable_action π (Bind (BindNil body)) = Bind (BindNil (π • body))
-  bindable_action π (Bind (BindCons body)) = Bind (BindCons (π • body))
-  bindable_support (Bind (BindNil body)) = support body
-  bindable_support (Bind (BindCons body)) = support body
-  bindable_eq (Bind (BindNil b1)) (Bind (BindNil b2)) = b1 == b2
-  bindable_eq (Bind (BindCons b1)) (Bind (BindCons b2)) = b1 == b2
-  bindable_eq _ _ = False
-  abst [] t = Bind (BindNil t)
-  abst (a:as) t = Bind (BindCons (a . as . t))
-  open (Bind (BindNil t)) k = k [] t
-  open (Bind (BindCons body)) k = open2 body $ \a as -> k (a:as)
-  open_for_printing sup (Bind (BindNil body)) k = k [] body sup
-  open_for_printing sup (Bind (BindCons body)) k = open2_for_printing sup body $ \a as -> k (a:as)
+instance (Bindable a) => Bindable [a]
+instance Bindable ()
+instance (Bindable a, Bindable b) => Bindable (a, b)
+instance (Bindable a, Bindable b, Bindable c) => Bindable (a, b, c)
+instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, d)
+instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e) => Bindable (a, b, c, d, e)
+instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f) => Bindable (a, b, c, d, e, f)
+instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f, Bindable g) => Bindable (a, b, c, d, e, f, g)
   
 -- ----------------------------------------------------------------------
 -- * Generic Bindable instances
