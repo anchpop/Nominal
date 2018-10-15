@@ -39,7 +39,7 @@ import Nominal.NominalSupport
 -- provide a way to generically derive associated types of classes.
 data Bind a t = Bind (Bind' a t) | Bind2 (GBind (Rep a) t)
 
-class (Eq a, Nominal a) => Bindable a where
+class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   type Bind' a t
   
   -- | This is the '(•)' function of 'Nominal'. We need to define it
