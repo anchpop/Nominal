@@ -29,11 +29,18 @@ import Nominal.NominalSupport
 -- in the nominal logic literature. Its elements are pairs of the form
 -- (/a/./v/) modulo alpha-equivalence. For more details on what this
 -- means, see Definition 4 of [Pitts 2002].
-data Bind a t = Bind (Bind' a t)
+
+-- Implementation note: the two alternatives of this datatype are not
+-- really alternatives in the usual sense. Generic instances of
+-- Bindable /a/ must /always/ use the alternative 'Bind2', and
+-- user-defined instances must /always/ define 'Bind'' and use the
+-- alternative 'Bind'. The reason for this slightly unorthodox
+-- implementation is that the generic deriving mechanism does not
+-- provide a way to generically derive associated types of classes.
+data Bind a t = Bind (Bind' a t) | Bind2 (GBind (Rep a) t)
 
 class (Eq a, Nominal a) => Bindable a where
   type Bind' a t
-  type instance Bind' a t = GBind (Rep a) t
   
   -- | This is the '(•)' function of 'Nominal'. We need to define it
   -- here on a per-instance basis to get the 'Nominal' instance of
@@ -94,6 +101,27 @@ class (Eq a, Nominal a) => Bindable a where
   -- support of /t/ as an additional argument, and provides /sup'/,
   -- the support of /s/, as an additional parameter to the body.
   open_for_printing :: (Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+
+  -- Generic implementations
+  type instance Bind' a t = ()
+
+  default bindable_action :: (Generic a, GBindable (Rep a), Nominal t) => Permutation -> Bind a t -> Bind a t
+  bindable_action π (Bind2 b) = Bind2 (gbindable_action π b)
+  
+  default bindable_support :: (Generic a, GBindable (Rep a), NominalSupport t) => Bind a t -> Support
+  bindable_support (Bind2 b) = gbindable_support b
+
+  default bindable_eq :: (Generic a, GBindable (Rep a), Nominal t, Eq t) => Bind a t -> Bind a t -> Bool
+  bindable_eq (Bind2 b1) (Bind2 b2) = gbindable_eq b1 b2
+
+  default abst :: (Generic a, GBindable (Rep a), Nominal t) => a -> t -> Bind a t
+  abst a t = Bind2 (gabst (from a) t)
+
+  default open :: (Generic a, GBindable (Rep a), Nominal t) => Bind a t -> (a -> t -> s) -> s
+  open (Bind2 b) body = gopen b (\a t -> body (to a) t)
+
+  default open_for_printing :: (Generic a, GBindable (Rep a), Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+  open_for_printing sup (Bind2 b) body = gopen_for_printing sup b (\a t sup' -> body (to a) t sup')
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
   π • body = bindable_action π body

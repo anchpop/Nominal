@@ -30,6 +30,7 @@ module Nominal (
   
   -- * Binders
   Bindable(..),
+  Bind,
   bind,
   bind_named,
   bind_namelist,
