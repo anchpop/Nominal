@@ -47,13 +47,13 @@ instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
   nominal_showsPrecSup = simple_showsPrecSup
 
 instance (Bindable a) => Bindable (AtomPlus a t) where
-  type Bind' (AtomPlus a t) s = (t, Bind a s)
-  bindable_action π (Bind (t, body)) = Bind (t, π • body)
-  bindable_support (Bind (t, body)) = support body
-  bindable_eq (Bind (t1, b1)) (Bind (t2, b2)) = open b1 $ \a _ -> AtomPlus a t1 == AtomPlus a t2 && b1 == b2
-  abst (AtomPlus a t) body = Bind (t, abst a body)
-  open (Bind (t, body)) k = open body $ \a s -> k (AtomPlus a t) s
-  open_for_printing sup (Bind (t, body)) k = open_for_printing sup body $ \a s -> k (AtomPlus a t) s
+  type CBind (AtomPlus a t) s = (t, Bind a s)
+  bindable_action π (CBind (t, body)) = CBind (t, π • body)
+  bindable_support (CBind (t, body)) = support body
+  bindable_eq (CBind (t1, b1)) (CBind (t2, b2)) = open b1 $ \a _ -> AtomPlus a t1 == AtomPlus a t2 && b1 == b2
+  abst (AtomPlus a t) body = CBind (t, abst a body)
+  open (CBind (t, body)) k = open body $ \a s -> k (AtomPlus a t) s
+  open_for_printing sup (CBind (t, body)) k = open_for_printing sup body $ \a s -> k (AtomPlus a t) s
 
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope

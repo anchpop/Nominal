@@ -32,17 +32,24 @@ import Nominal.NominalSupport
 
 -- Implementation note: the two alternatives of this datatype are not
 -- really alternatives in the usual sense. Generic instances of
--- Bindable /a/ must /always/ use the alternative 'Bind2', and
--- user-defined instances must /always/ define 'Bind'' and use the
--- alternative 'Bind'. The reason for this slightly unorthodox
--- implementation is that the generic deriving mechanism does not
--- provide a way to generically derive associated types of classes.
-data Bind a t = Bind (Bind' a t) | Bind2 (GBind (Rep a) t)
+-- Bindable /a/ must /always/ use the alternative 'GBind', and
+-- user-defined instances must /always/ use the alternative 'CBind'.
+-- This unorthodox 2-track encoding is needed because the generic
+-- deriving mechanism does not provide a way to generically derive
+-- associated types of classes.
+data Bind a t =
+  CBind (CBind a t)          -- ^ This alternative is only used by
+                             -- custom instances.
+  | GBind (GBind (Rep a) t)  -- ^ This alternative is only used by
+                             -- generic instances.
 
 class (Eq a, Nominal a, NominalSupport a) => Bindable a where
-  type Bind' a t
+  -- | An optional custom implementation of the 'Bind' /a/ /t/
+  -- datatype. This type must be defined by all custom 'Bindable'
+  -- instances, but is not used by generic instances.
+  type CBind a t
   
-  -- | This is the '(•)' function of 'Nominal'. We need to define it
+  -- | This is the @(•)@ function of 'Nominal'. We need to define it
   -- here on a per-instance basis to get the 'Nominal' instance of
   -- 'Bind' /a/ /t/.
   bindable_action :: (Nominal t) => Permutation -> Bind a t -> Bind a t
@@ -103,25 +110,25 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   open_for_printing :: (Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 
   -- Generic implementations
-  type instance Bind' a t = ()
+  type instance CBind a t = ()
 
   default bindable_action :: (Generic a, GBindable (Rep a), Nominal t) => Permutation -> Bind a t -> Bind a t
-  bindable_action π (Bind2 b) = Bind2 (gbindable_action π b)
+  bindable_action π (GBind b) = GBind (gbindable_action π b)
   
   default bindable_support :: (Generic a, GBindable (Rep a), NominalSupport t) => Bind a t -> Support
-  bindable_support (Bind2 b) = gbindable_support b
+  bindable_support (GBind b) = gbindable_support b
 
   default bindable_eq :: (Generic a, GBindable (Rep a), Nominal t, Eq t) => Bind a t -> Bind a t -> Bool
-  bindable_eq (Bind2 b1) (Bind2 b2) = gbindable_eq b1 b2
+  bindable_eq (GBind b1) (GBind b2) = gbindable_eq b1 b2
 
   default abst :: (Generic a, GBindable (Rep a), Nominal t) => a -> t -> Bind a t
-  abst a t = Bind2 (gabst (from a) t)
+  abst a t = GBind (gabst (from a) t)
 
   default open :: (Generic a, GBindable (Rep a), Nominal t) => Bind a t -> (a -> t -> s) -> s
-  open (Bind2 b) body = gopen b (\a t -> body (to a) t)
+  open (GBind b) body = gopen b (\a t -> body (to a) t)
 
   default open_for_printing :: (Generic a, GBindable (Rep a), Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-  open_for_printing sup (Bind2 b) body = gopen_for_printing sup b (\a t sup' -> body (to a) t sup')
+  open_for_printing sup (GBind b) body = gopen_for_printing sup b (\a t sup' -> body (to a) t sup')
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
   π • body = bindable_action π body
@@ -169,13 +176,13 @@ instance (Bindable a, Nominal t, Eq t) => Eq (Bind a t) where
 -- Bindable instances
 
 instance Bindable Atom where
-  type Bind' Atom t = BindAtom t
-  bindable_action π (Bind body) = Bind (π • body)
-  bindable_support (Bind body) = support body
-  bindable_eq (Bind b1) (Bind b2) = b1 == b2
-  abst a t = Bind (atom_abst a t)
-  open (Bind body) k = atom_open body k
-  open_for_printing sup (Bind body) k = atom_open_for_printing default_names sup body k
+  type CBind Atom t = BindAtom t
+  bindable_action π (CBind body) = CBind (π • body)
+  bindable_support (CBind body) = support body
+  bindable_eq (CBind b1) (CBind b2) = b1 == b2
+  abst a t = CBind (atom_abst a t)
+  open (CBind body) k = atom_open body k
+  open_for_printing sup (CBind body) k = atom_open_for_printing default_names sup body k
 
 instance (Bindable a) => Bindable [a]
 instance Bindable ()
