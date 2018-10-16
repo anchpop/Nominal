@@ -190,9 +190,12 @@ open = bindable_open
 open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 open_for_printing = bindable_open_for_printing
 
--- | Since we hide (.) from the standard library, and it is not legal
--- syntax to write \"̈@Prelude..@\", we provide '∘' as an alternate
--- notation for composition.
+-- | Function composition.
+-- 
+-- Since we hide (.) from the standard library, and the fully
+-- qualified name of the Prelude's dot operator, \"̈@Prelude..@\", is
+-- not legal syntax, we provide '∘' as an alternate notation for
+-- composition.
 (∘) :: (b -> c) -> (a -> b) -> (a -> c)
 (g ∘ f) x = g (f x)
 

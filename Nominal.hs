@@ -45,24 +45,34 @@ module Nominal (
   bind_named,
   bind_namelist,
 
-  -- * The Bindable class
+  -- ** The Bindable class
   -- $BINDABLE
   Bindable,
 
   -- * Printing of nominal values
+  -- $PRINTING
+  -- ** NominalShow
   open_for_printing,
   NominalSupport(..),
-  NominalShow(..),
   Support,
   Literal(..),
-  (∘),
+
+  -- $NOMINALSHOW_ANCHOR
+
+  -- * The NominalShow class
+  -- $NOMINALSHOW
+  NominalShow(..),
   nominal_showsPrec,
+  simple_showsPrecSup,
 
   -- * AtomPlus
   AtomPlus(..),
   with_fresh_plus,
   with_fresh_named_plus,
   with_fresh_namelist_plus,
+
+  -- * Miscellaneous
+  (∘),
   module GHC.Generics
 )
 where
@@ -88,7 +98,7 @@ import Nominal.AtomPlus
 -- terms is /automatically/ up to alpha-equivalence (i.e., up to
 -- renaming of bound variables), and substitution is /automatically/
 -- capture-avoiding. These details are handled by the "Nominal"
--- package and do not require any special programming by the user.
+-- library and do not require any special programming by the user.
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}
@@ -111,16 +121,16 @@ import Nominal.AtomPlus
 -- Let us examine this code in more detail:
 -- 
 -- * The first four lines are boilerplate. Any code that uses the
--- "Nominal" package should enable the language options
+-- "Nominal" library should enable the language options
 -- @DeriveGeneric@ and @DeriveAnyClass@, and should import "Nominal".
 -- We also hide the @(.)@ operator from the "Prelude", because the
--- "Nominal" package re-purposes the period as a binding operator.
+-- "Nominal" library re-purposes the period as a binding operator.
 --
 -- * The next line defines the datatype @Term@ of untyped lambda
 -- terms.  Here, 'Atom' is a predefined type of atomic /names/, which
 -- we use as the names of variables. A term is either a variable, an
 -- application, or an abstraction. The type 'Bind' 'Atom' @Term@ is
--- defined by the "Nominal" package and represents pairs (/a/,/t/) of
+-- defined by the "Nominal" library and represents pairs (/a/,/t/) of
 -- an atom and a term, modulo alpha-equivalence. We write /a/'.'/t/ to
 -- denote such an alpha-equivalence class of pairs.
 --
@@ -175,7 +185,7 @@ import Nominal.AtomPlus
 -- $FRESHNESS
 --
 -- Sometimes we need to generate a fresh atom of a given atom type.
--- In the "Nominal" package, a fresh atom should never be generated
+-- In the "Nominal" library, a fresh atom should never be generated
 -- globally. The philosophy is that a fresh atom is always generated
 -- for a particular /purpose/, and the use of the atom is local to
 -- that purpose.  Therefore, a fresh atom should always be generated
@@ -203,7 +213,7 @@ import Nominal.AtomPlus
 -- of finitely supported permutations of atoms. Ideally, all types
 -- are nominal.
 --
--- When using the "Nominal" package, all types whose elements can
+-- When using the "Nominal" library, all types whose elements can
 -- occur in the scope of a binder must be instances of the 'Nominal'
 -- type class.  Fortunately, in most cases, instances of 'Nominal' can
 -- be derived automatically. To do so, simply add @deriving (Generic,
@@ -247,8 +257,8 @@ import Nominal.AtomPlus
 -- lists of atoms, and so on.
 --
 -- New instances of 'Bindable' can be derived automatically, using a
--- \"deriving\" statement analogous to that used for 'Nominal'
--- instances, see <#NOMINAL Nominal types> above. For example, if you
+-- \"@deriving@\" statement analogous to that used for 'Nominal'
+-- instances; see <#NOMINAL Nominal types> above. For example, if you
 -- would like to be able to abstract trees of atoms, you could define:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
@@ -260,3 +270,35 @@ import Nominal.AtomPlus
 -- It should not normally be necessary to manually define 'Bindable'
 -- instances, but advanced users can do so (at their own risk) by
 -- importing "Nominal.Bindable".
+
+-- $PRINTING
+--
+-- The printing of nominal values requires concrete names for the
+-- bound variables to be chosen in such a way that they do not clash
+-- with the names of any free variables or constants. This requires
+-- the ability to compute the set of free atoms (and constants) of a
+-- term. We call this set the /support/ of a term.
+--
+-- The "Nominal" library provides a mechanism for the pretty-printing
+-- of nominal values in terms of a type class 'NominalSupport', which
+-- represents terms whose support can be calculated, and a function
+-- 'open_for_printing', which handles choosing concrete names for
+-- bound variables.
+--
+-- In addition to this general-purpose mechanism, there is also the
+-- 'NominalShow' type class, which is analogous to 'Show' and provides
+-- a default representation of nominal terms. See
+-- <#NOMINALSHOW The NominalShow class> below.
+
+-- $NOMINALSHOW_ANCHOR #NOMINALSHOW#
+
+-- $NOMINALSHOW
+--
+-- The 'NominalShow' class is analogous to Haskell's standard 'Show'
+-- class, and provides a default method for converting elements of
+-- nominal datatypes to strings. The function 'nominal_show' is
+-- analogous to 'show'.
+--
+-- In most cases, instances of 'NominalShow' can be automatically
+-- derived using the keyword \"̈@deriving@\". This is done in the same
+-- way as for 'Nominal' instances; see <#NOMINAL Nominal types> above.

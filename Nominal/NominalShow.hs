@@ -46,10 +46,6 @@ class (NominalSupport t) => NominalShow t where
   -- else the benefit of fast printing will be lost.
   nominal_showsPrecSup :: Support -> Int -> t -> ShowS
 
-  -- | Like 'show', but for nominal types.
-  nominal_show :: t -> String
-  nominal_show t = nominal_showsPrecSup (support t) 0 t ""
-
   -- | The method 'nominal_showList' is provided to allow the programmer to
   -- give a specialised way of showing lists of values, similarly to
   -- 'showList'. Mostly this is used in the 'NominalShow' instance of
@@ -64,6 +60,10 @@ class (NominalSupport t) => NominalShow t where
   default nominal_showsPrecSup :: (Generic t, GNominalShow (Rep t)) => Support -> Int -> t -> ShowS
   nominal_showsPrecSup sup d x = gnominal_showsPrecSup Pre sup d (from x)
 
+-- | Like 'show', but for nominal types.
+nominal_show :: (NominalShow t) => t -> String
+nominal_show t = nominal_showsPrecSup (support t) 0 t ""
+
 -- | This function should be used in the definition of 'Show'
 -- instances for nominal types, like this:
 --
@@ -73,7 +73,7 @@ nominal_showsPrec :: (NominalShow t) => Int -> t -> ShowS
 nominal_showsPrec d t = nominal_showsPrecSup (support t) d t
 
 -- | This function can be used in defining 'NominalShow' instances for
--- /non-nominal/ types only. In this case, the 'NominalShow' instance
+-- /non-nominal types only/. In this case, the 'NominalShow' instance
 -- can be derived from an ordinary 'Show' instance, like this:
 --
 -- > instance NominalShow MyType where

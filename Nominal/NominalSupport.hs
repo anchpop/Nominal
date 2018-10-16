@@ -45,12 +45,10 @@ data Avoidee = A Atom | S String
              deriving (Eq, Ord, Show)
 
 -- | This type provides an internal representation for the support of
--- a nominal term, i.e., the set of atoms occurring in it. This is an
--- opaque type with no exposed structure. The only way to construct a
--- value of type 'Support' is to use the function 'support'.
---
--- In most cases, instances of 'NominalSupport' can be automatically
--- derived.
+-- a nominal term, i.e., the set of atoms (and constants) occurring in
+-- it. This is an opaque type with no exposed structure. The only way
+-- to construct a value of type 'Support' is to use the function
+-- 'support'.
 newtype Support = Support (Set Avoidee)
 
 -- | The empty support.
@@ -91,13 +89,18 @@ strings_of_support (Support s) = Set.map name s where
 -- * The NominalSupport class
 
 -- | 'NominalSupport' is a subclass of 'Nominal' consisting of those
--- types for which the support can be calculated. With the exception
--- of function types, most 'Nominal' types are also in 'NominalSupport'.
+-- types for which the support can be calculated. With the notable
+-- exception of function types, most 'Nominal' types are also in
+-- 'NominalSupport'.
 --
--- Instances of 'NominalSupport' are usually defined by
--- straightforward recursive clauses. The recursive clauses must apply
--- 'support' to a tuple or list (or combination thereof) of immediate
--- subterms.
+-- In most cases, instances of 'NominalSupport' can be automatically
+-- derived, analogously to how this was done for the 'Nominal' class.
+-- See <#NOMINAL Nominal types> above.
+-- 
+-- It is also possible to define instances of 'NominalSupport'
+-- manually.  This is usually done by straightforward recursive
+-- clauses. The recursive clauses must apply 'support' to a tuple or
+-- list (or combination thereof) of immediate subterms. For example:
 --
 -- > instance NominalShow Term where
 -- >   support (Var x) = support x
