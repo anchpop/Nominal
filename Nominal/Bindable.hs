@@ -26,7 +26,7 @@ import Nominal.NominalSupport
 
 -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/a/]/t/
 -- in the nominal logic literature. Its elements are pairs (/a/,/t/)
--- modulo alpha-equivalence. We also write (/a/./t/) for such an
+-- modulo alpha-equivalence. We also write /a/'.'/t/ for such an
 -- equivalence class of pairs. For more details on what this means,
 -- see Definition 4 of [Pitts 2002].
 
@@ -139,7 +139,7 @@ instance (Bindable a, Nominal t) => Nominal (Bind a t) where
 instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
   support = bindable_support
 
--- | Atom abstraction: (/a/'.'/t/) represents the equivalence class of
+-- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
 --
 -- We use the infix operator @(@'.'@)@, which is normally bound to
@@ -193,7 +193,7 @@ open_for_printing = bindable_open_for_printing
 -- | Function composition.
 -- 
 -- Since we hide (.) from the standard library, and the fully
--- qualified name of the Prelude's dot operator, \"̈@Prelude..@\", is
+-- qualified name of the "Prelude"'s dot operator, \"̈@Prelude..@\", is
 -- not legal syntax, we provide '∘' as an alternate notation for
 -- composition.
 (∘) :: (b -> c) -> (a -> b) -> (a -> c)

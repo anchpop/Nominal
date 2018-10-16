@@ -143,16 +143,16 @@ import Nominal.AtomPlus
 -- otherwise alpha-equivalence would not make sense.
 --
 -- * The substitution function inputs a term /m/, a variable /x/, and
--- a term /t/, and outputs a modified version of the term /t/ in which
--- all occurrences of the variable /x/ have been replaced by /m/.  The
--- clauses for variables and application are straightforward. Note
--- that atoms can be compared for equality. In the clause for
--- abstraction, the /body/ of the abstraction, which is of type 'Bind'
--- 'Atom' @Term@, is /opened/: this means that a /fresh/ name /y/ and
--- a term /s/ are generated such that /body/ = /y/'.'/s/. Since the
--- name /y/ is guaranteed to be fresh, the substitution can be
--- recursively applied to /s/ without the possibility that /y/ may be
--- captured in /m/ or /x/.
+-- a term /t/, and outputs the term obtained from /t/ by replacing all
+-- occurrences of the variable /x/ by /m/.  The clauses for variables
+-- and application are straightforward. Note that atoms can be
+-- compared for equality. In the clause for abstraction, the /body/ of
+-- the abstraction, which is of type 'Bind' 'Atom' @Term@, is
+-- /opened/: this means that a /fresh/ name /y/ and a term /s/ are
+-- generated such that /body/ = /y/'.'/s/. Since the name /y/ is
+-- guaranteed to be fresh, the substitution can be recursively applied
+-- to /s/ without the possibility that /y/ may be captured in /m/ or
+-- /x/.
 
 -- $ATOMS
 --
