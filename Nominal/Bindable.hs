@@ -72,7 +72,7 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   -- programs should import the standard library like this:
   --
   -- > import Prelude hiding ((.))
-  abst :: (Nominal t) => a -> t -> Bind a t
+  bindable_abst :: (Nominal t) => a -> t -> Bind a t
   
   -- | Pattern matching for atom abstraction. In an ideal programming
   -- idiom, we would be able to define a function on atom abstractions
@@ -88,7 +88,7 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   -- To be referentially transparent and equivariant, the body is
   -- subject to the same restriction as 'with_fresh', namely, /x/ must
   -- be fresh for the body (in symbols /x/ # /body/).
-  open :: (Nominal t) => Bind a t -> (a -> t -> s) -> s
+  bindable_open :: (Nominal t) => Bind a t -> (a -> t -> s) -> s
 
   -- | A variant of 'open' which moreover attempts to choose a name
   -- for the bound atom that does not clash with any free name in its
@@ -107,7 +107,7 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   -- O(/n/^2)).  For this reason, 'open_for_printing' takes the
   -- support of /t/ as an additional argument, and provides /sup'/,
   -- the support of /s/, as an additional parameter to the body.
-  open_for_printing :: (Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+  bindable_open_for_printing :: (Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 
   -- Generic implementations
   type instance CBind a t = ()
@@ -121,14 +121,14 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   default bindable_eq :: (Generic a, GBindable (Rep a), Nominal t, Eq t) => Bind a t -> Bind a t -> Bool
   bindable_eq (GBind b1) (GBind b2) = gbindable_eq b1 b2
 
-  default abst :: (Generic a, GBindable (Rep a), Nominal t) => a -> t -> Bind a t
-  abst a t = GBind (gabst (from a) t)
+  default bindable_abst :: (Generic a, GBindable (Rep a), Nominal t) => a -> t -> Bind a t
+  bindable_abst a t = GBind (gbindable_abst (from a) t)
 
-  default open :: (Generic a, GBindable (Rep a), Nominal t) => Bind a t -> (a -> t -> s) -> s
-  open (GBind b) body = gopen b (\a t -> body (to a) t)
+  default bindable_open :: (Generic a, GBindable (Rep a), Nominal t) => Bind a t -> (a -> t -> s) -> s
+  bindable_open (GBind b) body = gbindable_open b (\a t -> body (to a) t)
 
-  default open_for_printing :: (Generic a, GBindable (Rep a), Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-  open_for_printing sup (GBind b) body = gopen_for_printing sup b (\a t sup' -> body (to a) t sup')
+  default bindable_open_for_printing :: (Generic a, GBindable (Rep a), Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+  bindable_open_for_printing sup (GBind b) body = gbindable_open_for_printing sup b (\a t sup' -> body (to a) t sup')
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
   π • body = bindable_action π body
@@ -146,8 +146,47 @@ instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
 -- 
 -- > import Prelude hiding ((.))
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
-(.) = abst
+(.) = bindable_abst
 infixr 5 .
+
+-- | Destructor for atom abstraction. In an ideal programming idiom,
+-- we would be able to define a function on atom abstractions by
+-- pattern matching like this:
+--
+-- > f (a.s) = body.
+--
+-- Haskell doesn't let us provide this syntax, but using the 'open'
+-- function, we can equivalently write:
+--
+-- > f t = open t (\a s -> body).
+--
+-- Each time an abstraction is opened, /a/ is guaranteed to be a fresh
+-- atom.  To guarantee soundness (referential transparency and
+-- equivariance), the body is subject to the same restriction as
+-- 'Nominal.with_fresh', namely, /a/ must be fresh for the body (in symbols
+-- /a/ # /body/).
+open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
+open = bindable_open
+  
+-- | A variant of 'open' which moreover attempts to choose a name
+-- for the bound atom that does not clash with any free name in its
+-- scope. This requires a 'NominalSupport' instance. It is mostly
+-- useful for building custom pretty-printers for nominal
+-- terms. Except in pretty-printers, it is equivalent to 'open'.
+--
+-- Usage:
+--
+-- > open_for_printing sup t (\x s sup' -> body)
+--
+-- Here, /sup/ = 'support' /t/. For printing to be efficient
+-- (roughly O(/n/)), the support must be pre-computed in a bottom-up
+-- fashion, and then passed into each subterm in a top-down fashion
+-- (rather than re-computing it at each level, which would be
+-- O(/n/^2)).  For this reason, 'open_for_printing' takes the
+-- support of /t/ as an additional argument, and provides /sup'/,
+-- the support of /s/, as an additional parameter to the body.
+open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
+open_for_printing = bindable_open_for_printing
 
 -- | Since we hide (.) from the standard library, and it is not legal
 -- syntax to write \"̈@Prelude..@\", we provide '∘' as an alternate
@@ -180,9 +219,9 @@ instance Bindable Atom where
   bindable_action π (CBind body) = CBind (π • body)
   bindable_support (CBind body) = support body
   bindable_eq (CBind b1) (CBind b2) = b1 == b2
-  abst a t = CBind (atom_abst a t)
-  open (CBind body) k = atom_open body k
-  open_for_printing sup (CBind body) k = atom_open_for_printing default_names sup body k
+  bindable_abst a t = CBind (atom_abst a t)
+  bindable_open (CBind body) k = atom_open body k
+  bindable_open_for_printing sup (CBind body) k = atom_open_for_printing default_names sup body k
 
 instance (Bindable a) => Bindable [a]
 instance Bindable ()
@@ -202,9 +241,9 @@ class (GNominal f) => GBindable f where
   gbindable_action :: (Nominal t) => Permutation -> GBind f t -> GBind f t
   gbindable_support :: (NominalSupport t) => GBind f t -> Support
   gbindable_eq :: (Nominal t, Eq t) => GBind f t -> GBind f t -> Bool
-  gabst :: (Nominal t) => f a -> t -> GBind f t
-  gopen :: (Nominal t) => GBind f t -> (f a -> t -> s) -> s
-  gopen_for_printing :: (Nominal t) => Support -> GBind f t -> (f a -> t -> Support -> s) -> s
+  gbindable_abst :: (Nominal t) => f a -> t -> GBind f t
+  gbindable_open :: (Nominal t) => GBind f t -> (f a -> t -> s) -> s
+  gbindable_open_for_printing :: (Nominal t) => Support -> GBind f t -> (f a -> t -> Support -> s) -> s
 
 instance (GBindable a, Nominal t) => Nominal (GBind a t) where
   π • body = gbindable_action π body
@@ -220,30 +259,30 @@ instance GBindable V1 where
   gbindable_action π x = undefined -- Never occurs, because V1 is empty
   gbindable_support x = undefined
   gbindable_eq x y = undefined
-  gabst a t = undefined
-  gopen x body = undefined
-  gopen_for_printing sup x body = undefined
+  gbindable_abst a t = undefined
+  gbindable_open x body = undefined
+  gbindable_open_for_printing sup x body = undefined
 
 instance GBindable U1 where
   newtype GBind U1 t = GBindU1 t
   gbindable_action π (GBindU1 t) = GBindU1 (π • t)
   gbindable_support (GBindU1 t) = support t
   gbindable_eq (GBindU1 t) (GBindU1 s) = t == s
-  gabst U1 t = GBindU1 t
-  gopen (GBindU1 t) body = body U1 t
-  gopen_for_printing sup (GBindU1 t) body = body U1 t sup
+  gbindable_abst U1 t = GBindU1 t
+  gbindable_open (GBindU1 t) body = body U1 t
+  gbindable_open_for_printing sup (GBindU1 t) body = body U1 t sup
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
   newtype GBind (a :*: b) t = GBindPair (GBind a (GBind b t))
   gbindable_action π (GBindPair body) = GBindPair (π • body)
   gbindable_support (GBindPair body) = support body
   gbindable_eq (GBindPair b1) (GBindPair b2) = b1 == b2
-  gabst (a :*: b) t = GBindPair (gabst a (gabst b t))
-  gopen (GBindPair body) k =
-    gopen body $ \a body2 -> gopen body2 $ \b t -> k (a :*: b) t
-  gopen_for_printing sup (GBindPair body) k =
-    gopen_for_printing sup body $ \a body2 sup2 ->
-      gopen_for_printing sup2 body2 $ \b t sup3 ->
+  gbindable_abst (a :*: b) t = GBindPair (gbindable_abst a (gbindable_abst b t))
+  gbindable_open (GBindPair body) k =
+    gbindable_open body $ \a body2 -> gbindable_open body2 $ \b t -> k (a :*: b) t
+  gbindable_open_for_printing sup (GBindPair body) k =
+    gbindable_open_for_printing sup body $ \a body2 sup2 ->
+      gbindable_open_for_printing sup2 body2 $ \b t sup3 ->
         k (a :*: b) t sup3   
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
@@ -255,28 +294,28 @@ instance (GBindable a, GBindable b) => GBindable (a :+: b) where
   gbindable_eq (GBindL1 b1) (GBindL1 b2) = b1 == b2
   gbindable_eq (GBindR1 b1) (GBindR1 b2) = b1 == b2
   gbindable_eq _ _ = False
-  gabst (L1 a) t = GBindL1 (gabst a t)
-  gabst (R1 a) t = GBindR1 (gabst a t)
-  gopen (GBindL1 body) k = gopen body $ \a t -> k (L1 a) t
-  gopen (GBindR1 body) k = gopen body $ \a t -> k (R1 a) t
-  gopen_for_printing sup (GBindL1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (L1 a) t sup2
-  gopen_for_printing sup (GBindR1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (R1 a) t sup2
+  gbindable_abst (L1 a) t = GBindL1 (gbindable_abst a t)
+  gbindable_abst (R1 a) t = GBindR1 (gbindable_abst a t)
+  gbindable_open (GBindL1 body) k = gbindable_open body $ \a t -> k (L1 a) t
+  gbindable_open (GBindR1 body) k = gbindable_open body $ \a t -> k (R1 a) t
+  gbindable_open_for_printing sup (GBindL1 body) k = gbindable_open_for_printing sup body $ \a t sup2 -> k (L1 a) t sup2
+  gbindable_open_for_printing sup (GBindR1 body) k = gbindable_open_for_printing sup body $ \a t sup2 -> k (R1 a) t sup2
 
 instance (GBindable a) => GBindable (M1 i c a) where
   data GBind (M1 i c a) t = GBindM1 (GBind a t)
   gbindable_action π (GBindM1 body) = GBindM1 (π • body)
   gbindable_support (GBindM1 body) = support body
   gbindable_eq (GBindM1 b1) (GBindM1 b2) = b1 == b2
-  gabst (M1 a) t = GBindM1 (gabst a t)
-  gopen (GBindM1 body) k = gopen body $ \a t -> k (M1 a) t
-  gopen_for_printing sup (GBindM1 body) k = gopen_for_printing sup body $ \a t sup2 -> k (M1 a) t sup2
+  gbindable_abst (M1 a) t = GBindM1 (gbindable_abst a t)
+  gbindable_open (GBindM1 body) k = gbindable_open body $ \a t -> k (M1 a) t
+  gbindable_open_for_printing sup (GBindM1 body) k = gbindable_open_for_printing sup body $ \a t sup2 -> k (M1 a) t sup2
 
 instance (Bindable a) => GBindable (K1 i a) where
   data GBind (K1 i a) t = GBindK1 (Bind a t)
   gbindable_action π (GBindK1 body) = GBindK1 (π • body)
   gbindable_support (GBindK1 body) = support body
   gbindable_eq (GBindK1 b1) (GBindK1 b2) = b1 == b2
-  gabst (K1 a) t = GBindK1 (a . t)
-  gopen (GBindK1 body) k = open body $ \a t -> k (K1 a) t
-  gopen_for_printing sup (GBindK1 body) k = open_for_printing sup body $ \a t sup2 -> k (K1 a) t sup2
+  gbindable_abst (K1 a) t = GBindK1 (a . t)
+  gbindable_open (GBindK1 body) k = open body $ \a t -> k (K1 a) t
+  gbindable_open_for_printing sup (GBindK1 body) k = open_for_printing sup body $ \a t sup2 -> k (K1 a) t sup2
 
