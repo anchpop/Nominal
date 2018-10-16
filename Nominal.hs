@@ -2,6 +2,12 @@
 -- binders, and automatically handling bound variables and
 -- alpha-equivalence. It is based on Gabbay and Pitts's theory of
 -- nominal sets.
+--
+-- Most users should only import this top-level module "Nominal", which
+-- exports all the relevant functionality in a clean and abstract way.
+-- Its submodules, such as "Nominal.Unsafe", are
+-- implementation-specific and should not normally be imported by user
+-- code.
 
 module Nominal (
   -- * Overview
@@ -29,15 +35,22 @@ module Nominal (
   Permutation,
   
   -- * Binders
-  Bindable(..),
   Bind,
+  (.),
+  open,
+  merge,
+
+  -- ** Convenience functions
   bind,
   bind_named,
   bind_namelist,
-  merge,
-  (.),
+
+  -- * The Bindable class
+  -- $BINDABLE
+  Bindable,
 
   -- * Printing of nominal values
+  open_for_printing,
   NominalSupport(..),
   NominalShow(..),
   Support,
@@ -133,24 +146,28 @@ import Nominal.AtomPlus
 
 -- $ATOMS
 --
--- We assume that we are given one or more countable sets of /atoms/,
--- which can be used as the names of bound variables. As shown in the
--- above example, the type 'Atom' can be used for this purpose.
+-- /Atoms/ are things that can be bound. The important properties of
+-- atoms are: there are infinitely many of them (so we can always find
+-- a fresh one), and atoms can be compared for equality. Atoms do not
+-- have any other special properties, and in particular, they are
+-- interchangeable (any atoms is as good as any other atom).
 --
--- In addition, it is often useful to have more than one type of atoms
--- (for example, term variables and type variables), and/or to
--- customize the default variable names used by each type of atoms
--- (for example, to use /x/, /y/, /z/ for term variables and α, β, γ
--- for type variables).
+-- As shown in the introductory example above, the type 'Atom' can be
+-- used for this purpose. In addition, it is often useful to have more
+-- than one kind of atoms (for example, term variables and type
+-- variables), and/or to customize the default names that are used
+-- when atoms of each kind are displayed (for example, to use /x/,
+-- /y/, /z/ for term variables and α, β, γ for type variables).
 --
 -- The standard way to define an additional type of atoms is to define
 -- a new empty type /t/ that is an instance of 'AtomKind'. Optionally,
--- a list of suggested names for the new atoms can be provided. Then
+-- a list of suggested names for the atoms can be provided. Then
 -- 'AtomOfKind' /t/ is a new type of atoms. For example:
 --
 -- > data VarName
 -- > instance AtomKind VarName where
 -- >   suggested_names _ = ["x", "y", "z"]
+-- > 
 -- > newtype Variable = AtomOfKind VarName
 -- 
 -- All atom types are members of the type class 'Atomic'.
@@ -222,3 +239,24 @@ import Nominal.AtomPlus
 -- > instance (Nominal a) => Nominal MyTree a where
 -- >   π • Leaf = Leaf
 -- >   π • (Branch x left right) = Branch (π • x) (π • left) (π • right)
+
+-- $BINDABLE
+--
+-- The 'Bindable' class contains things that can be abstracted by
+-- binders. In addition to atoms, this also includes pairs of atoms,
+-- lists of atoms, and so on.
+--
+-- New instances of 'Bindable' can be derived automatically, using a
+-- \"deriving\" statement analogous to that used for 'Nominal'
+-- instances, see <#NOMINAL Nominal types> above. For example, if you
+-- would like to be able to abstract trees of atoms, you could define:
+--
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- > 
+-- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
+-- >   deriving (Generic, Nominal, NominalSupport, Bindable)
+--
+-- It should not normally be necessary to manually define 'Bindable'
+-- instances, but advanced users can do so (at their own risk) by
+-- importing "Nominal.Bindable".

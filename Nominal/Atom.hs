@@ -12,9 +12,12 @@ import Nominal.ConcreteNames
 -- ----------------------------------------------------------------------
 -- * Atoms
 
--- | An atom is a globally unique, opaque value with a concrete name
--- and some optional name suggestions.
-data Atom = Atom Unique String NameSuggestion
+-- | An atom is a globally unique, opaque value.
+data Atom =
+  -- | An atom consists of a unique identifier, a concrete name, and
+  -- some optional name suggestions.
+  Atom Unique String NameSuggestion
+  
 
 instance Eq Atom where
   -- We only compare the unique identifier, because the name

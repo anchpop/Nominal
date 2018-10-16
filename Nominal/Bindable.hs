@@ -3,11 +3,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- | This module provides a type class 'Bindable' of things (such as
--- atoms, tuples of atoms, etc.) that can be abstracted by binders.
--- Moreover, for each bindable type /a/ and nominal type /t/, it
--- defines a type 'Bind' /a/ /t/ of abstractions. 
-
+-- | This module provides a type class 'Bindable'. It contains things
+-- (such as atoms, tuples of atoms, etc.) that can be abstracted by
+-- binders.  Moreover, for each bindable type /a/ and nominal type
+-- /t/, it defines a type 'Bind' /a/ /t/ of abstractions.
+--
+-- We also provide some generic programming so that instances of
+-- 'Bindable' can be automatically derived in most cases.
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
@@ -22,13 +24,11 @@ import Nominal.NominalSupport
 -- ----------------------------------------------------------------------
 -- * The Bindable class
 
--- | The 'Bindable' class contains types of things (such as atoms,
--- tuples of atoms, etc.) that can be abstracted by binders.
-
 -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/a/]/t/
--- in the nominal logic literature. Its elements are pairs of the form
--- (/a/./v/) modulo alpha-equivalence. For more details on what this
--- means, see Definition 4 of [Pitts 2002].
+-- in the nominal logic literature. Its elements are pairs (/a/,/t/)
+-- modulo alpha-equivalence. We also write (/a/./t/) for such an
+-- equivalence class of pairs. For more details on what this means,
+-- see Definition 4 of [Pitts 2002].
 
 -- Implementation note: the two alternatives of this datatype are not
 -- really alternatives in the usual sense. Generic instances of
@@ -43,6 +43,9 @@ data Bind a t =
   | GBind (GBind (Rep a) t)  -- ^ This alternative is only used by
                              -- generic instances.
 
+-- | A type is 'Bindable' if its elements can be abstracted by
+-- binders. Examples include atoms, tuples of atoms, list of atoms,
+-- etc.
 class (Eq a, Nominal a, NominalSupport a) => Bindable a where
   -- | An optional custom implementation of the 'Bind' /a/ /t/
   -- datatype. This type must be defined by all custom 'Bindable'
@@ -92,7 +95,7 @@ class (Eq a, Nominal a, NominalSupport a) => Bindable a where
 
   -- | A variant of 'open' which moreover attempts to choose a name
   -- for the bound atom that does not clash with any free name in its
-  -- scope. This requires a 'NominalShow' instance. It is mostly
+  -- scope. This requires a 'NominalSupport' instance. It is mostly
   -- useful for building custom pretty-printers for nominal
   -- terms. Except in pretty-printers, it is equivalent to 'open'.
   --
@@ -136,13 +139,12 @@ instance (Bindable a, Nominal t) => Nominal (Bind a t) where
 instance (Bindable a, NominalSupport t) => NominalSupport (Bind a t) where
   support = bindable_support
 
--- | Atom abstraction: (/a/./t/) represents the equivalence class of
--- pairs (/a/,/t/) modulo alpha-equivalence. Here, (/a/,/t/) ~
--- (/b/,/s/) iff for fresh /c/, (/a/ /c/) • /t/ = (/b/ /c/) • /s/.
+-- | Atom abstraction: (/a/'.'/t/) represents the equivalence class of
+-- pairs (/a/,/t/) modulo alpha-equivalence. 
 --
--- We use the infix operator '.', which is normally bound to function
--- composition in the standard library. Thus, nominal programs should
--- import the standard library like this:
+-- We use the infix operator @(@'.'@)@, which is normally bound to
+-- function composition in the standard Haskell library. Thus, nominal
+-- programs should import the standard library like this:
 -- 
 -- > import Prelude hiding ((.))
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
