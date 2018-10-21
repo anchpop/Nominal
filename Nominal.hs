@@ -51,7 +51,6 @@ module Nominal (
 
   -- * Printing of nominal values
   -- $PRINTING
-  -- ** NominalShow
   open_for_printing,
   NominalSupport(..),
   Support,
@@ -62,6 +61,7 @@ module Nominal (
   -- * The NominalShow class
   -- $NOMINALSHOW
   NominalShow(..),
+  nominal_show,
   nominal_showsPrec,
   simple_showsPrecSup,
 
