@@ -47,7 +47,7 @@ module Nominal (
 
   -- ** The Bindable class
   -- $BINDABLE
-  Bindable,
+  Bindable(..),
 
   -- * Printing of nominal values
   -- $PRINTING

@@ -112,6 +112,11 @@ perm_swap a b = Permutation sigma sigma
   where
     sigma = p_swap a b
 
+-- | Swap the given pairs of atoms.
+perm_swaps :: [(Atom,Atom)] -> Permutation
+perm_swaps [] = perm_identity
+perm_swaps ((a,b):xs) = perm_swap a b `perm_composeL` perm_swaps xs
+
 -- | The domain of a permutation. O(/n/).
 perm_domain :: Permutation -> [Atom]
 perm_domain (Permutation sigma sinv) = p_domain sigma

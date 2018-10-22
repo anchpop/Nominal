@@ -75,6 +75,11 @@ support_atom a = Support (Set.singleton (A a))
 support_delete :: Atom -> Support -> Support
 support_delete a (Support s) = Support (Set.delete (A a) s)
 
+-- | Delete a list of atoms from the support.
+support_deletes :: [Atom] -> Support -> Support
+support_deletes [] s = s
+support_deletes (a:as) s = support_deletes as (support_delete a s)
+
 -- | Add a literal string to the support.
 support_string :: String -> Support
 support_string s = Support (Set.singleton (S s))
