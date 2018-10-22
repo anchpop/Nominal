@@ -223,7 +223,7 @@ instance (AtomKind a) => Nominal (AtomOfKind a) where
   π • (AtomOfKind a) = AtomOfKind (π • a)
 
 instance (AtomKind a) => NominalSupport (AtomOfKind a) where
-  support b@(AtomOfKind a) = support (add_default_names (atomofkind_names b) a)
+  support (AtomOfKind a) = support a
 
 instance (AtomKind a) => Atomic (AtomOfKind a) where
   to_atom (AtomOfKind a) = a

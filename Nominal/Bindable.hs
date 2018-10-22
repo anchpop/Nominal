@@ -226,7 +226,7 @@ instance Bindable Atom where
   bindable_eq (CBind b1) (CBind b2) = b1 == b2
   bindable_abst a t = CBind (atom_abst a t)
   bindable_open (CBind body) k = atom_open body k
-  bindable_open_for_printing sup (CBind body) k = atom_open_for_printing default_names sup body k
+  bindable_open_for_printing sup (CBind body) k = atom_open_for_printing sup body k
 
 instance (Bindable a) => Bindable [a]
 instance Bindable ()

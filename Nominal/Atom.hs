@@ -47,12 +47,6 @@ show_atom (Atom x n ns) = n
 atom_names :: Atom -> NameSuggestion
 atom_names (Atom x n ns) = ns
 
--- | Make sure the atom has name suggestions, by adding the specified
--- ones if none are present.
-add_default_names :: NameSuggestion -> Atom -> Atom
-add_default_names ns (Atom x n []) = Atom x n ns
-add_default_names ns (Atom x n ns') = Atom x n ns'
-
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope
 

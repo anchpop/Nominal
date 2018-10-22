@@ -155,8 +155,8 @@ instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v)
   support map = support (Map.toList map)
 
 instance (NominalSupport t) => NominalSupport (BindAtom t) where
-  support (BindAtom n f) =
-    with_fresh_atom_namelist n (\a -> support_delete a (support (f a)))
+  support (BindAtom ns f) =
+    with_fresh_atom_namelist ns (\a -> support_delete a (support (f a)))
 
 instance (NominalSupport t) => NominalSupport (Defer t) where
   support t = support (force t)
@@ -181,12 +181,11 @@ instance (NominalSupport t) => NominalSupport (Defer t) where
 -- this reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
-atom_open_for_printing :: (Nominal t) => NameSuggestion -> Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
-atom_open_for_printing ns2 sup t@(BindAtom ns f) body =
-  with_fresh_atom_named n1 (\a -> body a (force (f a)) (sup' a))
+atom_open_for_printing :: (Nominal t) => Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
+atom_open_for_printing sup t@(BindAtom ns f) body =
+  with_fresh_atom_named_namelist n ns (\a -> body a (force (f a)) (sup' a))
   where
-    ns1 = if null ns then ns2 else ns
-    n1 = rename_fresh (strings_of_support sup) ns1
+    n = rename_fresh (strings_of_support sup) ns
     sup' a = support_insert a sup
 
 -- ----------------------------------------------------------------------
