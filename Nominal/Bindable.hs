@@ -198,6 +198,27 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 
 instance Bindable Atom where
   binding a = ([a], \[a] -> a)
+
+instance Bindable Bool where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Integer where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Int where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Char where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Double where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Float where
+  binding x = ([], \[] -> x)
+  
+instance Bindable Literal where
+  binding x = ([], \[] -> x)
   
 instance (Bindable a) => Bindable [a]
 instance Bindable ()

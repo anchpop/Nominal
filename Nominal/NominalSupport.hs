@@ -133,6 +133,9 @@ class (Nominal t) => NominalSupport t where
 instance NominalSupport Atom where
   support a = support_atom a
 
+instance NominalSupport Bool where
+  support t = support ()
+
 instance NominalSupport Integer where
   support t = support ()
 
@@ -140,6 +143,12 @@ instance NominalSupport Int where
   support t = support ()
 
 instance NominalSupport Char where
+  support t = support ()
+
+instance NominalSupport Double where
+  support t = support ()
+
+instance NominalSupport Float where
   support t = support ()
 
 instance NominalSupport Literal where

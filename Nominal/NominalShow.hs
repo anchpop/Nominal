@@ -81,16 +81,13 @@ nominal_showsPrec d t = nominal_showsPrecSup (support t) d t
 simple_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
 simple_showsPrecSup dup d x = showString (show x)
 
--- Primitive cases.
+-- Primitive instances.
 instance NominalShow Atom where
   nominal_showsPrecSup sup d t = showString (show_atomic t)
 
-instance NominalShow Literal where
+instance NominalShow Bool where
   nominal_showsPrecSup = simple_showsPrecSup
 
-instance NominalShow ()
-
--- Derived cases.
 instance NominalShow Integer where
   nominal_showsPrecSup = simple_showsPrecSup
 
@@ -101,14 +98,23 @@ instance NominalShow Char where
   nominal_showsPrecSup = simple_showsPrecSup
   nominal_showList sup ts = shows ts
 
+instance NominalShow Double where
+  nominal_showsPrecSup = simple_showsPrecSup
+
+instance NominalShow Float where
+  nominal_showsPrecSup = simple_showsPrecSup
+
+instance NominalShow Literal where
+  nominal_showsPrecSup = simple_showsPrecSup
+
+-- Generic instances.
+instance NominalShow ()
 instance (NominalShow t, NominalShow s) => NominalShow (t,s)
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => NominalShow (t,s,r,q)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p) => NominalShow (t,s,r,q,p)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o) => NominalShow (t,s,r,q,p,o)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o, NominalShow n) => NominalShow (t,s,r,q,p,o,n)
-
--- ... and so on for tuples.
 
 instance (NominalShow t) => NominalShow [t] where
   -- Lists require special treatment.

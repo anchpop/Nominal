@@ -49,6 +49,9 @@ class Nominal t where
 instance Nominal Atom where
   (•) = perm_apply_atom
 
+instance Nominal Bool where
+  π • t = t
+
 instance Nominal Integer where
   π • t = t
 
@@ -56,6 +59,12 @@ instance Nominal Int where
   π • t = t
 
 instance Nominal Char where
+  π • t = t
+
+instance Nominal Double where
+  π • t = t
+
+instance Nominal Float where
   π • t = t
 
 -- Instances: generic
