@@ -293,7 +293,7 @@ instance (Ord k, Bindable k) => Bindable (Set k) where
 -- * Generic programming for Bindable
 
 -- | A version of the 'Bindable' class suitable for generic programming.
-class (GNominal f) => GBindable f where
+class GBindable f where
   gbinding :: f a -> ([Atom], [Atom] -> f a)
 
 instance GBindable V1 where
