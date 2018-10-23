@@ -83,9 +83,9 @@ nominal_showsPrec d t = showsPrecSup (support t) d t
 -- for /non-nominal types only/. It can be used like this:
 --
 -- > instance NominalShow MyType where
--- >   showsPrecSup = base_showsPrecSup
-base_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
-base_showsPrecSup dup d x = showString (show x)
+-- >   showsPrecSup = basic_showsPrecSup
+basic_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
+basic_showsPrecSup dup d x = showString (show x)
 
 -- Base cases
 
@@ -93,29 +93,29 @@ instance NominalShow Atom where
   showsPrecSup sup d t = showString (atomic_show t)
 
 instance NominalShow Bool where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Integer where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Int where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Char where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
   nominal_showList sup ts = shows ts
 
 instance NominalShow Double where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Float where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance (Show t) => NominalShow (Basic t) where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Literal where
-  showsPrecSup = base_showsPrecSup
+  showsPrecSup = basic_showsPrecSup
 
 -- Generic instances
 

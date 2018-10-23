@@ -219,10 +219,10 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 --
 -- In the case of non-nominal types (typically base types such as
 -- 'Double'), a 'Bindable' instance can be defined using
--- 'base_binding':
+-- 'basic_binding':
 --
 -- > instance Bindable MyType where
--- >   binding = base_binding
+-- >   binding = basic_binding
 --
 -- In this case, a binder (/x/./t/) is equivalent to an ordinary pair
 -- (/x/,/t/), since there is no bound atom that could be renamed.
@@ -231,9 +231,9 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- for /non-nominal types only/. It can be used like this:
 --
 -- > instance Bindable MyType where
--- >   binding = base_binding
-base_binding :: a -> ([Atom], [Atom] -> a)
-base_binding a = ([], \[] -> a)
+-- >   binding = basic_binding
+basic_binding :: a -> ([Atom], [Atom] -> a)
+basic_binding a = ([], \[] -> a)
 
 -- Base cases
 
@@ -241,28 +241,28 @@ instance Bindable Atom where
   binding a = ([a], \[a] -> a)
 
 instance Bindable Bool where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Integer where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Int where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Char where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Double where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Float where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable (Basic t) where
-  binding = base_binding
+  binding = basic_binding
   
 instance Bindable Literal where
-  binding = base_binding
+  binding = basic_binding
 
 -- Generic instances
   

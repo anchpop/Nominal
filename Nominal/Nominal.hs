@@ -187,9 +187,9 @@ newtype Basic t = Basic t
 -- for /non-nominal types only/. It can be used like this:
 --
 -- > instance Nominal MyType where
--- >   (•) = base_action
-base_action :: Permutation -> t -> t
-base_action π t = t
+-- >   (•) = basic_action
+basic_action :: Permutation -> t -> t
+basic_action π t = t
 
 -- Base cases
 
@@ -197,25 +197,25 @@ instance Nominal Atom where
   (•) = perm_apply_atom
 
 instance Nominal Bool where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal Integer where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal Int where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal Char where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal Double where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal Float where
-  (•) = base_action
+  (•) = basic_action
 
 instance Nominal (Basic t) where
-  (•) = base_action
+  (•) = basic_action
 
 -- Generic instances
 

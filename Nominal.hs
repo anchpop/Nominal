@@ -64,7 +64,7 @@ module Nominal (
   NominalShow(..),
   nominal_show,
   nominal_showsPrec,
-  base_showsPrecSup,
+  basic_showsPrecSup,
 
   -- * Miscellaneous
   (∘),

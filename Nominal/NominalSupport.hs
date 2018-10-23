@@ -35,7 +35,7 @@ newtype Literal = Literal String
                 deriving (Show)
 
 instance Nominal Literal where
-  (•) = base_action
+  (•) = basic_action
 
 -- ----------------------------------------------------------------------
 -- * Support
@@ -162,9 +162,9 @@ atom_open_for_printing sup t@(BindAtom ns f) body =
 -- for /non-nominal types only/. It can be used like this:
 --
 -- > instance NominalSupport MyType where
--- >   support = base_support
-base_support :: t -> Support
-base_support t = support ()
+-- >   support = basic_support
+basic_support :: t -> Support
+basic_support t = support ()
 
 -- Base cases
 
@@ -172,25 +172,25 @@ instance NominalSupport Atom where
   support = support_atom
 
 instance NominalSupport Bool where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Integer where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Int where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Char where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Double where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Float where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport (Basic t) where
-  support = base_support
+  support = basic_support
 
 instance NominalSupport Literal where
   support (Literal s) = support_string s
