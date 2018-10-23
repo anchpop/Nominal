@@ -128,61 +128,6 @@ class (Nominal t) => NominalSupport t where
   default support :: (Generic t, GNominalSupport (Rep t)) => t -> Support
   support x = gsupport (from x)
 
--- | This function can be used in defining 'NominalSupport' instances
--- for /non-nominal types only/, like this:
---
--- > instance NominalSupport MyType where
--- >   support = base_support
-base_support :: t -> Support
-base_support t = support ()
-
--- Instances: some base cases
-
-instance NominalSupport Atom where
-  support = atom_support
-
-instance NominalSupport Bool where
-  support = base_support
-
-instance NominalSupport Integer where
-  support = base_support
-
-instance NominalSupport Int where
-  support = base_support
-
-instance NominalSupport Char where
-  support = base_support
-
-instance NominalSupport Double where
-  support = base_support
-
-instance NominalSupport Float where
-  support = base_support
-
-instance NominalSupport Literal where
-  support (Literal s) = support_string s
-
--- Instances: generic
-
-instance (NominalSupport t) => NominalSupport [t]
-instance NominalSupport ()
-instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
-instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
-instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q)
-instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p) => NominalSupport (t,s,r,q,p)
-instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o) => NominalSupport (t,s,r,q,p,o)
-instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o, NominalSupport n) => NominalSupport (t,s,r,q,p,o,n)
-
-instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v) where
-  support map = support (Map.toList map)
-
-instance (NominalSupport t) => NominalSupport (BindAtom t) where
-  support (BindAtom ns f) =
-    with_fresh_atom_namelist ns (\a -> support_delete a (support (f a)))
-
-instance (NominalSupport t) => NominalSupport (Defer t) where
-  support t = support (force t)
-
 -- ----------------------------------------------------------------------
 -- * Open for printing
 
@@ -211,7 +156,67 @@ atom_open_for_printing sup t@(BindAtom ns f) body =
     sup' a = support_insert a sup
 
 -- ----------------------------------------------------------------------
--- * Generic NominalSupport instances
+-- * NominalSupport instances
+
+-- | A helper function for defining 'NominalSupport' instances
+-- for /non-nominal types only/. It can be used like this:
+--
+-- > instance NominalSupport MyType where
+-- >   support = base_support
+base_support :: t -> Support
+base_support t = support ()
+
+-- Base cases
+
+instance NominalSupport Atom where
+  support = atom_support
+
+instance NominalSupport Bool where
+  support = base_support
+
+instance NominalSupport Integer where
+  support = base_support
+
+instance NominalSupport Int where
+  support = base_support
+
+instance NominalSupport Char where
+  support = base_support
+
+instance NominalSupport Double where
+  support = base_support
+
+instance NominalSupport Float where
+  support = base_support
+
+instance NominalSupport Literal where
+  support (Literal s) = support_string s
+
+-- Generic instances
+
+instance (NominalSupport t) => NominalSupport [t]
+instance NominalSupport ()
+instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
+instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q) => NominalSupport (t,s,r,q)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p) => NominalSupport (t,s,r,q,p)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o) => NominalSupport (t,s,r,q,p,o)
+instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o, NominalSupport n) => NominalSupport (t,s,r,q,p,o,n)
+
+-- Special instances
+
+instance (NominalSupport t) => NominalSupport (BindAtom t) where
+  support (BindAtom ns f) =
+    with_fresh_atom_namelist ns (\a -> support_delete a (support (f a)))
+
+instance (NominalSupport t) => NominalSupport (Defer t) where
+  support t = support (force t)
+
+instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v) where
+  support map = support (Map.toList map)
+
+-- ----------------------------------------------------------------------
+-- * Generic programming for NominalSupport
 
 -- | A version of the 'NominalSupport' class suitable for generic programming.
 class GNominalSupport f where
@@ -235,6 +240,3 @@ instance (GNominalSupport a) => GNominalSupport (M1 i c a) where
 
 instance (NominalSupport a) => GNominalSupport (K1 i a) where
   gsupport (K1 x) = support x
-
-
-

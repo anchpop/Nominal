@@ -74,16 +74,19 @@ nominal_show t = showsPrecSup (support t) 0 t ""
 nominal_showsPrec :: (NominalShow t) => Int -> t -> ShowS
 nominal_showsPrec d t = showsPrecSup (support t) d t
 
--- | This function can be used in defining 'NominalShow' instances for
--- /non-nominal types only/. In this case, the 'NominalShow' instance
--- can be derived from an ordinary 'Show' instance, like this:
+-- ----------------------------------------------------------------------
+-- * NominalShow instances
+
+-- | A helper function for defining 'NominalShow' instances
+-- for /non-nominal types only/. It can be used like this:
 --
 -- > instance NominalShow MyType where
 -- >   showsPrecSup = base_showsPrecSup
 base_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
 base_showsPrecSup dup d x = showString (show x)
 
--- Primitive instances.
+-- Base cases
+
 instance NominalShow Atom where
   showsPrecSup sup d t = showString (atomic_show t)
 
@@ -109,7 +112,8 @@ instance NominalShow Float where
 instance NominalShow Literal where
   showsPrecSup = base_showsPrecSup
 
--- Generic instances.
+-- Generic instances
+
 instance NominalShow ()
 instance (NominalShow t, NominalShow s) => NominalShow (t,s)
 instance (NominalShow t, NominalShow s, NominalShow r) => NominalShow (t,s,r)
@@ -118,8 +122,9 @@ instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalSho
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o) => NominalShow (t,s,r,q,p,o)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o, NominalShow n) => NominalShow (t,s,r,q,p,o,n)
 
+-- Special instances
+
 instance (NominalShow t) => NominalShow [t] where
-  -- Lists require special treatment.
   showsPrecSup sup d ts = nominal_showList sup ts
 
 instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
@@ -130,20 +135,20 @@ instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
 instance (NominalShow t) => NominalShow (Defer t) where
   showsPrecSup sup d t = showsPrecSup sup d (force t)
 
+instance (AtomKind a) => NominalShow (AtomOfKind a) where
+  showsPrecSup sup d t = showString (atomic_show t)
+
 instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
   showsPrecSup sup d t =
     open_for_printing sup t $ \a s sup' ->
       showParen (d > 5) $
         showString (nominal_show a ++ " . " ++ showsPrecSup sup' 5 s "")
 
-instance (AtomKind a) => NominalShow (AtomOfKind a) where
-  showsPrecSup sup d t = showString (atomic_show t)
-
 instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
   showsPrec = nominal_showsPrec
 
 -- ----------------------------------------------------------------------
--- ** Generic NominalShow instances
+-- * Generic programming for NominalShow
 
 -- | This type keeps track of which separator to use for the next tuple.
 data Separator = Rec | Tup | Inf String | Pre

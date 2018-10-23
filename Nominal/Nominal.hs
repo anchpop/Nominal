@@ -44,56 +44,6 @@ class Nominal t where
   default (•) :: (Generic t, GNominal (Rep t)) => Permutation -> t -> t
   π • x = to (gbullet π (from x))
 
--- | This function can be used in defining 'Nominal' instances for
--- /non-nominal types only/, like this:
---
--- > instance Nominal MyType where
--- >   (•) = base_action
-base_action :: Permutation -> t -> t
-base_action π t = t
-
--- Instances: some base cases
-
-instance Nominal Atom where
-  (•) = perm_apply_atom
-
-instance Nominal Bool where
-  (•) = base_action
-
-instance Nominal Integer where
-  (•) = base_action
-
-instance Nominal Int where
-  (•) = base_action
-
-instance Nominal Char where
-  (•) = base_action
-
-instance Nominal Double where
-  (•) = base_action
-
-instance Nominal Float where
-  (•) = base_action
-
--- Instances: generic
-
-instance (Nominal t) => Nominal [t]
-instance Nominal ()
-instance (Nominal t, Nominal s) => Nominal (t,s)
-instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r)
-instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q)
-instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p) => Nominal (t,s,r,q,p)
-instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o) => Nominal (t,s,r,q,p,o)
-instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o, Nominal n) => Nominal (t,s,r,q,p,o,n)
-
-instance (Nominal t, Nominal s) => Nominal (t -> s) where
-  π • f = \x -> π • (f (π' • x))
-    where
-      π' = perm_invert π
-
-instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
-  π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
-
 -- ----------------------------------------------------------------------
 -- * Deferred permutation
 
@@ -207,7 +157,62 @@ atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
   h x = Defer perm_identity (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------
--- * Generic Nominal instances
+-- * Nominal instances
+
+-- | A helper function for defining 'Nominal' instances
+-- for /non-nominal types only/. It can be used like this:
+--
+-- > instance Nominal MyType where
+-- >   (•) = base_action
+base_action :: Permutation -> t -> t
+base_action π t = t
+
+-- Base cases
+
+instance Nominal Atom where
+  (•) = perm_apply_atom
+
+instance Nominal Bool where
+  (•) = base_action
+
+instance Nominal Integer where
+  (•) = base_action
+
+instance Nominal Int where
+  (•) = base_action
+
+instance Nominal Char where
+  (•) = base_action
+
+instance Nominal Double where
+  (•) = base_action
+
+instance Nominal Float where
+  (•) = base_action
+
+-- Generic instances
+
+instance (Nominal t) => Nominal [t]
+instance Nominal ()
+instance (Nominal t, Nominal s) => Nominal (t,s)
+instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r)
+instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p) => Nominal (t,s,r,q,p)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o) => Nominal (t,s,r,q,p,o)
+instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o, Nominal n) => Nominal (t,s,r,q,p,o,n)
+
+-- Special instances
+
+instance (Nominal t, Nominal s) => Nominal (t -> s) where
+  π • f = \x -> π • (f (π' • x))
+    where
+      π' = perm_invert π
+
+instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
+  π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
+
+-- ----------------------------------------------------------------------
+-- * Generic programming for Nominal
 
 -- | A version of the 'Nominal' class suitable for generic programming.
 class GNominal f where

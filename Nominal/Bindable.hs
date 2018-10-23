@@ -192,17 +192,18 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
   support (Bind f body) = atomlist_open body $ \xs t ->
     support_deletes xs (support (f xs, t))
       
-
 -- ----------------------------------------------------------------------
--- Bindable instances
+-- * Bindable instances
 
--- | This function can be used in defining 'Bindable' instances for
--- /non-nominal types only/, like this:
+-- | A helper function for defining 'Bindable' instances
+-- for /non-nominal types only/. It can be used like this:
 --
 -- > instance Bindable MyType where
 -- >   binding = base_binding
 base_binding :: a -> ([Atom], [Atom] -> a)
 base_binding a = ([], \[] -> a)
+
+-- Base cases
 
 instance Bindable Atom where
   binding a = ([a], \[a] -> a)
@@ -227,6 +228,8 @@ instance Bindable Float where
   
 instance Bindable Literal where
   binding = base_binding
+
+-- Generic instances
   
 instance (Bindable a) => Bindable [a]
 instance Bindable ()
@@ -238,7 +241,7 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f, Bindable g) => Bindable (a, b, c, d, e, f, g)
   
 -- ----------------------------------------------------------------------
--- * Generic Bindable instances
+-- * Generic programming for Bindable
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class (GNominal f) => GBindable f where
