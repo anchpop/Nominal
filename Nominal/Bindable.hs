@@ -11,6 +11,18 @@
 --
 -- We also provide some generic programming so that instances of
 -- 'Bindable' can be automatically derived in most cases.
+--
+-- For example, @(/x/,/y/)./t/@ binds a pair of atoms in /t/. It is
+-- roughly equivalent to @/x/./y/./t/@, except that it is of type
+-- 'Bind' ('Atom', 'Atom') /t/ instead of 'Bind' 'Atom' ('Bind' 'Atom'
+-- /t/).
+--
+-- If a binder contains repeated atoms, they are regarded as
+-- distinct. For example, @(/x/,/x/).(/x/,/x/)@ is equivalent to
+-- either @(/x/,/y/).(/x/,/x/)@ or @(/x/,/y/).(/y/,/y/)@. In such
+-- cases, the binding order is unspecified and should not be relied
+-- upon.
+
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
@@ -90,7 +102,7 @@ class (Nominal a) => Bindable a where
   -- If an atom occurs in multiple binding sites of the pattern, it
   -- must be listed multiple times.
   --
-  -- Example:
+  -- Examples:
   --
   -- > binding (x, y, Unbound(z)) = ([x,y], \[x',y'] -> (x', y', Unbound(z)))
   -- >
@@ -198,6 +210,22 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
       
 -- ----------------------------------------------------------------------
 -- * Bindable instances
+
+-- $ Most of the time, instances of 'Bindable' should be derived using
+-- @deriving (Generic, Nominal, Bindable)@, as in this example:
+--
+-- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
+-- >   deriving (Generic, Nominal, Bindable)
+--
+-- In the case of non-nominal types (typically base types such as
+-- 'Double'), a 'Bindable' instance can be defined using
+-- 'base_binding':
+--
+-- > instance Bindable MyType where
+-- >   binding = base_binding
+--
+-- In this case, a binder (/x/./t/) is equivalent to an ordinary pair
+-- (/x/,/t/), since there is no bound atom that could be renamed.
 
 -- | A helper function for defining 'Bindable' instances
 -- for /non-nominal types only/. It can be used like this:
