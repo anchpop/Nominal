@@ -77,11 +77,20 @@ data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)
 
 -- | A type is 'Bindable' if its elements can be abstracted by
--- binders. Examples include atoms, tuples of atoms, list of atoms,
--- etc.
+-- binders. Such elements are also called /patterns/. Examples include
+-- atoms, tuples of atoms, list of atoms, etc.
 class (Nominal a) => Bindable a where
-  -- | Return the list of binding atoms for a binder, and a renaming
-  -- function.
+  -- | Return the list of atoms bound by the pattern, and a renaming
+  -- function. The atoms must be returned in some deterministic order,
+  -- and must be accepted in the same order by the renaming function.
+  -- If an atom occurs in multiple binding sites of the pattern, it
+  -- must be listed multiple times.
+  --
+  -- Example:
+  --
+  -- > binding (x, y, Unbound(z)) = ([x,y], \[x',y'] -> (x', y', Unbound(z)))
+  -- >
+  -- > binding (x, x, y, y) = ([x,x,y,y], \[x',x'',y',y''] -> (x',x'',y',y''))
   binding :: a -> ([Atom], [Atom] -> a)
 
   default binding :: (Generic a, GBindable (Rep a)) => a -> ([Atom], [Atom] -> a)
