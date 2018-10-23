@@ -14,6 +14,10 @@
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import GHC.Generics
 
 import Nominal.ConcreteNames
@@ -94,10 +98,10 @@ class (Nominal a) => Bindable a where
   binding :: a -> ([Atom], [Atom] -> a)
 
   default binding :: (Generic a, GBindable (Rep a)) => a -> ([Atom], [Atom] -> a)
-  binding x = (xs, f)
+  binding x = (xs, g)
     where
-      (xs, g) = gbinding (from x)
-      f x = to (g x)
+      (xs, f) = gbinding (from x)
+      g x = to (f x)
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
@@ -239,7 +243,21 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, 
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e) => Bindable (a, b, c, d, e)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f) => Bindable (a, b, c, d, e, f)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f, Bindable g) => Bindable (a, b, c, d, e, f, g)
-  
+
+-- Special instances
+
+instance (Ord k, Bindable k, Bindable v) => Bindable (Map k v) where
+  binding m = (xs, g)
+    where
+      (xs, f) = binding (Map.toList m)
+      g xs = Map.fromList (f xs)
+
+instance (Ord k, Bindable k) => Bindable (Set k) where
+  binding s = (xs, g)
+    where
+      (xs, f) = binding (Set.toList s)
+      g xs = Set.fromList (f xs)
+
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable
 

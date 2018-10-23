@@ -13,6 +13,8 @@ module Nominal.NominalShow where
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import GHC.Generics
 
 import Nominal.Atom
@@ -127,11 +129,6 @@ instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalSho
 instance (NominalShow t) => NominalShow [t] where
   showsPrecSup sup d ts = nominal_showList sup ts
 
-instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
-  showsPrecSup sup d m =
-    showParen (d > 10) $
-      showString "fromList " ∘ showsPrecSup sup 11 (Map.toList m)
-
 instance (NominalShow t) => NominalShow (Defer t) where
   showsPrecSup sup d t = showsPrecSup sup d (force t)
 
@@ -143,6 +140,16 @@ instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) wh
     open_for_printing sup t $ \a s sup' ->
       showParen (d > 5) $
         showString (nominal_show a ++ " . " ++ showsPrecSup sup' 5 s "")
+
+instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
+  showsPrecSup sup d m =
+    showParen (d > 10) $
+      showString "fromList " ∘ showsPrecSup sup 11 (Map.toList m)
+
+instance (Ord k, NominalShow k) => NominalShow (Set k) where
+  showsPrecSup sup d s =
+    showParen (d > 10) $
+      showString "fromList " ∘ showsPrecSup sup 11 (Set.toList s)
 
 instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
   showsPrec = nominal_showsPrec

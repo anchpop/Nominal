@@ -215,6 +215,9 @@ instance (NominalSupport t) => NominalSupport (Defer t) where
 instance (Ord k, NominalSupport k, NominalSupport v) => NominalSupport (Map k v) where
   support map = support (Map.toList map)
 
+instance (Ord k, NominalSupport k) => NominalSupport (Set k) where
+  support set = support (Set.toList set)
+
 -- ----------------------------------------------------------------------
 -- * Generic programming for NominalSupport
 

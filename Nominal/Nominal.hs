@@ -24,6 +24,8 @@ module Nominal.Nominal where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import GHC.Generics
 
 import Nominal.ConcreteNames
@@ -210,6 +212,9 @@ instance (Nominal t, Nominal s) => Nominal (t -> s) where
 
 instance (Ord k, Nominal k, Nominal v) => Nominal (Map k v) where
   π • map = Map.fromList [ (π • k, π • v) | (k, v) <- Map.toList map ]
+
+instance (Ord k, Nominal k) => Nominal (Set k) where
+  π • set = Set.fromList [ π • k | k <- Set.toList set ]
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for Nominal
