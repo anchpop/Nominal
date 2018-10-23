@@ -230,11 +230,14 @@ import Nominal.NominalShow
 -- elements of the type.
 -- 
 -- [Base types.] Since base types (such as 'Double') cannot
--- contain atoms, the action is trivial.
+-- contain atoms, the action is trivial. A 'Nominal' instance can be
+-- defined like this:
 -- 
 -- > instance Nominal Double where
 -- >   π • x = x
 --
+-- Another option is to wrap the type in the type constructor 'Basic'.
+-- 
 -- [Data types.] For most data types, the action of a permutation
 -- is simply passed down the terms recursively. For example, here is
 -- how the 'Nominal' instance for the type @MyTree@ would be
