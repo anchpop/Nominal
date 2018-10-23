@@ -60,7 +60,9 @@ class (NominalSupport t) => NominalShow t where
   default nominal_showsPrecSup :: (Generic t, GNominalShow (Rep t)) => Support -> Int -> t -> ShowS
   nominal_showsPrecSup sup d x = gnominal_showsPrecSup Pre sup d (from x)
 
--- | Like 'show', but for nominal types.
+-- | Like 'show', but for nominal types.  Usually all instances of
+-- 'NominalShow' are also instances of 'Show', so 'show' can also be
+-- used.
 nominal_show :: (NominalShow t) => t -> String
 nominal_show t = nominal_showsPrecSup (support t) 0 t ""
 
@@ -77,35 +79,35 @@ nominal_showsPrec d t = nominal_showsPrecSup (support t) d t
 -- can be derived from an ordinary 'Show' instance, like this:
 --
 -- > instance NominalShow MyType where
--- >   nominal_showsPrecSup = simple_showsPrecSup
-simple_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
-simple_showsPrecSup dup d x = showString (show x)
+-- >   nominal_showsPrecSup = base_showsPrecSup
+base_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
+base_showsPrecSup dup d x = showString (show x)
 
 -- Primitive instances.
 instance NominalShow Atom where
   nominal_showsPrecSup sup d t = showString (show_atomic t)
 
 instance NominalShow Bool where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance NominalShow Integer where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance NominalShow Int where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance NominalShow Char where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
   nominal_showList sup ts = shows ts
 
 instance NominalShow Double where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance NominalShow Float where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance NominalShow Literal where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 -- Generic instances.
 instance NominalShow ()

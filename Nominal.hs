@@ -63,7 +63,7 @@ module Nominal (
   NominalShow(..),
   nominal_show,
   nominal_showsPrec,
-  simple_showsPrecSup,
+  base_showsPrecSup,
 
   -- * AtomPlus
   AtomPlus(..),

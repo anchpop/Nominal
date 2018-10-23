@@ -35,7 +35,7 @@ newtype Literal = Literal String
                 deriving (Show)
 
 instance Nominal Literal where
-  π • t = t
+  (•) = base_action
 
 -- ----------------------------------------------------------------------
 -- * Support
@@ -107,7 +107,7 @@ strings_of_support (Support s) = Set.map name s where
 -- clauses. The recursive clauses must apply 'support' to a tuple or
 -- list (or combination thereof) of immediate subterms. For example:
 --
--- > instance NominalShow Term where
+-- > instance NominalSupport Term where
 -- >   support (Var x) = support x
 -- >   support (App t s) = support (t, s)
 -- >   support (Abs t) = support t
@@ -128,28 +128,36 @@ class (Nominal t) => NominalSupport t where
   default support :: (Generic t, GNominalSupport (Rep t)) => t -> Support
   support x = gsupport (from x)
 
+-- | This function can be used in defining 'NominalSupport' instances
+-- for /non-nominal types only/, like this:
+--
+-- > instance NominalSupport MyType where
+-- >   support = base_support
+base_support :: t -> Support
+base_support t = support ()
+
 -- Instances: some base cases
 
 instance NominalSupport Atom where
-  support a = support_atom a
+  support = support_atom
 
 instance NominalSupport Bool where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Integer where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Int where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Char where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Double where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Float where
-  support t = support ()
+  support = base_support
 
 instance NominalSupport Literal where
   support (Literal s) = support_string s

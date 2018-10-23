@@ -44,28 +44,36 @@ class Nominal t where
   default (•) :: (Generic t, GNominal (Rep t)) => Permutation -> t -> t
   π • x = to (gbullet π (from x))
 
+-- | This function can be used in defining 'Nominal' instances for
+-- /non-nominal types only/, like this:
+--
+-- > instance Nominal MyType where
+-- >   (•) = base_action
+base_action :: Permutation -> t -> t
+base_action π t = t
+
 -- Instances: some base cases
 
 instance Nominal Atom where
   (•) = perm_apply_atom
 
 instance Nominal Bool where
-  π • t = t
+  (•) = base_action
 
 instance Nominal Integer where
-  π • t = t
+  (•) = base_action
 
 instance Nominal Int where
-  π • t = t
+  (•) = base_action
 
 instance Nominal Char where
-  π • t = t
+  (•) = base_action
 
 instance Nominal Double where
-  π • t = t
+  (•) = base_action
 
 instance Nominal Float where
-  π • t = t
+  (•) = base_action
 
 -- Instances: generic
 

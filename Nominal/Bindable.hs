@@ -196,29 +196,37 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- ----------------------------------------------------------------------
 -- Bindable instances
 
+-- | This function can be used in defining 'Bindable' instances for
+-- /non-nominal types only/, like this:
+--
+-- > instance Bindable MyType where
+-- >   binding = base_binding
+base_binding :: a -> ([Atom], [Atom] -> a)
+base_binding a = ([], \[] -> a)
+
 instance Bindable Atom where
   binding a = ([a], \[a] -> a)
 
 instance Bindable Bool where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Integer where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Int where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Char where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Double where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Float where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance Bindable Literal where
-  binding x = ([], \[] -> x)
+  binding = base_binding
   
 instance (Bindable a) => Bindable [a]
 instance Bindable ()

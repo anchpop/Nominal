@@ -46,7 +46,7 @@ instance (NominalSupport a) => NominalSupport (AtomPlus a t) where
   support (AtomPlus x t) = support x
 
 instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
-  nominal_showsPrecSup = simple_showsPrecSup
+  nominal_showsPrecSup = base_showsPrecSup
 
 instance (Bindable a) => Bindable (AtomPlus a t) where
   binding (AtomPlus a t) = (xs, g)
