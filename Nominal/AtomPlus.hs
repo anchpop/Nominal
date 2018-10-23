@@ -49,7 +49,10 @@ instance (NominalSupport a, Show a, Show t) => NominalShow (AtomPlus a t) where
   nominal_showsPrecSup = simple_showsPrecSup
 
 instance (Bindable a) => Bindable (AtomPlus a t) where
-  binding (AtomPlus a t) = binding a
+  binding (AtomPlus a t) = (xs, g)
+    where
+      (xs, f) = binding a
+      g xs = AtomPlus (f xs) t
   
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope

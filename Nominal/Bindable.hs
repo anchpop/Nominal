@@ -74,17 +74,21 @@ atomlist_merge _ _ = Nothing
 -- Implementation note: [Atom] must contain the same number of atoms
 -- as are bound in BindAtomList.
 data Bind a t =
-  Bind a [Atom] (BindAtomList t)
+  Bind ([Atom] -> a) (BindAtomList t)
 
 -- | A type is 'Bindable' if its elements can be abstracted by
 -- binders. Examples include atoms, tuples of atoms, list of atoms,
 -- etc.
 class (Nominal a) => Bindable a where
-  -- | Return the list of binding atoms for a binder.
-  binding :: a -> [Atom]
+  -- | Return the list of binding atoms for a binder, and a renaming
+  -- function.
+  binding :: a -> ([Atom], [Atom] -> a)
 
-  default binding :: (Generic a, GBindable (Rep a)) => a -> [Atom]
-  binding x = gbinding (from x)
+  default binding :: (Generic a, GBindable (Rep a)) => a -> ([Atom], [Atom] -> a)
+  binding x = (xs, f)
+    where
+      (xs, g) = gbinding (from x)
+      f x = to (g x)
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
@@ -95,9 +99,9 @@ class (Nominal a) => Bindable a where
 -- 
 -- > import Prelude hiding ((.))
 (.) :: (Bindable a) => a -> t -> Bind a t
-a . t = Bind a xs (atomlist_abst xs t)
+a . t = Bind f (atomlist_abst xs t)
   where
-    xs = binding a
+    (xs, f) = binding a
 infixr 5 .
 
 -- | Destructor for atom abstraction. In an ideal programming idiom,
@@ -117,8 +121,8 @@ infixr 5 .
 -- 'Nominal.with_fresh', namely, /a/ must be fresh for the body (in symbols
 -- /a/ # /body/).
 open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
-open (Bind a xs body) k =
-  atomlist_open body (\ys t -> k (perm_swaps (zip xs ys) • a) t)
+open (Bind f body) k =
+  atomlist_open body (\ys t -> k (f ys) t)
   
 -- | A variant of 'open' which moreover attempts to choose a name
 -- for the bound atom that does not clash with any free name in its
@@ -138,8 +142,8 @@ open (Bind a xs body) k =
 -- support of /t/ as an additional argument, and provides /sup'/,
 -- the support of /s/, as an additional parameter to the body.
 open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
-open_for_printing sup (Bind a xs body) k =
-  atomlist_open_for_printing sup body (\ys t sup' -> k (perm_swaps (zip xs ys) • a) t sup')
+open_for_printing sup (Bind f body) k =
+  atomlist_open_for_printing sup body (\ys t sup' -> k (f ys) t sup')
 
 -- | Function composition.
 -- 
@@ -165,32 +169,26 @@ open2_for_printing :: (Bindable a, Bindable b, Nominal t) => Support -> Bind a (
 open2_for_printing sup term k = open_for_printing sup term $ \a term' sup' -> open_for_printing sup' term' $ \a' t sup'' -> k a a' t sup''
 
 instance (Nominal a, Nominal t, Eq a, Eq t) => Eq (Bind a t) where
-  Bind a as body1 == Bind b bs body2 =
+  Bind f1 body1 == Bind f2 body2 =
     case atomlist_merge body1 body2 of
       Nothing -> False
       Just bodies ->
         atomlist_open bodies $ \xs (t1, t2) ->
-          let a' = perm_swaps (zip xs as) • a
-              b' = perm_swaps (zip xs bs) • b
-          in  t1 == t2 && a' == b'
+          t1 == t2 && f1 xs == f2 xs
 
 instance (Bindable a, Nominal t) => Nominal (Bind a t) where
-  π • (Bind a as body) = Bind (π • a) (π • as) (π • body)
+  π • (Bind f body) = Bind (π • f) (π • body)
 
 instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bind a t) where
-  support (Bind a as body) = atomlist_open body $ \xs t ->
-    let a' = perm_swaps (zip xs as) • a
-    in support_deletes xs (support (a, t))
-      
-      
-
+  support (Bind f body) = atomlist_open body $ \xs t ->
+    support_deletes xs (support (f xs, t))
       
 
 -- ----------------------------------------------------------------------
 -- Bindable instances
 
 instance Bindable Atom where
-  binding a = [a]
+  binding a = ([a], \[a] -> a)
   
 instance (Bindable a) => Bindable [a]
 instance Bindable ()
@@ -206,23 +204,42 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class (GNominal f) => GBindable f where
-  gbinding :: f a -> [Atom]
+  gbinding :: f a -> ([Atom], [Atom] -> f a)
 
 instance GBindable V1 where
   gbinding a = undefined -- never occurs, because V1 is empty
 
 instance GBindable U1 where
-  gbinding U1 = []
+  gbinding U1 = ([], \xs -> U1)
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
-  gbinding (a :*: b) = gbinding a ++ gbinding b
+  gbinding (a :*: b) = (xs ++ ys, h)
+    where
+      (xs, f) = gbinding a
+      (ys, g) = gbinding b
+      n = length xs
+      h zs = f xs :*: g ys
+        where
+          (xs, ys) = splitAt n zs 
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
-  gbinding (L1 a) = gbinding a
-  gbinding (R1 a) = gbinding a
+  gbinding (L1 a) = (xs, g)
+    where
+      (xs, f) = gbinding a
+      g xs = L1 (f xs)
+  gbinding (R1 a) = (xs, g)
+    where
+      (xs, f) = gbinding a
+      g xs = R1 (f xs)
 
 instance (GBindable a) => GBindable (M1 i c a) where
-  gbinding (M1 a) = gbinding a
+  gbinding (M1 a) = (xs, g)
+    where
+      (xs, f) = gbinding a
+      g xs = M1 (f xs)
   
 instance (Bindable a) => GBindable (K1 i a) where
-  gbinding (K1 a) = binding a
+  gbinding (K1 a) = (xs, g)
+    where
+      (xs, f) = binding a
+      g xs = K1 (f xs)
