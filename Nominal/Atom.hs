@@ -34,14 +34,14 @@ instance Ord Atom where
   compare (Atom x n ns) (Atom x' n' ns') = compare x x'
 
 instance Show Atom where
-  show = show_atom
+  show = atom_show
 
 -- ----------------------------------------------------------------------
 -- ** Basic operations on atoms
 
 -- | Return the name of an atom.
-show_atom :: Atom -> String
-show_atom (Atom x n ns) = n
+atom_show :: Atom -> String
+atom_show (Atom x n ns) = n
 
 -- | Return the suggested names of an atom.
 atom_names :: Atom -> NameSuggestion

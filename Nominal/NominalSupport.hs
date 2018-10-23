@@ -68,8 +68,8 @@ support_insert :: Atom -> Support -> Support
 support_insert a (Support x) = Support (Set.insert (A a) x)
 
 -- | A singleton support.
-support_atom :: Atom -> Support
-support_atom a = Support (Set.singleton (A a))
+atom_support :: Atom -> Support
+atom_support a = Support (Set.singleton (A a))
 
 -- | Delete an atom from the support.
 support_delete :: Atom -> Support -> Support
@@ -139,7 +139,7 @@ base_support t = support ()
 -- Instances: some base cases
 
 instance NominalSupport Atom where
-  support = support_atom
+  support = atom_support
 
 instance NominalSupport Bool where
   support = base_support

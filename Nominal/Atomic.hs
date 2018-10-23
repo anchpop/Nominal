@@ -48,8 +48,8 @@ instance Atomic Atom where
 -- ** Basic operations
 
 -- | Return the name of an atom.
-show_atomic :: (Atomic a) => a -> String
-show_atomic a = show_atom (to_atom a)
+atomic_show :: (Atomic a) => a -> String
+atomic_show a = atom_show (to_atom a)
 
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope
@@ -217,7 +217,7 @@ newtype AtomOfKind a = AtomOfKind Atom
   deriving (Eq, Ord, Generic, Bindable)
 
 instance (AtomKind a) => Show (AtomOfKind a) where
-  show = show_atomic
+  show = atomic_show
 
 instance (AtomKind a) => Nominal (AtomOfKind a) where
   π • (AtomOfKind a) = AtomOfKind (π • a)
