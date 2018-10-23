@@ -6,8 +6,9 @@
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
--- binders.  Moreover, for each bindable type /a/ and nominal type
--- /t/, it defines a type 'Bind' /a/ /t/ of abstractions.
+-- binders (sometimes also called /patterns/).  Moreover, for each
+-- bindable type /a/ and nominal type /t/, it defines a type 'Bind'
+-- /a/ /t/ of abstractions.
 --
 -- We also provide some generic programming so that instances of
 -- 'Bindable' can be automatically derived in most cases.
@@ -207,7 +208,43 @@ instance (Bindable a, Nominal t) => Nominal (Bind a t) where
 instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bind a t) where
   support (Bind f body) = atomlist_open body $ \xs t ->
     support_deletes xs (support (f xs, t))
-      
+
+-- ----------------------------------------------------------------------
+-- * Non-bindable patterns
+
+-- | The type constructor 'NoBind' permits data of arbitrary types
+-- (including nominal types) to be embedded in binders without
+-- becoming bound. For example, in the term
+--
+-- > m = (a, NoBind b).(a,b),
+--
+-- the atom /a/ is bound, but the atom /b/ remains free. Thus, /m/ is
+-- alpha-equivalent to @(x, NoBind b).(x,b)@, but not to
+-- @(x, NoBind y).(x,y)@.
+--
+-- A typical use case for this is the use of contexts as binders. A
+-- /context/ is a map from atoms to some data (for example, a
+-- /typing context/ is a map from atoms to types, and an
+-- /evaluation context/ is a map from atoms to values). If we define
+-- contexts like this:
+--
+-- > type Context t = Map Atom (NoBind t),
+--
+-- then we can use contexts as binders. Specifically, if Γ = {/x/₁
+-- ↦ /A/₁, …, /x/ₙ ↦ /A/ₙ} is a context, then (Γ . /t/) binds the
+-- context to a term /t/. This means, /x/₁,…,/x/ₙ are bound in /t/,
+-- but not any atoms that occur in /A/₁,…,/A/ₙ. Without the use of
+-- 'NoBind', any atoms occuring on /A/₁,…,/A/ₙ would have been bound
+-- as well.
+--
+-- Even though atoms under 'NoBind' are not /binding/, they can still
+-- be /bound/ by other binders. For example, the term
+-- @/x/.(/x/, 'NoBind' /x/)@ is alpha-equivalent to
+-- @/y/.(/y/, 'NoBind' /y/)@.
+
+newtype NoBind t = NoBind t
+  deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport)
+
 -- ----------------------------------------------------------------------
 -- * Bindable instances
 
@@ -262,6 +299,9 @@ instance Bindable Float where
   binding = basic_binding
   
 instance Bindable (Basic t) where
+  binding = basic_binding
+
+instance (Nominal t) => Bindable (NoBind t) where
   binding = basic_binding
   
 instance Bindable Literal where

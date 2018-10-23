@@ -50,6 +50,9 @@ module Nominal (
   -- $BINDABLE
   Bindable(..),
 
+  -- ** Non-bindable patterns
+  NoBind(..),
+  
   -- * Printing of nominal values
   -- $PRINTING
   open_for_printing,
