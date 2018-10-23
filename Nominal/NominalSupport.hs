@@ -189,6 +189,9 @@ instance NominalSupport Double where
 instance NominalSupport Float where
   support = base_support
 
+instance NominalSupport (Basic t) where
+  support = base_support
+
 instance NominalSupport Literal where
   support (Literal s) = support_string s
 

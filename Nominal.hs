@@ -33,6 +33,7 @@ module Nominal (
   -- $NOMINAL
   Nominal(..),
   Permutation,
+  Basic(..),
   
   -- * Binders
   Bind,

@@ -159,6 +159,28 @@ atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
   h x = Defer perm_identity (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------
+-- * Basic types
+
+-- | A /basic/ or /non-nominal/ type is a type whose elements cannot
+-- contain any atoms. Typical examples are base types, such as 'Integer'
+-- or 'Bool', and other types constructed exclusively from them,
+-- such as @['Integer']@ or @'Bool' -> 'Bool'@. On such types, the
+-- nominal structure is trivial, i.e., @π • /x/ = /x/@ for all /x/.
+--
+-- For convenience, we define 'Basic' as a wrapper around such types,
+-- which will automatically generate appropriate instances of
+-- 'Nominal', 'NominalSupport', 'NominalShow', and 'Bindable'. You can
+-- use it, for example, like this:
+--
+-- > type Term = Var Atom | Const (Basic Int) | App Term Term
+--
+-- Some common base types, including 'Bool', 'Char', 'Int',
+-- 'Integer', 'Double', and 'Float', are already instances of the
+-- relevant type classes, and do not need to be wrapped in 'Basic'.
+newtype Basic t = Basic t
+  deriving (Show, Eq, Ord)
+
+-- ----------------------------------------------------------------------
 -- * Nominal instances
 
 -- | A helper function for defining 'Nominal' instances
@@ -190,6 +212,9 @@ instance Nominal Double where
   (•) = base_action
 
 instance Nominal Float where
+  (•) = base_action
+
+instance Nominal (Basic t) where
   (•) = base_action
 
 -- Generic instances

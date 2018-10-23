@@ -258,6 +258,9 @@ instance Bindable Double where
 instance Bindable Float where
   binding = base_binding
   
+instance Bindable (Basic t) where
+  binding = base_binding
+  
 instance Bindable Literal where
   binding = base_binding
 

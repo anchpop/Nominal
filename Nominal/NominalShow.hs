@@ -111,6 +111,9 @@ instance NominalShow Double where
 instance NominalShow Float where
   showsPrecSup = base_showsPrecSup
 
+instance (Show t) => NominalShow (Basic t) where
+  showsPrecSup = base_showsPrecSup
+
 instance NominalShow Literal where
   showsPrecSup = base_showsPrecSup
 
