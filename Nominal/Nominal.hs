@@ -7,18 +7,7 @@
 -- acts on it. We can abstract over an atom in such a type.
 --
 -- We also provide some generic programming so that instances of
--- 'Nominal' can be automatically derived in most cases. To take
--- advantage of this, add the language options @DeriveGeneric@ and
--- @DeriveAnyClass@ and import "GHC.Generics". Then @deriving
--- (Generic, Nominal)@ can be added to most datatype declarations.
--- Example:
---
--- > {-# LANGUAGE DeriveGeneric #-}
--- > {-# LANGUAGE DeriveAnyClass #-}
--- > import GHC.Generics
--- >
--- > data Term = Var Variable | App Term Term | Abs (Bind Variable Term)
--- >   deriving (Generic, Nominal)
+-- 'Nominal' can be automatically derived in most cases.
 
 module Nominal.Nominal where
 
@@ -182,6 +171,22 @@ newtype Basic t = Basic t
 
 -- ----------------------------------------------------------------------
 -- * Nominal instances
+
+-- $ Most of the time, instances of 'Nominal' should be derived using
+-- @deriving (Generic, Nominal)@, as in this example:
+--
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- >
+-- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
+-- >   deriving (Generic, Nominal)
+--
+-- In the case of non-nominal types (typically base types such as
+-- 'Double'), a 'Nominal' instance can be defined using
+-- 'basic_action':
+--
+-- > instance Nominal MyType where
+-- >   (•) = basic_action
 
 -- | A helper function for defining 'Nominal' instances
 -- for /non-nominal types only/. It can be used like this:

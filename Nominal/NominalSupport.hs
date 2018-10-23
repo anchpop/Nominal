@@ -158,6 +158,22 @@ atom_open_for_printing sup t@(BindAtom ns f) body =
 -- ----------------------------------------------------------------------
 -- * NominalSupport instances
 
+-- $ Most of the time, instances of 'NominalSupport' should be derived using
+-- @deriving (Generic, NominalSupport)@, as in this example:
+--
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- >
+-- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
+-- >   deriving (Generic, NominalSupport)
+--
+-- In the case of non-nominal types (typically base types such as
+-- 'Double'), a 'NominalSupport' instance can be defined using
+-- 'basic_support':
+--
+-- > instance NominalSupport MyType where
+-- >   support = basic_support
+
 -- | A helper function for defining 'NominalSupport' instances
 -- for /non-nominal types only/. It can be used like this:
 --

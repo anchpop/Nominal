@@ -79,6 +79,22 @@ nominal_showsPrec d t = showsPrecSup (support t) d t
 -- ----------------------------------------------------------------------
 -- * NominalShow instances
 
+-- $ Most of the time, instances of 'NominalShow' should be derived using
+-- @deriving (Generic, NominalSupport, NominalShow)@, as in this example:
+--
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- >
+-- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
+-- >   deriving (Generic, NominalSupport, NominalShow)
+--
+-- In the case of non-nominal types (typically base types such as
+-- 'Double'), a 'NominalShow' instance can be defined using
+-- 'basic_showsPrecSup':
+--
+-- > instance NominalShow MyType where
+-- >   showsPrecSup = basic_showsPrecSup
+
 -- | A helper function for defining 'NominalShow' instances
 -- for /non-nominal types only/. It can be used like this:
 --

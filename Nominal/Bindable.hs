@@ -214,6 +214,9 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- $ Most of the time, instances of 'Bindable' should be derived using
 -- @deriving (Generic, Nominal, Bindable)@, as in this example:
 --
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- >
 -- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
 -- >   deriving (Generic, Nominal, Bindable)
 --
