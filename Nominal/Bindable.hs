@@ -139,7 +139,7 @@ open (Bind a xs body) k =
 -- the support of /s/, as an additional parameter to the body.
 open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 open_for_printing sup (Bind a xs body) k =
-  atomlist_open_for_printing sup body (\ys t sup' -> k (perm_swaps (zip xs ys) • a) t sup)
+  atomlist_open_for_printing sup body (\ys t sup' -> k (perm_swaps (zip xs ys) • a) t sup')
 
 -- | Function composition.
 -- 
