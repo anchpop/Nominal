@@ -65,12 +65,6 @@ module Nominal (
   nominal_showsPrec,
   base_showsPrecSup,
 
-  -- * AtomPlus
-  AtomPlus(..),
-  with_fresh_plus,
-  with_fresh_named_plus,
-  with_fresh_namelist_plus,
-
   -- * Miscellaneous
   (∘),
   module GHC.Generics
@@ -88,7 +82,6 @@ import Nominal.NominalSupport
 import Nominal.Bindable
 import Nominal.Atomic
 import Nominal.NominalShow
-import Nominal.AtomPlus
 
 -- $OVERVIEW
 -- 
