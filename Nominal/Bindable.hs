@@ -80,6 +80,58 @@ atomlist_merge (BindCons body1) (BindCons body2) =
 atomlist_merge _ _ = Nothing
 
 -- ----------------------------------------------------------------------
+-- * Binder combinators
+
+-- | An abstract type for encapsulating the behavior of binders.
+
+-- Implementation note: @Rebind a@ comprises a serialized list of
+-- atoms bound by the pattern (binding sites), and a renaming function
+-- that takes such a list of atoms and returns an alpha-renamed
+-- version of the pattern. For efficiency, the renaming function is
+-- stateful: it also returns a list of atoms not yet used.
+--
+-- The atoms must be serialized in some deterministic order, and must
+-- be accepted in the same corresponding order by the renaming
+-- function.
+--
+-- If an atom occurs at multiple binding sites of the pattern, it must
+-- be serialized multiple times. The corresponding renaming function
+-- must accept fresh atoms and put them into the respective binding
+-- sites.
+--
+-- Examples:
+--
+-- > binding (x, y, NoBind(z)) = Rebind [x, y] (\(x:y:zs) -> ((x, y, NoBind(z)), zs))
+-- >
+-- > binding (x, x, y) = Rebind [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
+data Rebind a = Rebind [Atom] ([Atom] -> (a, [Atom]))
+
+-- | Constructor for non-binding patterns.
+nobind_binding :: a -> Rebind a
+nobind_binding a = Rebind [] (\xs -> (a, xs))
+
+-- | Constructor for a pattern binding a single atom.
+atom_binding :: Atom -> Rebind Atom
+atom_binding a = Rebind [a] (\(a:xs) -> (a, xs))
+
+-- | Constructor for a tuple pattern.
+combine_binding :: (a -> Rebind a) -> (b -> Rebind b) -> ((a,b) -> Rebind (a,b))
+combine_binding binding1 binding2 = binding where
+  binding (a,b) = Rebind (xs ++ ys) h
+    where
+      Rebind xs f = binding1 a
+      Rebind ys g = binding2 b
+      h zs = ((a,b), zs'') where
+        (a, zs') = f zs
+        (b, zs'') = g zs'
+
+-- | Map a function over a 'Rebind'.
+map_rebind :: (a -> b) -> Rebind a -> Rebind b
+map_rebind f (Rebind xs g) = Rebind xs h where
+  h xs = (f a, ys) where
+    (a, ys) = g xs
+
+-- ----------------------------------------------------------------------
 -- * The Bindable class
 
 -- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/A/]/T/
@@ -97,24 +149,13 @@ data Bind a t =
 -- binders. Such elements are also called /patterns/. Examples include
 -- atoms, tuples of atoms, list of atoms, etc.
 class (Nominal a) => Bindable a where
-  -- | Return the list of atoms bound by the pattern, and a renaming
-  -- function. The atoms must be returned in some deterministic order,
-  -- and must be accepted in the same order by the renaming function.
-  -- If an atom occurs in multiple binding sites of the pattern, it
-  -- must be listed multiple times.
-  --
-  -- Examples:
-  --
-  -- > binding (x, y, NoBind(z)) = ([x,y], \[x',y'] -> (x', y', NoBind(z)))
-  -- >
-  -- > binding (x, x, y, y) = ([x,x,y,y], \[x',x'',y',y''] -> (x',x'',y',y''))
-  binding :: a -> ([Atom], [Atom] -> a)
+  -- | The behavior of the pattern. It must be constructed from the
+  -- basic behaviors 'nobind_binding', 'atom_binding',
+  -- 'combine_binding', and using 'map_rebind'.
+  binding :: a -> Rebind a
 
-  default binding :: (Generic a, GBindable (Rep a)) => a -> ([Atom], [Atom] -> a)
-  binding x = (xs, g)
-    where
-      (xs, f) = gbinding (from x)
-      g x = to (f x)
+  default binding :: (Generic a, GBindable (Rep a)) => a -> Rebind a
+  binding x = map_rebind to (gbinding (from x))
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
@@ -125,9 +166,9 @@ class (Nominal a) => Bindable a where
 -- 
 -- > import Prelude hiding ((.))
 (.) :: (Bindable a) => a -> t -> Bind a t
-a . t = Bind f (atomlist_abst xs t)
+a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
-    (xs, f) = binding a
+    Rebind xs f = binding a
 infixr 5 .
 
 -- | Destructor for atom abstraction. In an ideal programming idiom,
@@ -274,13 +315,13 @@ newtype NoBind t = NoBind t
 --
 -- > instance Bindable MyType where
 -- >   binding = basic_binding
-basic_binding :: a -> ([Atom], [Atom] -> a)
-basic_binding a = ([], \[] -> a)
+basic_binding :: a -> Rebind a
+basic_binding = nobind_binding
 
 -- Base cases
 
 instance Bindable Atom where
-  binding a = ([a], \[a] -> a)
+  binding = atom_binding
 
 instance Bindable Bool where
   binding = basic_binding
@@ -303,12 +344,12 @@ instance Bindable Float where
 instance Bindable (Basic t) where
   binding = basic_binding
 
-instance (Nominal t) => Bindable (NoBind t) where
-  binding = basic_binding
-  
 instance Bindable Literal where
   binding = basic_binding
 
+instance (Nominal t) => Bindable (NoBind t) where
+  binding = nobind_binding
+  
 -- Generic instances
   
 instance (Bindable a) => Bindable [a]
@@ -323,58 +364,33 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 -- Special instances
 
 instance (Ord k, Bindable k, Bindable v) => Bindable (Map k v) where
-  binding m = (xs, g)
-    where
-      (xs, f) = binding (Map.toList m)
-      g xs = Map.fromList (f xs)
+  binding m = map_rebind Map.fromList (binding (Map.toList m))
 
 instance (Ord k, Bindable k) => Bindable (Set k) where
-  binding s = (xs, g)
-    where
-      (xs, f) = binding (Set.toList s)
-      g xs = Set.fromList (f xs)
+  binding s = map_rebind Set.fromList (binding (Set.toList s))
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
-  gbinding :: f a -> ([Atom], [Atom] -> f a)
+  gbinding :: f a -> Rebind (f a)
 
 instance GBindable V1 where
   gbinding a = undefined -- never occurs, because V1 is empty
 
 instance GBindable U1 where
-  gbinding U1 = ([], \xs -> U1)
+  gbinding = basic_binding
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
-  gbinding (a :*: b) = (xs ++ ys, h)
-    where
-      (xs, f) = gbinding a
-      (ys, g) = gbinding b
-      n = length xs
-      h zs = f xs :*: g ys
-        where
-          (xs, ys) = splitAt n zs 
+  gbinding (a :*: b) = map_rebind (\(x,y) -> x :*: y) (combine_binding gbinding gbinding (a,b))
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
-  gbinding (L1 a) = (xs, g)
-    where
-      (xs, f) = gbinding a
-      g xs = L1 (f xs)
-  gbinding (R1 a) = (xs, g)
-    where
-      (xs, f) = gbinding a
-      g xs = R1 (f xs)
+  gbinding (L1 a) = map_rebind L1 (gbinding a)
+  gbinding (R1 a) = map_rebind R1 (gbinding a)
 
 instance (GBindable a) => GBindable (M1 i c a) where
-  gbinding (M1 a) = (xs, g)
-    where
-      (xs, f) = gbinding a
-      g xs = M1 (f xs)
+  gbinding (M1 a) = map_rebind M1 (gbinding a)
   
 instance (Bindable a) => GBindable (K1 i a) where
-  gbinding (K1 a) = (xs, g)
-    where
-      (xs, f) = binding a
-      g xs = K1 (f xs)
+  gbinding (K1 a) = map_rebind K1 (binding a)
