@@ -82,11 +82,11 @@ atomlist_merge _ _ = Nothing
 -- ----------------------------------------------------------------------
 -- * The Bindable class
 
--- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/a/]/t/
+-- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/A/]/T/
 -- in the nominal logic literature. Its elements are pairs (/a/,/t/)
 -- modulo alpha-equivalence. We also write /a/'.'/t/ for such an
--- equivalence class of pairs. For more details on what this means,
--- see Definition 4 of [Pitts 2002].
+-- equivalence class of pairs. For full technical details on what this
+-- means, see Definition 4 of [Pitts 2002].
 
 -- Implementation note: [Atom] must contain the same number of atoms
 -- as are bound in BindAtomList.
@@ -105,7 +105,7 @@ class (Nominal a) => Bindable a where
   --
   -- Examples:
   --
-  -- > binding (x, y, Unbound(z)) = ([x,y], \[x',y'] -> (x', y', Unbound(z)))
+  -- > binding (x, y, NoBind(z)) = ([x,y], \[x',y'] -> (x', y', NoBind(z)))
   -- >
   -- > binding (x, x, y, y) = ([x,x,y,y], \[x',x'',y',y''] -> (x',x'',y',y''))
   binding :: a -> ([Atom], [Atom] -> a)
@@ -150,23 +150,24 @@ open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
 open (Bind f body) k =
   atomlist_open body (\ys t -> k (f ys) t)
   
--- | A variant of 'open' which moreover attempts to choose a name
--- for the bound atom that does not clash with any free name in its
--- scope. This requires a 'NominalSupport' instance. It is mostly
--- useful for building custom pretty-printers for nominal
--- terms. Except in pretty-printers, it is equivalent to 'open'.
+-- | A variant of 'open' which moreover attempts to choose a name for
+-- the bound atom that does not clash with any free name in its
+-- scope. This function is mostly useful for building custom
+-- pretty-printers for nominal terms. Except in pretty-printers, it is
+-- equivalent to 'open'.
 --
 -- Usage:
 --
 -- > open_for_printing sup t (\x s sup' -> body)
 --
--- Here, /sup/ = 'support' /t/. For printing to be efficient
--- (roughly O(/n/)), the support must be pre-computed in a bottom-up
--- fashion, and then passed into each subterm in a top-down fashion
--- (rather than re-computing it at each level, which would be
--- O(/n/^2)).  For this reason, 'open_for_printing' takes the
--- support of /t/ as an additional argument, and provides /sup'/,
--- the support of /s/, as an additional parameter to the body.
+-- Here, /sup/ = 'support' /t/ (this requires a 'NominalSupport'
+-- instance). For printing to be efficient (roughly O(/n/)), the
+-- support must be pre-computed in a bottom-up fashion, and then
+-- passed into each subterm in a top-down fashion (rather than
+-- re-computing it at each level, which would be O(/n/²)).  For this
+-- reason, 'open_for_printing' takes the support of /t/ as an
+-- additional argument, and provides /sup'/, the support of /s/, as an
+-- additional parameter to the body.
 open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 open_for_printing sup (Bind f body) k =
   atomlist_open_for_printing sup body (\ys t sup' -> k (f ys) t sup')
@@ -222,7 +223,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- alpha-equivalent to @(x, NoBind b).(x,b)@, but not to
 -- @(x, NoBind y).(x,y)@.
 --
--- A typical use case for this is the use of contexts as binders. A
+-- A typical use for this is using contexts as binders. A
 -- /context/ is a map from atoms to some data (for example, a
 -- /typing context/ is a map from atoms to types, and an
 -- /evaluation context/ is a map from atoms to values). If we define
@@ -238,9 +239,10 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- as well.
 --
 -- Even though atoms under 'NoBind' are not /binding/, they can still
--- be /bound/ by other binders. For example, the term
--- @/x/.(/x/, 'NoBind' /x/)@ is alpha-equivalent to
--- @/y/.(/y/, 'NoBind' /y/)@.
+-- be /bound/ by other binders. For example, the term @/x/.(/x/,
+-- 'NoBind' /x/)@ is alpha-equivalent to @/y/.(/y/, 'NoBind'
+-- /y/)@. Another way to say this is that 'NoBind' has a special
+-- behavior on the left, but not on the right of a dot.
 
 newtype NoBind t = NoBind t
   deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport)

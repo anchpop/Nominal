@@ -70,11 +70,11 @@ atomic_show a = atom_show (to_atom a)
 --
 -- > with_fresh (\a -> body),
 --
--- we must have /a/ # /body/ (see Pitts 2002 for more details on what
--- this means). Haskell does not enforce this restriction, but if a
--- program violates this, referential transparency may be violated,
--- which may, in the worst case, lead to unsound compiler
--- optimizations and undefined behavior.
+-- we must have /a/ # /body/ (see [Pitts 2002] for more details on
+-- what this means). Haskell does not enforce this restriction, but if
+-- a program violates it, referential transparency may not hold, which
+-- may, in the worst case, lead to unsound compiler optimizations and
+-- undefined behavior.
 with_fresh :: (Atomic a) => (a -> t) -> t
 with_fresh body = with_fresh_namelist [] body
 
@@ -111,12 +111,11 @@ with_fresh_namelist ns body =
 -- ----------------------------------------------------------------------
 -- ** Convenience functions for abstraction
 
--- | A convenience function for constructing binders. 
+-- | A convenience function for constructing binders. We can write
 --
 -- > bind (\x -> t)
 --
--- is a convenient way to write the atom abstraction (x.t),
--- where /x/ is a fresh variable.
+-- to denote the atom abstraction (x.t), where /x/ is a fresh variable.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
 bind f = with_fresh (\x -> x . f x)
 
@@ -219,14 +218,14 @@ class AtomKind a where
   -- to append numerical subscripts. For example, the names @[x, y,
   -- z]@ are by default expanded to @[x, y, z, x₁, y₁, z₁, x₂, y₂,
   -- …]@, using Unicode for the subscripts.  To use a a different
-  -- naming convention, define this method.
+  -- naming convention, redefine 'expand_names'.
   -- 
   -- It is not strictly necessary for all of the returned names to be
   -- distinct; it is sufficient that there are infinitely many
   -- distinct ones.
   --
   -- Example: the following generates new variable names by appending
-  -- primes:
+  -- primes instead of subscripts:
   --
   -- > expand_names _ xs = ys
   -- >   where ys = xs ++ map (++ "'") ys

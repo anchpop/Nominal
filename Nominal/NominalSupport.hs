@@ -100,7 +100,7 @@ strings_of_support (Support s) = Set.map name s where
 --
 -- In most cases, instances of 'NominalSupport' can be automatically
 -- derived, analogously to how this was done for the 'Nominal' class.
--- See <#NOMINAL Nominal types> above.
+-- See <#NOMINAL "Nominal types"> above.
 -- 
 -- It is also possible to define instances of 'NominalSupport'
 -- manually.  This is usually done by straightforward recursive
@@ -133,9 +133,9 @@ class (Nominal t) => NominalSupport t where
 
 -- | A variant of 'open' which moreover attempts to choose a name for
 -- the bound atom that does not clash with any free name in its
--- scope. This requires a 'NominalSupport' instance. It is mostly
--- useful for building custom pretty-printers for nominal
--- terms. Except in pretty-printers, it is equivalent to 'open'.
+-- scope. This function is mostly useful for building custom
+-- pretty-printers for nominal terms. Except in pretty-printers, it is
+-- equivalent to 'open'.
 --
 -- Usage:
 --
@@ -144,7 +144,7 @@ class (Nominal t) => NominalSupport t where
 -- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
 -- O(/n/)), the support must be pre-computed in a bottom-up fashion,
 -- and then passed into each subterm in a top-down fashion (rather
--- than re-computing it at each level, which would be O(/n/^2)).  For
+-- than re-computing it at each level, which would be O(/n/²)).  For
 -- this reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.

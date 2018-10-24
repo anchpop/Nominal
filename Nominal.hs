@@ -126,7 +126,7 @@ import Nominal.NominalShow
 -- * The next line defines the datatype @Term@ of untyped lambda
 -- terms.  Here, 'Atom' is a predefined type of atomic /names/, which
 -- we use as the names of variables. A term is either a variable, an
--- application, or an abstraction. The type 'Bind' 'Atom' @Term@ is
+-- application, or an abstraction. The type @('Bind' 'Atom' Term)@ is
 -- defined by the "Nominal" library and represents pairs (/a/,/t/) of
 -- an atom and a term, modulo alpha-equivalence. We write /a/'.'/t/ to
 -- denote such an alpha-equivalence class of pairs.
@@ -144,7 +144,7 @@ import Nominal.NominalShow
 -- occurrences of the variable /x/ by /m/.  The clauses for variables
 -- and application are straightforward. Note that atoms can be
 -- compared for equality. In the clause for abstraction, the /body/ of
--- the abstraction, which is of type 'Bind' 'Atom' @Term@, is
+-- the abstraction, which is of type @('Bind' 'Atom' Term)@, is
 -- /opened/: this means that a /fresh/ name /y/ and a term /s/ are
 -- generated such that /body/ = /y/'.'/s/. Since the name /y/ is
 -- guaranteed to be fresh, the substitution can be recursively applied
@@ -157,7 +157,7 @@ import Nominal.NominalShow
 -- atoms are: there are infinitely many of them (so we can always find
 -- a fresh one), and atoms can be compared for equality. Atoms do not
 -- have any other special properties, and in particular, they are
--- interchangeable (any atoms is as good as any other atom).
+-- interchangeable (any atom is as good as any other atom).
 --
 -- As shown in the introductory example above, the type 'Atom' can be
 -- used for this purpose. In addition, it is often useful to have more
@@ -181,12 +181,12 @@ import Nominal.NominalShow
 
 -- $FRESHNESS
 --
--- Sometimes we need to generate a fresh atom of a given atom type.
--- In the "Nominal" library, a fresh atom should never be generated
--- globally. The philosophy is that a fresh atom is always generated
--- for a particular /purpose/, and the use of the atom is local to
--- that purpose.  Therefore, a fresh atom should always be generated
--- within a local /scope/. So instead of
+-- Sometimes we need to generate a fresh atom.  In the "Nominal"
+-- library, a fresh atom should never be generated globally. The
+-- philosophy is that a fresh atom is always generated for a
+-- particular /purpose/, and the use of the atom is local to that
+-- purpose.  Therefore, a fresh atom should always be generated within
+-- a local /scope/. So instead of
 --
 -- > let a = fresh in something,
 --
@@ -213,8 +213,8 @@ import Nominal.NominalShow
 -- When using the "Nominal" library, all types whose elements can
 -- occur in the scope of a binder must be instances of the 'Nominal'
 -- type class.  Fortunately, in most cases, instances of 'Nominal' can
--- be derived automatically. To do so, simply add @deriving (Generic,
--- Nominal)@ to any datatype definition. This also requires the
+-- be derived automatically. To do so, simply add "@deriving (Generic,
+-- Nominal)@" to any datatype definition. This also requires the
 -- language options DeriveGeneric and DeriveAnyClass to be
 -- enabled. For example:
 --
@@ -253,31 +253,28 @@ import Nominal.NominalShow
 -- $BINDABLE
 --
 -- The 'Bindable' class contains things that can be abstracted by
--- binders. In addition to atoms, this also includes pairs of atoms,
--- lists of atoms, and so on.
+-- binders (sometimes called /patterns/). In addition to atoms, this
+-- also includes pairs of atoms, lists of atoms, and so on.
 --
 -- New instances of 'Bindable' can be derived automatically, using a
 -- \"@deriving@\" statement analogous to that used for 'Nominal'
--- instances; see <#NOMINAL Nominal types> above. For example, if you
--- would like to be able to abstract trees of atoms, you could define:
+-- instances; see <#NOMINAL "Nominal types"> above. For example, to use
+-- trees of atoms as binders, you could define:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}
 -- > 
 -- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
 -- >   deriving (Generic, Nominal, NominalSupport, Bindable)
---
--- It should not normally be necessary to manually define 'Bindable'
--- instances, but advanced users can do so (at their own risk) by
--- importing "Nominal.Bindable".
 
 -- $PRINTING
 --
 -- The printing of nominal values requires concrete names for the
 -- bound variables to be chosen in such a way that they do not clash
--- with the names of any free variables or constants. This requires
--- the ability to compute the set of free atoms (and constants) of a
--- term. We call this set the /support/ of a term.
+-- with the names of any free variables, constants, or other bound
+-- variables. This requires the ability to compute the set of free
+-- atoms (and constants) of a term. We call this set the /support/ of
+-- a term.
 --
 -- The "Nominal" library provides a mechanism for the pretty-printing
 -- of nominal values in terms of a type class 'NominalSupport', which
@@ -288,7 +285,7 @@ import Nominal.NominalShow
 -- In addition to this general-purpose mechanism, there is also the
 -- 'NominalShow' type class, which is analogous to 'Show' and provides
 -- a default representation of nominal terms. See
--- <#NOMINALSHOW The NominalShow class> below.
+-- <#NOMINALSHOW "The NominalShow class"> below.
 
 -- $NOMINALSHOW_ANCHOR #NOMINALSHOW#
 
@@ -301,4 +298,4 @@ import Nominal.NominalShow
 --
 -- In most cases, instances of 'NominalShow' can be automatically
 -- derived using the keyword \"̈@deriving@\". This is done in the same
--- way as for 'Nominal' instances; see <#NOMINAL Nominal types> above.
+-- way as for 'Nominal' instances; see <#NOMINAL "Nominal types"> above.

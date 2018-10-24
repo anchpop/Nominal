@@ -27,7 +27,7 @@ import Nominal.Permutation
 -- | A type is 'Nominal' if the group of finitely supported
 -- permutations of atoms acts on it. In most cases, instances of
 -- 'Nominal' can be automatically derived. See
--- <#NOMINAL Nominal types> for more information on how to do so.
+-- <#NOMINAL "Nominal types"> for more information on how to do so.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
   (•) :: Permutation -> t -> t
@@ -57,8 +57,8 @@ instance Nominal (Defer t) where
 
 -- | 'BindAtom' /t/ is the type of atom abstractions, denoted [a]t in
 -- the nominal logic literature. Its elements are of the form (a.v)
--- modulo alpha-equivalence. For more details on what this means, see
--- Definition 4 of [Pitts 2002].
+-- modulo alpha-equivalence. For full technical details on what this
+-- means, see Definition 4 of [Pitts 2002].
 
 -- Implementation note: we currently use an HOAS encoding. It remains
 -- to be seen whether this is efficient. An important invariant of the

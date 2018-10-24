@@ -34,7 +34,7 @@ import Nominal.Atomic
 class (NominalSupport t) => NominalShow t where
   -- | A nominal version of 'showsPrec'. This function takes as its
   -- first argument the support of /t/. This is then passed into the
-  -- subterms, making printing O(/n/) instead of O(/n/^2).
+  -- subterms, making printing O(/n/) instead of O(/n/²).
   -- 
   -- It is recommended to define a 'NominalShow' instance, rather than
   -- a 'Show' instance, for each nominal type, and then define the
@@ -63,8 +63,8 @@ class (NominalSupport t) => NominalShow t where
   showsPrecSup sup d x = gshowsPrecSup Pre sup d (from x)
 
 -- | Like 'show', but for nominal types.  Usually all instances of
--- 'NominalShow' are also instances of 'Show', so 'show' can also be
--- used.
+-- 'NominalShow' are also instances of 'Show', so normally 'show' can
+-- be used instead of 'nominal_show'.
 nominal_show :: (NominalShow t) => t -> String
 nominal_show t = showsPrecSup (support t) 0 t ""
 
