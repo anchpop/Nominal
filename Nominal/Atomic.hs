@@ -99,22 +99,14 @@ with_fresh_named n body =
 -- This function is subject to the same correctness condition as
 -- 'with_fresh'.
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
-with_fresh_namelist ns body = with_fresh_namegen ng body
+with_fresh_namelist ns body =
+  with_fresh_atom_namegen ng (\a -> body (from_atom a))
   where
     NameGen ns1 ex = names (un body)
     ns2 = if null ns then ns1 else ns
     ng = NameGen ns2 ex
     un :: (a -> t) -> a
     un = undefined
-
--- | A version of 'with_fresh' that permits a name generator to be
--- specified. The first suitable name will be used.
---
--- This function is subject to the same correctness condition as
--- 'with_fresh'.
-with_fresh_namegen :: (Atomic a) => NameGen -> (a -> t) -> t
-with_fresh_namegen ng body =
-  with_fresh_atom_namegen ng (\a -> body (from_atom a))
 
 -- ----------------------------------------------------------------------
 -- ** Convenience functions for abstraction
