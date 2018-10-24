@@ -27,6 +27,7 @@
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
+import Control.Applicative
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -111,9 +112,16 @@ data Rebind a =
   -- > binding (x, x, y) = Rebind [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
   Rebind [Atom] ([Atom] -> (a, [Atom]))
 
+instance Functor Rebind where
+  fmap = rebind_map
+
+instance Applicative Rebind where
+  pure = nobinding
+  f <*> b = rebind_map (\(f,b) -> f b) (rebind_pair f b)
+  
 -- | Constructor for non-binding patterns.
-nobind_binding :: a -> Rebind a
-nobind_binding a = Rebind [] (\xs -> (a, xs))
+nobinding :: a -> Rebind a
+nobinding a = Rebind [] (\xs -> (a, xs))
 
 -- | Constructor for a pattern binding a single atom.
 atom_binding :: Atom -> Rebind Atom
@@ -151,10 +159,32 @@ data Bind a t =
 -- atoms, tuples of atoms, list of atoms, etc.
 class (Nominal a) => Bindable a where
   -- | A function that encapsulates the behavior of a pattern. New
-  -- patterns can be constructed using the combinators 'rebind_pair'
-  -- and 'rebind_map' and the function 'basic_binding'.
-  binding :: a -> Rebind a
+  -- patterns can be constructed using the 'Applicative' structure of
+  -- 'Rebind'.
+  --
+  -- ==== Example:
+  --
+  -- Here is how we could define a 'Bindable' instance for the
+  -- @MyTree@ type. It is convenient, though not essential, to use
+  -- "applicative do" notation.
+  --
+  -- > {-# LANGUAGE ApplicativeDo #-}
+  -- > 
+  -- > instance (Bindable a) => Bindable (MyTree a) where
+  -- >   binding Leaf = do
+  -- >     pure Leaf
+  -- >   binding (Branch a l r) = do
+  -- >     a' <- binding a
+  -- >     l' <- binding l
+  -- >     r' <- binding r
+  -- >     pure (Branch a' l' r')
+  --
+  -- To embed non-binding sites within a pattern, replace 'binding' by
+  -- 'nobinding' in the recursive call. See 'NoBind' for further
+  -- discussion of non-binding patterns.
 
+  binding :: a -> Rebind a
+  
   default binding :: (Generic a, GBindable (Rep a)) => a -> Rebind a
   binding x = rebind_map to (gbinding (from x))
 
@@ -253,7 +283,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
     support_deletes xs (support (f xs, t))
 
 -- ----------------------------------------------------------------------
--- * Non-bindable patterns
+-- * Non-binding patterns
 
 -- | The type constructor 'NoBind' permits data of arbitrary types
 -- (including nominal types) to be embedded in binders without
@@ -317,7 +347,7 @@ newtype NoBind t = NoBind t
 -- > instance Bindable MyType where
 -- >   binding = basic_binding
 basic_binding :: a -> Rebind a
-basic_binding = nobind_binding
+basic_binding = nobinding
 
 -- Base cases
 
@@ -349,7 +379,7 @@ instance Bindable Literal where
   binding = basic_binding
 
 instance (Nominal t) => Bindable (NoBind t) where
-  binding = nobind_binding
+  binding = nobinding
   
 -- Generic instances
   

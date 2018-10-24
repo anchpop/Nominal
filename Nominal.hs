@@ -50,10 +50,9 @@ module Nominal (
   -- $BINDABLE
   Bindable(..),
   Rebind,
-  rebind_map,
-  rebind_pair,
+  nobinding,
 
-  -- ** Non-bindable patterns
+  -- ** Non-binding patterns
   NoBind(..),
   
   -- * Printing of nominal values
