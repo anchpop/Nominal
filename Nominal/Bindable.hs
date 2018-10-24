@@ -202,6 +202,12 @@ a . t = Bind (fst ∘ f) (atomlist_abst xs t)
     Rebind xs f = binding a
 infixr 5 .
 
+-- | An alternative non-infix notation for @(@'.'@)@. This can be
+-- useful when using qualified module names, as \"̈@Nominal..@\" is not
+-- valid syntax.
+abst :: (Bindable a) => a -> t -> Bind a t
+abst = (.)
+  
 -- | Destructor for atom abstraction. In an ideal programming idiom,
 -- we would be able to define a function on atom abstractions by
 -- pattern matching like this:

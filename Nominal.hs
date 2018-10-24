@@ -38,6 +38,7 @@ module Nominal (
   -- * Binders
   Bind,
   (.),
+  abst,
   open,
   merge,
 
