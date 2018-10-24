@@ -149,10 +149,10 @@ class (Nominal t) => NominalSupport t where
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
 atom_open_for_printing :: (Nominal t) => Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
-atom_open_for_printing sup t@(BindAtom ns f) body =
-  with_fresh_atom_named_namelist n ns (\a -> body a (force (f a)) (sup' a))
+atom_open_for_printing sup t@(BindAtom ng f) body =
+  with_fresh_atom_named_namegen n ng (\a -> body a (force (f a)) (sup' a))
   where
-    n = rename_fresh (strings_of_support sup) ns
+    n = rename_fresh (strings_of_support sup) ng
     sup' a = support_insert a sup
 
 -- ----------------------------------------------------------------------
@@ -225,8 +225,8 @@ instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q
 -- Special instances
 
 instance (NominalSupport t) => NominalSupport (BindAtom t) where
-  support (BindAtom ns f) =
-    with_fresh_atom_namelist ns (\a -> support_delete a (support (f a)))
+  support (BindAtom ng f) =
+    with_fresh_atom_namegen ng (\a -> support_delete a (support (f a)))
 
 instance (NominalSupport t) => NominalSupport (Defer t) where
   support t = support (force t)

@@ -56,7 +56,8 @@ to_subscript c = c
 isAlphaOrWild :: Char -> Bool
 isAlphaOrWild c = isAlpha c || c == '_'
 
--- | An infinite list of strings, based on the suggested names.
+-- | Generate an infinite list of possible names from a (possibly
+-- finite) list of suggestions.
 expand_default :: NameSuggestion -> [String]
 expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
   where
@@ -64,16 +65,24 @@ expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..]
     xs2 = [ y | x <- xs0, let y = takeWhile isAlphaOrWild x, y /= "" ]
     xs3 = if xs2 == [] then default_names else xs2
 
+-- | A name generator consists of a (possibly finite) list of name
+-- suggestions and an /expander/, which is a function for generating
+-- more names.
+data NameGen = NameGen NameSuggestion (NameSuggestion -> [String])
+
+-- | The default name generator.
+default_namegen :: NameGen
+default_namegen = NameGen default_names expand_default
+
 -- | Compute a string that is not in the given set, and whose name is
 -- based on the supplied suggestions.
-rename_fresh :: Set String -> NameSuggestion -> String
-rename_fresh as ns = n'
+rename_fresh :: Set String -> NameGen -> String
+rename_fresh as (NameGen ns expander) = n'
   where
-    n' = head [ x | x <- expand_default ns, not (used x) ]
+    n' = head [ x | x <- expand_default (expander ns), not (used x) ]
     used x = x `Set.member` as
 
 -- | Merge two name suggestions. Essentially this appends them, but we
--- try to avoid duplication.
-combine_names :: NameSuggestion -> NameSuggestion -> NameSuggestion
-combine_names xs ys = xs ++ (ys \\ xs)
-
+-- try to avoid duplication. We use the left expander.
+combine_names :: NameGen -> NameGen -> NameGen
+combine_names (NameGen xs ex1) (NameGen ys ex2) = NameGen (xs ++ (ys \\ xs)) ex1

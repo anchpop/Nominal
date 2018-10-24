@@ -37,12 +37,12 @@ class (Nominal a, NominalSupport a, Eq a, Ord a, Show a, Bindable a) => Atomic a
   from_atom :: Atom -> a
 
   -- | The default variable names for the atom type.
-  names :: a -> NameSuggestion
+  names :: a -> NameGen
 
 instance Atomic Atom where
   to_atom = id
   from_atom = id
-  names a = default_names
+  names a = default_namegen
 
 -- ----------------------------------------------------------------------
 -- ** Basic operations
@@ -76,9 +76,9 @@ atomic_show a = atom_show (to_atom a)
 -- which may, in the worst case, lead to unsound compiler
 -- optimizations and undefined behavior.
 with_fresh :: (Atomic a) => (a -> t) -> t
-with_fresh body = with_fresh_namelist ns body
+with_fresh body = with_fresh_namegen ng body
   where
-    ns = names (un body)
+    ng = names (un body)
     un :: (a -> t) -> a
     un = undefined
 
@@ -90,7 +90,11 @@ with_fresh body = with_fresh_namelist ns body
 -- 'with_fresh'.
 with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
 with_fresh_named n body =
-  with_fresh_atom_named n (\a -> body (from_atom a))
+  with_fresh_atom_named_namegen n ng (\a -> body (from_atom a))
+  where
+    ng = names (un body)
+    un :: (a -> t) -> a
+    un = undefined
 
 -- | A version of 'with_fresh' that permits a list of suggested names
 -- to be specified. The first suitable name in the list will be used
@@ -100,7 +104,20 @@ with_fresh_named n body =
 -- 'with_fresh'.
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
 with_fresh_namelist ns body =
-  with_fresh_atom_namelist ns (\a -> body (from_atom a))
+  with_fresh_atom_namegen (NameGen ns ex) (\a -> body (from_atom a))
+  where
+    NameGen _ ex = names (un body)
+    un :: (a -> t) -> a
+    un = undefined
+
+-- | A version of 'with_fresh' that permits a name generator to be
+-- specified. The first suitable name will be used.
+--
+-- This function is subject to the same correctness condition as
+-- 'with_fresh'.
+with_fresh_namegen :: (Atomic a) => NameGen -> (a -> t) -> t
+with_fresh_namegen ng body =
+  with_fresh_atom_namegen ng (\a -> body (from_atom a))
 
 -- ----------------------------------------------------------------------
 -- ** Convenience functions for abstraction
@@ -112,11 +129,7 @@ with_fresh_namelist ns body =
 -- is a convenient way to write the atom abstraction (x.t),
 -- where /x/ is a fresh variable.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
-bind body = bind_namelist ns body
-  where
-    ns = names (un body)
-    un :: (a -> t) -> a
-    un = undefined
+bind f = with_fresh (\x -> x . f x)
 
 -- | A version of 'bind' that also takes a suggested name for the bound atom.
 bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> Bind a t
@@ -186,18 +199,20 @@ merge at as = from_bindatom (atom_merge (to_bindatom at) (to_bindatom as))
 -- ----------------------------------------------------------------------
 -- * Multiple atom types
 
--- | The type class 'AtomKind' has a single, optional method: a list
--- of suggested names for this kind of atom.  For example:
+-- | An atom kind is a type-level constant (typically an empty type)
+-- that is an instance of the 'AtomKind' class. An atom kind is
+-- optionally equipped with a list of suggested names for this kind of
+-- atom.  For example:
 --
 -- > data VarName
 -- > instance AtomKind VarName where
--- >   suggested_names a = ["x", "y", "z"]
+-- >   suggested_names _ = ["x", "y", "z"]
 --
 -- > data TypeName
 -- > instance AtomKind TypeName where
--- >   suggested_names a = ["a", "b", "c"]
+-- >   suggested_names _ = ["a", "b", "c"]
 --
--- It is possible to have infinitely many kinds of atoms, for example:
+-- It is possible to have infinitely many atom kinds, for example:
 --
 -- > data Zero
 -- > data Succ a
@@ -206,8 +221,28 @@ merge at as = from_bindatom (atom_merge (to_bindatom at) (to_bindatom as))
 --
 -- Then Zero, Succ Zero, Succ (Succ Zero), etc., will all be atom kinds.
 class AtomKind a where
+  -- | An optional list of default names for this kind of atom.
   suggested_names :: a -> NameSuggestion
   suggested_names a = default_names
+
+  -- | An optional function for generating infinitely many distinct
+  -- names from a finite list of suggestions. The default behavior is
+  -- to append numerical subscripts. For example, the names @[x, y,
+  -- z]@ are by default expanded to @[x, y, z, x₁, y₁, z₁, x₂, y₂,
+  -- …]@, using Unicode for the subscripts.  To use a a different
+  -- naming convention, define this method.
+  -- 
+  -- It is not strictly necessary for all of the returned names to be
+  -- distinct; it is sufficient that there are infinitely many
+  -- distinct ones.
+  --
+  -- Example: the following generates new variable names by appending
+  -- primes:
+  --
+  -- > expand_names _ xs = ys
+  -- >   where ys = xs ++ map (++ "'") ys
+  expand_names :: a -> NameSuggestion -> [String]
+  expand_names a = expand_default
 
 -- | The type of atoms of a given kind. For example:
 --
@@ -232,8 +267,10 @@ instance (AtomKind a) => Atomic (AtomOfKind a) where
 
 -- | Return the list of default names associated with the /kind/ of
 -- the given atom (not the name(s) of the atom itself).
-atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameSuggestion
-atomofkind_names f = suggested_names (un f)
+atomofkind_names :: (AtomKind a) => AtomOfKind a -> NameGen
+atomofkind_names f = NameGen ns ex
   where
+    ns = suggested_names (un f)
+    ex = expand_names (un f)
     un :: AtomOfKind a -> a
     un = undefined

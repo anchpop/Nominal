@@ -68,7 +68,7 @@ instance Nominal (Defer t) where
 -- It would also be possible to use a DeBruijn encoding or a nameful
 -- encoding. It remains to be seen which encoding is the most
 -- efficient in practice.
-data BindAtom t = BindAtom NameSuggestion (Atom -> Defer t)
+data BindAtom t = BindAtom NameGen (Atom -> Defer t)
 
 -- | Atom abstraction: 'atom_abst' /a/ /t/ represents the equivalence
 -- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
@@ -91,8 +91,8 @@ atom_abst a t = BindAtom (atom_names a) (\x -> Defer (perm_swap a x) t)
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
 atom_open :: (Nominal t) => BindAtom t -> (Atom -> t -> s) -> s
-atom_open (BindAtom ns f) body =
-  with_fresh_atom_namelist ns (\a -> body a (force (f a)))
+atom_open (BindAtom ng f) body =
+  with_fresh_atom_namegen ng (\a -> body a (force (f a)))
 
 instance (Nominal t, Eq t) => Eq (BindAtom t) where
   b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2
@@ -143,8 +143,8 @@ instance (Nominal t) => Nominal (BindAtom t) where
 -- concrete name of /y/ will be used if the name of /x/ would cause a
 -- clash.
 atom_merge :: (Nominal t, Nominal s) => BindAtom t -> BindAtom s -> BindAtom (t,s)
-atom_merge (BindAtom ns f) (BindAtom ns' g) = (BindAtom ns'' h) where
-  ns'' = combine_names ns ns'
+atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
+  ng'' = combine_names ng ng'
   h x = Defer perm_identity (force (f x), force (g x))
 
 -- ----------------------------------------------------------------------

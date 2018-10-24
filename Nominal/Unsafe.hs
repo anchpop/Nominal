@@ -36,10 +36,10 @@ global_used = unsafePerformIO $ do
 -- respects the correctness conditions associated with the function
 -- 'with_fresh' and other analogous functions.
 {-# NOINLINE global_new #-}
-global_new :: NameSuggestion -> String
-global_new ns = unsafePerformIO $ do
+global_new :: NameGen -> String
+global_new ng = unsafePerformIO $ do
   used <- readIORef global_used
-  let n = rename_fresh used ns
+  let n = rename_fresh used ng
   writeIORef global_used (Set.insert n used)
   return n
 
