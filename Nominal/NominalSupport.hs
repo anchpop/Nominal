@@ -46,7 +46,7 @@ data Avoidee = A Atom | S String
 
 -- | This type provides an internal representation for the support of
 -- a nominal term, i.e., the set of atoms (and constants) occurring in
--- it. This is an opaque type with no exposed structure. The only way
+-- it. This is an abstract type with no exposed structure. The only way
 -- to construct a value of type 'Support' is to use the function
 -- 'support'.
 newtype Support = Support (Set Avoidee)

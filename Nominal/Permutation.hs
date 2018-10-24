@@ -69,7 +69,7 @@ p_domain (Perm sigma) = Map.keys sigma
 -- * The group of permutations
 
 -- | The group of finitely supported permutations on atoms.  This is
--- an opaque type.
+-- an abstract type.
 
 -- Implementation note: If we used 'Perm' directly, inverting a
 -- permutation would be O(n). We make inverting O(1) by storing a
