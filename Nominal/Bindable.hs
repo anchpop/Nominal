@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ApplicativeDo #-}
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
@@ -166,7 +167,7 @@ class (Nominal a) => Bindable a where
   --
   -- Here is how we could define a 'Bindable' instance for the
   -- @MyTree@ type. It is convenient, though not essential, to use
-  -- "applicative do" notation.
+  -- \"applicative do\" notation.
   --
   -- > {-# LANGUAGE ApplicativeDo #-}
   -- > 
@@ -401,10 +402,10 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 -- Special instances
 
 instance (Ord k, Bindable k, Bindable v) => Bindable (Map k v) where
-  binding m = rebind_map Map.fromList (binding (Map.toList m))
+  binding m = Map.fromList <$> binding (Map.toList m)
 
 instance (Ord k, Bindable k) => Bindable (Set k) where
-  binding s = rebind_map Set.fromList (binding (Set.toList s))
+  binding s = Set.fromList <$> binding (Set.toList s)
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable
@@ -420,14 +421,17 @@ instance GBindable U1 where
   gbinding = basic_binding
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
-  gbinding (a :*: b) = rebind_map (\(x,y) -> x :*: y) (rebind_pair (gbinding a) (gbinding b))
+  gbinding (a :*: b) = do
+    a <- gbinding a
+    b <- gbinding b
+    pure (a :*: b)
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
-  gbinding (L1 a) = rebind_map L1 (gbinding a)
-  gbinding (R1 a) = rebind_map R1 (gbinding a)
+  gbinding (L1 a) = L1 <$> gbinding a
+  gbinding (R1 a) = R1 <$> gbinding a
 
 instance (GBindable a) => GBindable (M1 i c a) where
-  gbinding (M1 a) = rebind_map M1 (gbinding a)
+  gbinding (M1 a) = M1 <$> gbinding a
   
 instance (Bindable a) => GBindable (K1 i a) where
-  gbinding (K1 a) = rebind_map K1 (binding a)
+  gbinding (K1 a) = K1 <$> binding a
