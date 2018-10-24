@@ -79,7 +79,8 @@ default_namegen = NameGen default_names expand_default
 rename_fresh :: Set String -> NameGen -> String
 rename_fresh as (NameGen ns expander) = n'
   where
-    n' = head [ x | x <- expand_default (expander ns), not (used x) ]
+    n' = head [ x | x <- expand_default (ns' ++ expander ns'), not (used x) ]
+    ns' = if null ns then default_names else ns
     used x = x `Set.member` as
 
 -- | Merge two name suggestions. Essentially this appends them, but we
