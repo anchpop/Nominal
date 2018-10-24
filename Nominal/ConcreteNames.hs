@@ -57,8 +57,8 @@ isAlphaOrWild :: Char -> Bool
 isAlphaOrWild c = isAlpha c || c == '_'
 
 -- | An infinite list of strings, based on the suggested names.
-varnames :: NameSuggestion -> [String]
-varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
+expand_default :: NameSuggestion -> [String]
+expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
   where
     xs1 = [ x | x <- xs0, x /= "" ]
     xs2 = [ y | x <- xs0, let y = takeWhile isAlphaOrWild x, y /= "" ]
@@ -69,7 +69,7 @@ varnames xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <-
 rename_fresh :: Set String -> NameSuggestion -> String
 rename_fresh as ns = n'
   where
-    n' = head [ x | x <- varnames ns, not (used x) ]
+    n' = head [ x | x <- expand_default ns, not (used x) ]
     used x = x `Set.member` as
 
 -- | Merge two name suggestions. Essentially this appends them, but we
