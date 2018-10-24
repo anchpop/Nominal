@@ -10,6 +10,9 @@ import Prelude hiding ((.))
 import Data.Set (Set)
 import qualified Data.Set as Set
 
+-- ----------------------------------------------------------------------
+-- * Terms
+
 data V
 instance AtomKind V
 type Variable = AtomOfKind V
@@ -34,6 +37,9 @@ m @@ n = App m n
 
 infixl 9 @@
 
+-- ----------------------------------------------------------------------
+-- * Substitution
+  
 -- | Substitution. Note that it is capture avoiding!
 -- 'subst' /m/ /x/ /n/ substitutes /m/ for 'Var' /x/ in /n/.
 subst :: Term -> Variable -> Term -> Term
@@ -43,10 +49,8 @@ subst m x (Var y)
 subst m x (App t s) = App (subst m x t) (subst m x s)
 subst m x (Abs body) = open body (\y s -> Abs (y . subst m x s))
 
--- | Function composition, re-defined here because we are hiding '.'
--- from the "Prelude".
-compose :: (b -> c) -> (a -> b) -> (a -> c)
-compose f g x = f (g x)
+-- ----------------------------------------------------------------------
+-- * Free variables
 
 -- | Free variables.
 fv :: Term -> Set Variable
@@ -54,7 +58,10 @@ fv (Var x) = Set.singleton x
 fv (App m n) = fv m `Set.union` fv n
 fv (Abs t) = open t (\x s -> Set.delete x (fv s))
 
--- | Beta reduction to normal form.
+-- ----------------------------------------------------------------------
+-- * Evaluation
+
+-- | Beta-reduction to normal form.
 reduce :: Term -> Term
 reduce (Var x) = Var x
 reduce (App m n) =
@@ -63,7 +70,8 @@ reduce (App m n) =
    m' -> App m' (reduce n)
 reduce (Abs t) = open t (\x s -> Abs (x.reduce s))
 
--- $ Some example terms
+-- ----------------------------------------------------------------------
+-- * Some example terms
 
 -- | Church numeral zero.
 z :: Term
@@ -102,4 +110,3 @@ multilam n t = lam (\x -> multilam (n-1) t)
 nested :: Integer -> Term -> Term
 nested 0 t = t
 nested n t = lam (\x -> nested (n-1) (t @@ x))
-

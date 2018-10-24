@@ -53,7 +53,7 @@ cabal-version:       1.24
 -- A list of additional files to be included in source distributions
 -- built with setup sdist.
 extra-source-files:
-  ChangeLog
+  ChangeLog Lambda.hs
 
 library
   -- Modules exported by the library.
@@ -69,7 +69,7 @@ library
                        Nominal.Atomic
   
   -- Modules included in this library but not exported.
-  -- other-modules:       
+  -- other-modules:
   
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.5 && < 5,
