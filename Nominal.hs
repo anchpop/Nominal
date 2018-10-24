@@ -49,6 +49,9 @@ module Nominal (
   -- ** The Bindable class
   -- $BINDABLE
   Bindable(..),
+  Rebind,
+  rebind_map,
+  rebind_pair,
 
   -- ** Non-bindable patterns
   NoBind(..),
