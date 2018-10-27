@@ -29,10 +29,6 @@ module Nominal.Bindable where
 
 import Prelude hiding ((.))
 import Control.Applicative
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
 import GHC.Generics
 
 import Nominal.ConcreteNames
@@ -308,7 +304,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- /evaluation context/ is a map from atoms to values). If we define
 -- contexts like this:
 --
--- > type Context t = Map Atom (NoBind t),
+-- > type Context t = [(Atom, NoBind t)]
 --
 -- then we can use contexts as binders. Specifically, if Γ = {/x/₁
 -- ↦ /A/₁, …, /x/ₙ ↦ /A/ₙ} is a context, then (Γ . /t/) binds the
@@ -398,14 +394,6 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, 
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e) => Bindable (a, b, c, d, e)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f) => Bindable (a, b, c, d, e, f)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f, Bindable g) => Bindable (a, b, c, d, e, f, g)
-
--- Special instances
-
-instance (Ord k, Bindable k, Bindable v) => Bindable (Map k v) where
-  binding m = Map.fromList <$> binding (Map.toList m)
-
-instance (Ord k, Bindable k) => Bindable (Set k) where
-  binding s = Set.fromList <$> binding (Set.toList s)
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable
