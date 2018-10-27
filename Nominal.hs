@@ -50,7 +50,7 @@ module Nominal (
   -- ** The Bindable class
   -- $BINDABLE
   Bindable(..),
-  Rebind,
+  Pattern,
   nobinding,
 
   -- ** Non-binding patterns

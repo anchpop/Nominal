@@ -80,14 +80,13 @@ atomlist_merge _ _ = Nothing
 -- ----------------------------------------------------------------------
 -- * Binder combinators
 
--- | An abstract type for encapsulating the behavior of binders.
-data Rebind a =
-  -- | The behavior of a binder is determined by two things: the list
+-- | An abstract type patterns of type /a/.
+data Pattern a =
+  -- | The behavior of a pattern is determined by two things: the list
   -- of bound atom occurrences (binding sites), and a renaming
-  -- function that takes such a list of atoms and returns an
-  -- alpha-renamed version of the binder. For efficiency, the
-  -- renaming function is stateful: it also returns a list of atoms
-  -- not yet used.
+  -- function that takes such a list of atoms and returns a term. For
+  -- efficiency, the renaming function is stateful: it also returns a
+  -- list of atoms not yet used.
   --
   -- The binding sites must be serialized in some deterministic order,
   -- and must be accepted in the same corresponding order by the
@@ -100,43 +99,43 @@ data Rebind a =
   --
   -- ==== Examples:
   --
-  -- > binding x = Rebind [x] (\(x:zs) -> (x, zs))
+  -- > binding x = Pattern [x] (\(x:zs) -> (x, zs))
   -- >
-  -- > binding (x, y) = Rebind [x, y] (\(x:y:zs) -> ((x, y), zs))
+  -- > binding (x, y) = Pattern [x, y] (\(x:y:zs) -> ((x, y), zs))
   -- >
-  -- > binding (x, NoBind(y)) = Rebind [x] (\(x:zs) -> ((x, NoBind(y)), zs))
+  -- > binding (x, NoBind y) = Pattern [x] (\(x:zs) -> ((x, NoBind y), zs))
   -- >
-  -- > binding (x, x, y) = Rebind [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
-  Rebind [Atom] ([Atom] -> (a, [Atom]))
+  -- > binding (x, x, y) = Pattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
+  Pattern [Atom] ([Atom] -> (a, [Atom]))
 
-instance Functor Rebind where
-  fmap = rebind_map
-
-instance Applicative Rebind where
-  pure = nobinding
-  f <*> b = rebind_map (\(f,b) -> f b) (rebind_pair f b)
-  
 -- | Constructor for non-binding patterns.
-nobinding :: a -> Rebind a
-nobinding a = Rebind [] (\xs -> (a, xs))
+nobinding :: a -> Pattern a
+nobinding a = Pattern [] (\xs -> (a, xs))
 
 -- | Constructor for a pattern binding a single atom.
-atom_binding :: Atom -> Rebind Atom
-atom_binding a = Rebind [a] (\(a:xs) -> (a, xs))
+atom_binding :: Atom -> Pattern Atom
+atom_binding a = Pattern [a] (\(a:xs) -> (a, xs))
 
 -- | Combinator for constructing tuple binders.
-rebind_pair :: Rebind a -> Rebind b -> Rebind (a,b)
-rebind_pair (Rebind xs f) (Rebind ys g) = Rebind (xs ++ ys) h where
+pattern_pair :: Pattern a -> Pattern b -> Pattern (a,b)
+pattern_pair (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
   h zs = ((a,b), zs'') where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
--- | Map a function over a 'Rebind'.
-rebind_map :: (a -> b) -> Rebind a -> Rebind b
-rebind_map f (Rebind xs g) = Rebind xs h where
+-- | Map a function over a 'Pattern'.
+pattern_map :: (a -> b) -> Pattern a -> Pattern b
+pattern_map f (Pattern xs g) = Pattern xs h where
   h xs = (f a, ys) where
     (a, ys) = g xs
 
+instance Functor Pattern where
+  fmap = pattern_map
+
+instance Applicative Pattern where
+  pure = nobinding
+  f <*> b = pattern_map (\(f,b) -> f b) (pattern_pair f b)
+  
 -- ----------------------------------------------------------------------
 -- * The Bindable class
 
@@ -155,15 +154,14 @@ data Bind a t =
 -- binders. Such elements are also called /patterns/. Examples include
 -- atoms, tuples of atoms, list of atoms, etc.
 class (Nominal a) => Bindable a where
-  -- | A function that encapsulates the behavior of a pattern. New
-  -- patterns can be constructed using the 'Applicative' structure of
-  -- 'Rebind'.
+  -- | A function that maps a term to a pattern. New patterns can be
+  -- constructed using the 'Applicative' structure of 'Pattern'.
   --
   -- ==== Example:
   --
   -- Here is how we could define a 'Bindable' instance for the
-  -- @MyTree@ type. It is convenient, though not essential, to use
-  -- \"applicative do\" notation.
+  -- @MyTree@ type. We use the \"applicative do\" notation for
+  -- convenience, although this is not essential.
   --
   -- > {-# LANGUAGE ApplicativeDo #-}
   -- > 
@@ -180,10 +178,10 @@ class (Nominal a) => Bindable a where
   -- 'nobinding' in the recursive call. See 'NoBind' for further
   -- discussion of non-binding patterns.
 
-  binding :: a -> Rebind a
+  binding :: a -> Pattern a
   
-  default binding :: (Generic a, GBindable (Rep a)) => a -> Rebind a
-  binding x = rebind_map to (gbinding (from x))
+  default binding :: (Generic a, GBindable (Rep a)) => a -> Pattern a
+  binding x = pattern_map to (gbinding (from x))
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
@@ -196,7 +194,7 @@ class (Nominal a) => Bindable a where
 (.) :: (Bindable a) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
-    Rebind xs f = binding a
+    Pattern xs f = binding a
 infixr 5 .
 
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
@@ -298,11 +296,10 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- alpha-equivalent to @(x, NoBind b).(x,b)@, but not to
 -- @(x, NoBind y).(x,y)@.
 --
--- A typical use for this is using contexts as binders. A
--- /context/ is a map from atoms to some data (for example, a
--- /typing context/ is a map from atoms to types, and an
--- /evaluation context/ is a map from atoms to values). If we define
--- contexts like this:
+-- A typical use case is using contexts as binders. A /context/ is a
+-- map from atoms to some data (for example, a /typing context/ is a
+-- map from atoms to types, and an /evaluation context/ is a map from
+-- atoms to values). If we define contexts like this:
 --
 -- > type Context t = [(Atom, NoBind t)]
 --
@@ -349,7 +346,7 @@ newtype NoBind t = NoBind t
 --
 -- > instance Bindable MyType where
 -- >   binding = basic_binding
-basic_binding :: a -> Rebind a
+basic_binding :: a -> Pattern a
 basic_binding = nobinding
 
 -- Base cases
@@ -400,7 +397,7 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
-  gbinding :: f a -> Rebind (f a)
+  gbinding :: f a -> Pattern (f a)
 
 instance GBindable V1 where
   gbinding a = undefined -- never occurs, because V1 is empty
