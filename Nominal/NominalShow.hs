@@ -218,22 +218,24 @@ instance (GNominalShow a, Constructor c) => GNominalShow (M1 C c a) where
   gshowsPrecSup sep sup d c@(M1 x) =
     case fixity of
       Prefix
-        | isNullary x -> showString name
+        | isNullary x -> showString (prefix name)
         | isTuple name -> showParen True $ gshowsPrecSup Tup sup 0 x
         | conIsRecord c -> showParen (d > 10) $
-          showString name
+          showString (prefix name)
           ∘ showString " "
           ∘ showString "{"
           ∘ gshowsPrecSup Rec sup 0 x
           ∘ showString "}"
         | otherwise -> showParen (d > 10) $
-        showString name
+        showString (prefix name)
         ∘ showString " "
         ∘ gshowsPrecSup Pre sup 11 x
       Infix assoc prec -> showParen (d > prec) $
         gshowsPrecSup (Inf name) sup (prec+1) x
     where
       name = conName c
+      prefix n@(':':s) = "(" ++ n ++ ")"
+      prefix n = n
       fixity = conFixity c
       isTuple ('(' : ',' : _) = True
       isTuple _ = False
