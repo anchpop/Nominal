@@ -49,7 +49,7 @@ class (NominalSupport t) => NominalShow t where
   showsPrecSup :: Support -> Int -> t -> ShowS
 
   -- | The method 'nominal_showList' is provided to allow the programmer to
-  -- give a specialised way of showing lists of values, similarly to
+  -- give a specialized way of showing lists of values, similarly to
   -- 'showList'. Mostly this is used in the 'NominalShow' instance of
   -- the 'Char' type, so that strings are shown in double quotes,
   -- rather than as character lists.

@@ -307,7 +307,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- ↦ /A/₁, …, /x/ₙ ↦ /A/ₙ} is a context, then (Γ . /t/) binds the
 -- context to a term /t/. This means, /x/₁,…,/x/ₙ are bound in /t/,
 -- but not any atoms that occur in /A/₁,…,/A/ₙ. Without the use of
--- 'NoBind', any atoms occuring on /A/₁,…,/A/ₙ would have been bound
+-- 'NoBind', any atoms occurring on /A/₁,…,/A/ₙ would have been bound
 -- as well.
 --
 -- Even though atoms under 'NoBind' are not /binding/, they can still
