@@ -12,7 +12,7 @@
 -- /a/ /t/ of abstractions.
 --
 -- We also provide some generic programming so that instances of
--- 'Bindable' can be automatically derived in most cases.
+-- 'Bindable' can be automatically derived in many cases.
 --
 -- For example, @(/x/,/y/)./t/@ binds a pair of atoms in /t/. It is
 -- roughly equivalent to @/x/./y/./t/@, except that it is of type
@@ -20,10 +20,12 @@
 -- /t/).
 --
 -- If a binder contains repeated atoms, they are regarded as
--- distinct. For example, @(/x/,/x/).(/x/,/x/)@ is equivalent to
--- either @(/x/,/y/).(/x/,/x/)@ or @(/x/,/y/).(/y/,/y/)@. In such
--- cases, the binding order is unspecified and should not be relied
--- upon.
+-- distinct. The binder is treated as if one atom occurrence was bound
+-- at a time, in some fixed but unspecified order. For example,
+-- @(/x/,/x/).(/x/,/x/)@ is equivalent to either @(/x/,/y/).(/x/,/x/)@
+-- or @(/x/,/y/).(/y/,/y/)@. Which of the two alternatives is chosen
+-- is implementation specific and user code should not rely on the
+-- order of abstractions in such cases.
 
 module Nominal.Bindable where
 
@@ -38,9 +40,10 @@ import Nominal.Nominal
 import Nominal.NominalSupport
 
 -- ----------------------------------------------------------------------
--- * Bind lists of atoms
+-- * Binding lists of atoms
 
--- | The type of abstractions of a list of atoms.
+-- | The type of abstractions of a list of atoms. It is equivalent to
+-- @'Bind' ['Atom'] /t/@, but has a more low-level implementation.
 data BindAtomList t =
   BindNil t
   | BindCons (BindAtom (BindAtomList t))
@@ -80,35 +83,41 @@ atomlist_merge _ _ = Nothing
 -- ----------------------------------------------------------------------
 -- * Binder combinators
 
--- | An abstract type patterns of type /a/.
+-- | A representation of patterns of type /a/. This is an abstract
+-- type.  Users can only construct patterns through the 'Applicative'
+-- interface and using certain basic functions such as 'binding' and
+-- 'nobinding'.
+
 data Pattern a =
-  -- | The behavior of a pattern is determined by two things: the list
-  -- of bound atom occurrences (binding sites), and a renaming
-  -- function that takes such a list of atoms and returns a term. For
-  -- efficiency, the renaming function is stateful: it also returns a
-  -- list of atoms not yet used.
-  --
-  -- The binding sites must be serialized in some deterministic order,
-  -- and must be accepted in the same corresponding order by the
-  -- renaming function.
-  --
-  -- If an atom occurs at multiple binding sites of the pattern, it must
-  -- be serialized multiple times. The corresponding renaming function
-  -- must accept fresh atoms and put them into the respective binding
-  -- sites.
-  --
-  -- ==== Examples:
-  --
-  -- > binding x = Pattern [x] (\(x:zs) -> (x, zs))
-  -- >
-  -- > binding (x, y) = Pattern [x, y] (\(x:y:zs) -> ((x, y), zs))
-  -- >
-  -- > binding (x, NoBind y) = Pattern [x] (\(x:zs) -> ((x, NoBind y), zs))
-  -- >
-  -- > binding (x, x, y) = Pattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
   Pattern [Atom] ([Atom] -> (a, [Atom]))
 
--- | Constructor for non-binding patterns.
+-- $ Implementation note: The behavior of a pattern is determined by two
+-- things: the list of bound atom occurrences (binding sites), and a
+-- renaming function that takes such a list of atoms and returns a
+-- term. For efficiency, the renaming function is stateful: it also
+-- returns a list of atoms not yet used.
+--
+-- The binding sites must be serialized in some deterministic order,
+-- and must be accepted in the same corresponding order by the
+-- renaming function.
+--
+-- If an atom occurs at multiple binding sites of the pattern, it must
+-- be serialized multiple times. The corresponding renaming function
+-- must accept fresh atoms and put them into the respective binding
+-- sites.
+--
+-- ==== Examples:
+--
+-- > binding x = Pattern [x] (\(x:zs) -> (x, zs))
+-- >
+-- > binding (x, y) = Pattern [x, y] (\(x:y:zs) -> ((x, y), zs))
+-- >
+-- > binding (x, NoBind y) = Pattern [x] (\(x:zs) -> ((x, NoBind y), zs))
+-- >
+-- > binding (x, x, y) = Pattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
+
+-- | Constructor for non-binding patterns.  See 'NoBind' for further
+-- discussion of non-binding patterns.
 nobinding :: a -> Pattern a
 nobinding a = Pattern [] (\xs -> (a, xs))
 
@@ -198,7 +207,7 @@ a . t = Bind (fst ∘ f) (atomlist_abst xs t)
 infixr 5 .
 
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
--- useful when using qualified module names, as \"̈@Nominal..@\" is not
+-- useful when using qualified module names, because \"̈@Nominal..@\" is not
 -- valid syntax.
 abst :: (Bindable a) => a -> t -> Bind a t
 abst = (.)
@@ -245,15 +254,6 @@ open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -
 open_for_printing sup (Bind f body) k =
   atomlist_open_for_printing sup body (\ys t sup' -> k (f ys) t sup')
 
--- | Function composition.
--- 
--- Since we hide (.) from the standard library, and the fully
--- qualified name of the "Prelude"'s dot operator, \"̈@Prelude..@\", is
--- not legal syntax, we provide '∘' as an alternate notation for
--- composition.
-(∘) :: (b -> c) -> (a -> b) -> (a -> c)
-(g ∘ f) x = g (f x)
-
 -- | Open two abstractions at once. So
 --
 -- > f t = open t (\x y s -> body)
@@ -294,7 +294,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 --
 -- the atom /a/ is bound, but the atom /b/ remains free. Thus, /m/ is
 -- alpha-equivalent to @(x, NoBind b).(x,b)@, but not to
--- @(x, NoBind y).(x,y)@.
+-- @(x, NoBind c).(x,c)@.
 --
 -- A typical use case is using contexts as binders. A /context/ is a
 -- map from atoms to some data (for example, a /typing context/ is a
@@ -420,3 +420,15 @@ instance (GBindable a) => GBindable (M1 i c a) where
   
 instance (Bindable a) => GBindable (K1 i a) where
   gbinding (K1 a) = K1 <$> binding a
+
+-- ----------------------------------------------------------------------
+-- * Miscellaneous
+
+-- | Function composition.
+-- 
+-- Since we hide (.) from the standard library, and the fully
+-- qualified name of the "Prelude"'s dot operator, \"̈@Prelude..@\", is
+-- not legal syntax, we provide '∘' as an alternate notation for
+-- composition.
+(∘) :: (b -> c) -> (a -> b) -> (a -> c)
+(g ∘ f) x = g (f x)
