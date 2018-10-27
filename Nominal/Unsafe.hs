@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-cse -fno-full-laziness #-}
 
--- | This model provides three primitive functions that use
+-- | This module provides three primitive functions that use
 -- 'unsafePerformIO'. These functions are only safe if used correctly.
 -- How to use each function correctly is specified in its documentation.
 
