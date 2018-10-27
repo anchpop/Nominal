@@ -3,11 +3,11 @@
 -- alpha-equivalence. It is based on Gabbay and Pitts's theory of
 -- nominal sets.
 --
--- Most users should only import this top-level module "Nominal", which
+-- Most users should only import the top-level module "Nominal", which
 -- exports all the relevant functionality in a clean and abstract way.
--- Its submodules, such as "Nominal.Unsafe", are
--- implementation-specific and should not normally be imported by user
--- code.
+-- Its submodules, such as "Nominal.Unsafe", are implementation
+-- specific and subject to change, and should not normally be imported
+-- by user code.
 
 module Nominal (
   -- * Overview
