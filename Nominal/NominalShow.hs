@@ -28,17 +28,22 @@ import Nominal.Atomic
 
 -- | 'NominalShow' is similar to 'Show', but with support for renaming
 -- of bound variables. With the exception of function types, most
--- 'Nominal' types are also 'NominalShow'. In most cases, instances of
--- 'NominalShow' can be automatically derived.
-
+-- 'Nominal' types are also instances of 'NominalShow'.
+--
+-- In most cases, instances of 'NominalShow' can be automatically
+-- derived. See <#DERIVING "Deriving generic instances"> for
+-- information on how to do so, and
+-- <#MANUAL "Defining custom instances"> for how to write custom
+-- instances.
 class (NominalSupport t) => NominalShow t where
   -- | A nominal version of 'showsPrec'. This function takes as its
   -- first argument the support of /t/. This is then passed into the
   -- subterms, making printing O(/n/) instead of O(/n/²).
   -- 
   -- It is recommended to define a 'NominalShow' instance, rather than
-  -- a 'Show' instance, for each nominal type, and then define the
-  -- 'Show' instance using 'nominal_showsPrec'. For example:
+  -- a 'Show' instance, for each nominal type, and then either
+  -- automatically derive the 'Show' instance, or define it using
+  -- 'nominal_showsPrec'. For example:
   --
   -- > instance Show MyType where
   -- >   showsPrec = nominal_showsPrec
@@ -48,11 +53,11 @@ class (NominalSupport t) => NominalShow t where
   -- else the benefit of fast printing will be lost.
   showsPrecSup :: Support -> Int -> t -> ShowS
 
-  -- | The method 'nominal_showList' is provided to allow the programmer to
-  -- give a specialized way of showing lists of values, similarly to
-  -- 'showList'. Mostly this is used in the 'NominalShow' instance of
-  -- the 'Char' type, so that strings are shown in double quotes,
-  -- rather than as character lists.
+  -- | The method 'nominal_showList' is provided to allow the
+  -- programmer to give a specialized way of showing lists of values,
+  -- similarly to 'showList'. The principal use of this is in the
+  -- 'NominalShow' instance of the 'Char' type, so that strings are
+  -- shown in double quotes, rather than as character lists.
   nominal_showList :: Support -> [t] -> ShowS
   nominal_showList sup ts = showString $
     "["
@@ -62,13 +67,13 @@ class (NominalSupport t) => NominalShow t where
   default showsPrecSup :: (Generic t, GNominalShow (Rep t)) => Support -> Int -> t -> ShowS
   showsPrecSup sup d x = gshowsPrecSup Pre sup d (from x)
 
--- | Like 'show', but for nominal types.  Usually all instances of
--- 'NominalShow' are also instances of 'Show', so normally 'show' can
+-- | Like 'show', but for nominal types.  Normally all instances of
+-- 'NominalShow' are also instances of 'Show', so 'show' can usually
 -- be used instead of 'nominal_show'.
 nominal_show :: (NominalShow t) => t -> String
 nominal_show t = showsPrecSup (support t) 0 t ""
 
--- | This function should be used in the definition of 'Show'
+-- | This function can be used in the definition of 'Show'
 -- instances for nominal types, like this:
 --
 -- > instance Show MyType where

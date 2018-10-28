@@ -115,7 +115,7 @@ with_fresh_namelist ns body =
 --
 -- > bind (\x -> t)
 --
--- to denote the atom abstraction (x.t), where /x/ is a fresh variable.
+-- to denote the atom abstraction (x.t), where /x/ is a fresh atom.
 bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
 bind f = with_fresh (\x -> x . f x)
 

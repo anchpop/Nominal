@@ -51,10 +51,10 @@ module Nominal (
   -- $BINDABLE
   Bindable(..),
   Pattern,
-  nobinding,
 
   -- ** Non-binding patterns
   NoBind(..),
+  nobinding,
   
   -- * Printing of nominal values
   -- $PRINTING
@@ -215,8 +215,23 @@ import Nominal.NominalShow
 --
 -- When using the "Nominal" library, all types whose elements can
 -- occur in the scope of a binder must be instances of the 'Nominal'
--- type class.  Fortunately, in most cases, instances of 'Nominal' can
--- be derived automatically. To do so, simply add "@deriving (Generic,
+-- type class.  Fortunately, in most cases, new instances of 'Nominal'
+-- can be derived automatically.
+
+-- $ORPHAN ###
+--
+-- See                
+-- <#DERIVING "Deriving generic instances"> for information on how to do so.
+-- 
+-- There are some cases where a 'Nominal' instance cannot be
+-- automatically derived. These include: (a) base types such as
+-- 'Double', (b) types that are not 'Generic', such as GADTs, and (c)
+-- types that require a custom 'Nominal' instance for some other
+-- reason (advanced users only!). In such cases, a 'Nominal' instance
+-- must be defined explicitly. See <#MANUAL "Defining custom instances">
+-- below for information on how to do so.
+-- 
+-- To do so, simply add "@deriving (Generic,
 -- Nominal)@" to any datatype definition. This also requires the
 -- language options DeriveGeneric and DeriveAnyClass to be
 -- enabled. For example:
@@ -227,11 +242,12 @@ import Nominal.NominalShow
 -- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
 -- >   deriving (Generic, Nominal)
 --
--- There are some cases where automatically deriving 'Nominal'
--- instances will not work. These are: (a) base types such as
--- 'Double', (b) types that are not 'Generic', such as GADTs, and (c)
--- types that require a custom 'Nominal' instance for some reason
--- (advanced users only!). In these cases, we can define a 'Nominal'
+
+-- $ORPHAN
+--
+-- ###
+-- 
+-- In these cases, we can define a 'Nominal'
 -- instance by specifying how permutations of atoms act on the
 -- elements of the type.
 -- 
@@ -258,8 +274,11 @@ import Nominal.NominalShow
 -- The 'Bindable' class contains things that can be abstracted by
 -- binders (sometimes called /patterns/). In addition to atoms, this
 -- also includes pairs of atoms, lists of atoms, and so on.
---
--- New instances of 'Bindable' can be derived automatically, using a
+-- In most cases, new instances of 'Bindable' can be derived
+-- automatically.
+
+-- $ORPHAN ###
+-- , using a
 -- \"@deriving@\" statement analogous to that used for 'Nominal'
 -- instances; see <#NOMINAL "Nominal types"> above. For example, to use
 -- trees of atoms as binders, you could define:
@@ -270,6 +289,29 @@ import Nominal.NominalShow
 -- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
 -- >   deriving (Generic, Nominal, NominalSupport, Bindable)
 
+-- $ORPHAN
+-- 
+-- ==== Example:
+--
+-- Here is how we could define a 'Bindable' instance for the
+-- @MyTree@ type. We use the \"applicative do\" notation for
+-- convenience, although this is not essential.
+--
+-- > {-# LANGUAGE ApplicativeDo #-}
+-- > 
+-- > instance (Bindable a) => Bindable (MyTree a) where
+-- >   binding Leaf = do
+-- >     pure Leaf
+-- >   binding (Branch a l r) = do
+-- >     a' <- binding a
+-- >     l' <- binding l
+-- >     r' <- binding r
+-- >     pure (Branch a' l' r')
+--
+-- To embed non-binding sites within a pattern, replace 'binding' by
+-- 'nobinding' in the recursive call. See 'NoBind' for further
+-- discussion of non-binding patterns.
+
 -- $PRINTING
 --
 -- The printing of nominal values requires concrete names for the
@@ -279,16 +321,15 @@ import Nominal.NominalShow
 -- atoms (and constants) of a term. We call this set the /support/ of
 -- a term.
 --
--- The "Nominal" library provides a mechanism for the pretty-printing
--- of nominal values in terms of a type class 'NominalSupport', which
--- represents terms whose support can be calculated, and a function
+-- Our mechanism for pretty-printing nominal values consists of two
+-- things: the type class 'NominalSupport', which represents terms
+-- whose support can be calculated, and the function
 -- 'open_for_printing', which handles choosing concrete names for
 -- bound variables.
 --
 -- In addition to this general-purpose mechanism, there is also the
 -- 'NominalShow' type class, which is analogous to 'Show' and provides
--- a default representation of nominal terms. See
--- <#NOMINALSHOW "The NominalShow class"> below.
+-- a default representation of nominal terms.
 
 -- $NOMINALSHOW_ANCHOR #NOMINALSHOW#
 
@@ -297,8 +338,32 @@ import Nominal.NominalShow
 -- The 'NominalShow' class is analogous to Haskell's standard 'Show'
 -- class, and provides a default method for converting elements of
 -- nominal datatypes to strings. The function 'nominal_show' is
--- analogous to 'show'.
+-- analogous to 'show'.  In most cases, new instances of 'NominalShow'
+-- can be derived automatically.
+
+-- $ORPHAN ###
+-- 
+-- It is also possible to define instances of 'NominalSupport'
+-- manually.  This is usually done by straightforward recursive
+-- clauses. The recursive clauses must apply 'support' to a tuple or
+-- list (or combination thereof) of immediate subterms. For example:
 --
--- In most cases, instances of 'NominalShow' can be automatically
--- derived using the keyword \"̈@deriving@\". This is done in the same
--- way as for 'Nominal' instances; see <#NOMINAL "Nominal types"> above.
+-- > instance NominalSupport Term where
+-- >   support (Var x) = support x
+-- >   support (App t s) = support (t, s)
+-- >   support (Abs t) = support t
+-- >   support (MultiApp t args) = support (t, [args])
+-- >   support Unit = support ()
+--
+-- If your nominal type uses additional constants, identifiers, or
+-- reserved keywords that are not implemented as 'Atom's, but whose
+-- names you wouldn't like to clash with the names of bound
+-- variables, declare them with 'Literal' applied to a string:
+--
+-- >   support (Const str) = support (Literal str)
+
+-- $ORPHAN ###
+--
+-- Need an example of using 'Literal' in a custom 'NominalSupport'
+-- instance, and an example of using 'nobinding' in a custom 'Bindable'
+-- instance.

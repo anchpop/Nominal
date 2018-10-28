@@ -24,10 +24,14 @@ import Nominal.Permutation
 -- ----------------------------------------------------------------------
 -- * The Nominal class
 
--- | A type is 'Nominal' if the group of finitely supported
--- permutations of atoms acts on it. In most cases, instances of
--- 'Nominal' can be automatically derived. See
--- <#NOMINAL "Nominal types"> for more information on how to do so.
+-- | A type is nominal if the group of finitely supported permutations
+-- of atoms acts on it.
+--
+-- In most cases, instances of 'Nominal' can be automatically
+-- derived. See <#DERIVING "Deriving generic instances"> for
+-- information on how to do so, and
+-- <#MANUAL "Defining custom instances"> for how to write custom
+-- instances.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
   (•) :: Permutation -> t -> t
@@ -166,6 +170,12 @@ atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
 -- Some common base types, including 'Bool', 'Char', 'Int',
 -- 'Integer', 'Double', and 'Float', are already instances of the
 -- relevant type classes, and do not need to be wrapped in 'Basic'.
+--
+-- The use of 'Basic' can sometimes have a performance advantage. For
+-- example, @'Basic' 'String'@ is a more efficient 'Nominal' instance
+-- than 'String'. Although they are semantically equivalent, the use
+-- of 'Basic' prevents having to traverse the string to check each
+-- character for atoms that are clearly not there.
 newtype Basic t = Basic t
   deriving (Show, Eq, Ord)
 

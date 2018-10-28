@@ -29,8 +29,15 @@ import Nominal.Nominal
 -- strings whose values should not clash with the names of bound
 -- variables. For example, if a term contains a constant symbol /c/,
 -- the name /c/ should not also be used as the name of a bound
--- variable. See 'NominalSupport' for more information on how this
--- should be used.
+-- variable. This can be achieved by marking the string with
+-- 'Literal', like this
+-- 
+-- > data Term = Var Atom | Const (Literal String) | ...
+--
+-- Another way to use 'Literal' is in the definition of custom
+-- 'NominalSupport' instances. See
+-- <#MANUAL "Defining custom instances"> for an example.
+
 newtype Literal = Literal String
                 deriving (Show)
 
@@ -95,31 +102,14 @@ strings_of_support (Support s) = Set.map name s where
 
 -- | 'NominalSupport' is a subclass of 'Nominal' consisting of those
 -- types for which the support can be calculated. With the notable
--- exception of function types, most 'Nominal' types are also in
--- 'NominalSupport'.
+-- exception of function types, most 'Nominal' types are also
+-- instances of 'NominalSupport'.
 --
 -- In most cases, instances of 'NominalSupport' can be automatically
--- derived, analogously to how this was done for the 'Nominal' class.
--- See <#NOMINAL "Nominal types"> above.
--- 
--- It is also possible to define instances of 'NominalSupport'
--- manually.  This is usually done by straightforward recursive
--- clauses. The recursive clauses must apply 'support' to a tuple or
--- list (or combination thereof) of immediate subterms. For example:
---
--- > instance NominalSupport Term where
--- >   support (Var x) = support x
--- >   support (App t s) = support (t, s)
--- >   support (Abs t) = support t
--- >   support (MultiApp t args) = support (t, [args])
--- >   support Unit = support ()
---
--- If your nominal type uses additional constants, identifiers, or
--- reserved keywords that are not implemented as 'Atom's, but whose
--- names you wouldn't like to clash with the names of bound
--- variables, declare them with 'Literal' applied to a string:
---
--- >   support (Const str) = support (Literal str)
+-- derived. See <#DERIVING "Deriving generic instances"> for
+-- information on how to do so, and
+-- <#MANUAL "Defining custom instances"> for how to write custom
+-- instances.
 class (Nominal t) => NominalSupport t where
   -- | Compute a set of atoms and strings that should not be used as
   -- the names of bound variables.
@@ -131,11 +121,11 @@ class (Nominal t) => NominalSupport t where
 -- ----------------------------------------------------------------------
 -- * Open for printing
 
--- | A variant of 'open' which moreover attempts to choose a name for
--- the bound atom that does not clash with any free name in its
--- scope. This function is mostly useful for building custom
--- pretty-printers for nominal terms. Except in pretty-printers, it is
--- equivalent to 'open'.
+-- | A variant of 'open' which moreover chooses a name for the bound
+-- atom that does not clash with any free name in its scope. This
+-- function is mostly useful for building custom pretty-printers for
+-- nominal terms. Except in pretty-printers, it is equivalent to
+-- 'open'.
 --
 -- Usage:
 --

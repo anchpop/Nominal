@@ -84,9 +84,9 @@ atomlist_merge _ _ = Nothing
 -- * Binder combinators
 
 -- | A representation of patterns of type /a/. This is an abstract
--- type.  Users can only construct patterns through the 'Applicative'
--- interface and using certain basic functions such as 'binding' and
--- 'nobinding'.
+-- type with no exposed structure. The only way to construct a value
+-- of type 'Pattern' /a/ is through the 'Applicative' interface and by
+-- using the functions 'binding' and 'nobinding'.
 
 data Pattern a =
   Pattern [Atom] ([Atom] -> (a, [Atom]))
@@ -116,8 +116,9 @@ data Pattern a =
 -- >
 -- > binding (x, x, y) = Pattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
 
--- | Constructor for non-binding patterns.  See 'NoBind' for further
--- discussion of non-binding patterns.
+-- | Constructor for non-binding patterns. This can be used to mark
+-- non-binding subterms when defining a 'Bindable' instance. See
+-- <#MANUAL "Defining custom instances"> for examples.
 nobinding :: a -> Pattern a
 nobinding a = Pattern [] (\xs -> (a, xs))
 
@@ -162,31 +163,16 @@ data Bind a t =
 -- | A type is 'Bindable' if its elements can be abstracted by
 -- binders. Such elements are also called /patterns/. Examples include
 -- atoms, tuples of atoms, list of atoms, etc.
+--
+-- In most cases, instances of 'Nominal' can be automatically
+-- derived. See <#DERIVING "Deriving generic instances"> for
+-- information on how to do so, and
+-- <#MANUAL "Defining custom instances"> for how to write custom
+-- instances.
 class (Nominal a) => Bindable a where
   -- | A function that maps a term to a pattern. New patterns can be
   -- constructed using the 'Applicative' structure of 'Pattern'.
-  --
-  -- ==== Example:
-  --
-  -- Here is how we could define a 'Bindable' instance for the
-  -- @MyTree@ type. We use the \"applicative do\" notation for
-  -- convenience, although this is not essential.
-  --
-  -- > {-# LANGUAGE ApplicativeDo #-}
-  -- > 
-  -- > instance (Bindable a) => Bindable (MyTree a) where
-  -- >   binding Leaf = do
-  -- >     pure Leaf
-  -- >   binding (Branch a l r) = do
-  -- >     a' <- binding a
-  -- >     l' <- binding l
-  -- >     r' <- binding r
-  -- >     pure (Branch a' l' r')
-  --
-  -- To embed non-binding sites within a pattern, replace 'binding' by
-  -- 'nobinding' in the recursive call. See 'NoBind' for further
-  -- discussion of non-binding patterns.
-
+  -- See <#MANUAL "Defining custom instances"> for examples.
   binding :: a -> Pattern a
   
   default binding :: (Generic a, GBindable (Rep a)) => a -> Pattern a
@@ -200,6 +186,14 @@ class (Nominal a) => Bindable a where
 -- programs should import the standard library like this:
 -- 
 -- > import Prelude hiding ((.))
+--
+-- Note that @(@'.'@)@ is a binder of the /object language/ (i.e.,
+-- whatever datatype you are defining), not of the /metalanguage/
+-- (i.e., Haskell). A term such as /a/'.'/t/ only makes sense if /a/
+-- is already defined to be some atom.  Thus, binders are often used
+-- in a context of 'Nominal.with_fresh' or 'open', such as the following:
+--
+-- > with_fresh (\a -> a.a)
 (.) :: (Bindable a) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
@@ -232,8 +226,8 @@ open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
 open (Bind f body) k =
   atomlist_open body (\ys t -> k (f ys) t)
   
--- | A variant of 'open' which moreover attempts to choose a name for
--- the bound atom that does not clash with any free name in its
+-- | A variant of 'open' which moreover chooses a name for the
+-- bound atom that does not clash with any free name in its
 -- scope. This function is mostly useful for building custom
 -- pretty-printers for nominal terms. Except in pretty-printers, it is
 -- equivalent to 'open'.
