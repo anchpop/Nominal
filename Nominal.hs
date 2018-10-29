@@ -70,8 +70,28 @@ module Nominal (
   NominalShow(..),
   nominal_show,
   nominal_showsPrec,
-  basic_showsPrecSup,
 
+  -- $DERIVING_ANCHOR
+
+  -- * Deriving generic instances
+  -- $DERIVING
+
+  -- $CUSTOM_ANCHOR
+
+  -- * Defining custom instances
+  -- $CUSTOM
+
+  -- ** Basic types
+  -- $CUSTOM_BASIC
+
+  basic_action,
+  basic_support,
+  basic_showsPrecSup,
+  basic_binding,
+  
+  -- ** Recursive types
+  -- $CUSTOM_RECURSIVE
+  
   -- * Miscellaneous
   (∘),
   module GHC.Generics
@@ -89,6 +109,8 @@ import Nominal.NominalSupport
 import Nominal.Bindable
 import Nominal.Atomic
 import Nominal.NominalShow
+
+-- ----------------------------------------------------------------------
 
 -- $OVERVIEW
 -- 
@@ -154,6 +176,8 @@ import Nominal.NominalShow
 -- to /s/ without the possibility that /y/ may be captured in /m/ or
 -- /x/.
 
+-- ----------------------------------------------------------------------
+
 -- $ATOMS
 --
 -- /Atoms/ are things that can be bound. The important properties of
@@ -182,6 +206,8 @@ import Nominal.NominalShow
 -- 
 -- All atom types are members of the type class 'Atomic'.
 
+-- ----------------------------------------------------------------------
+
 -- $FRESHNESS
 --
 -- Sometimes we need to generate a fresh atom.  In the "Nominal"
@@ -203,6 +229,8 @@ import Nominal.NominalShow
 -- permitted, and a more precise statement of the correctness
 -- condition.
 
+-- ----------------------------------------------------------------------
+
 -- $NOMINAL_ANCHOR #NOMINAL#
 
 -- $NOMINAL
@@ -218,56 +246,7 @@ import Nominal.NominalShow
 -- type class.  Fortunately, in most cases, new instances of 'Nominal'
 -- can be derived automatically.
 
--- $ORPHAN ###
---
--- See                
--- <#DERIVING "Deriving generic instances"> for information on how to do so.
--- 
--- There are some cases where a 'Nominal' instance cannot be
--- automatically derived. These include: (a) base types such as
--- 'Double', (b) types that are not 'Generic', such as GADTs, and (c)
--- types that require a custom 'Nominal' instance for some other
--- reason (advanced users only!). In such cases, a 'Nominal' instance
--- must be defined explicitly. See <#MANUAL "Defining custom instances">
--- below for information on how to do so.
--- 
--- To do so, simply add "@deriving (Generic,
--- Nominal)@" to any datatype definition. This also requires the
--- language options DeriveGeneric and DeriveAnyClass to be
--- enabled. For example:
---
--- > {-# LANGUAGE DeriveGeneric #-}
--- > {-# LANGUAGE DeriveAnyClass #-}
--- > 
--- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
--- >   deriving (Generic, Nominal)
---
-
--- $ORPHAN
---
--- ###
--- 
--- In these cases, we can define a 'Nominal'
--- instance by specifying how permutations of atoms act on the
--- elements of the type.
--- 
--- [Base types.] Since base types (such as 'Double') cannot
--- contain atoms, the action is trivial. A 'Nominal' instance can be
--- defined like this:
--- 
--- > instance Nominal Double where
--- >   π • x = x
---
--- Another option is to wrap the type in the type constructor 'Basic'.
--- 
--- [Data types.] For most data types, the action of a permutation
--- is simply passed down the terms recursively. For example, here is
--- how the 'Nominal' instance for the type @MyTree@ would be
--- defined:
---
--- > instance (Nominal a) => Nominal MyTree a where
--- >   π • Leaf = Leaf
--- >   π • (Branch x left right) = Branch (π • x) (π • left) (π • right)
+-- ----------------------------------------------------------------------
 
 -- $BINDABLE
 --
@@ -277,40 +256,7 @@ import Nominal.NominalShow
 -- In most cases, new instances of 'Bindable' can be derived
 -- automatically.
 
--- $ORPHAN ###
--- , using a
--- \"@deriving@\" statement analogous to that used for 'Nominal'
--- instances; see <#NOMINAL "Nominal types"> above. For example, to use
--- trees of atoms as binders, you could define:
---
--- > {-# LANGUAGE DeriveGeneric #-}
--- > {-# LANGUAGE DeriveAnyClass #-}
--- > 
--- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
--- >   deriving (Generic, Nominal, NominalSupport, Bindable)
-
--- $ORPHAN
--- 
--- ==== Example:
---
--- Here is how we could define a 'Bindable' instance for the
--- @MyTree@ type. We use the \"applicative do\" notation for
--- convenience, although this is not essential.
---
--- > {-# LANGUAGE ApplicativeDo #-}
--- > 
--- > instance (Bindable a) => Bindable (MyTree a) where
--- >   binding Leaf = do
--- >     pure Leaf
--- >   binding (Branch a l r) = do
--- >     a' <- binding a
--- >     l' <- binding l
--- >     r' <- binding r
--- >     pure (Branch a' l' r')
---
--- To embed non-binding sites within a pattern, replace 'binding' by
--- 'nobinding' in the recursive call. See 'NoBind' for further
--- discussion of non-binding patterns.
+-- ----------------------------------------------------------------------
 
 -- $PRINTING
 --
@@ -331,6 +277,8 @@ import Nominal.NominalShow
 -- 'NominalShow' type class, which is analogous to 'Show' and provides
 -- a default representation of nominal terms.
 
+-- ----------------------------------------------------------------------
+
 -- $NOMINALSHOW_ANCHOR #NOMINALSHOW#
 
 -- $NOMINALSHOW
@@ -341,13 +289,123 @@ import Nominal.NominalShow
 -- analogous to 'show'.  In most cases, new instances of 'NominalShow'
 -- can be derived automatically.
 
--- $ORPHAN ###
--- 
--- It is also possible to define instances of 'NominalSupport'
--- manually.  This is usually done by straightforward recursive
--- clauses. The recursive clauses must apply 'support' to a tuple or
--- list (or combination thereof) of immediate subterms. For example:
+-- ----------------------------------------------------------------------
+
+-- $DERIVING_ANCHOR #DERIVING#
+
+-- $DERIVING
 --
+-- In many cases, instances of 'Nominal', 'NominalSupport',
+-- 'NominalShow', and/or 'Bindable' can be derived automatically, using
+-- the generic \"@deriving@\" mechanism.  To do so, enable the
+-- language options @DeriveGeneric@ and @DeriveAnyClass@, and derive a
+-- 'Generic' instance in addition to whatever other instances you want
+-- to derive.
+--
+-- ==== Example 1: Trees
+--
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- > 
+-- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
+-- >   deriving (Generic, Nominal, NominalSupport, NominalShow, Show, Bindable)
+--
+-- ==== Example 2: Untyped lambda calculus
+--
+-- Note that in the case of lambda terms, it does not make sense to
+-- derive a 'Bindable' instance, as lambda terms cannot be used as
+-- binders.
+-- 
+-- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveAnyClass #-}
+-- > 
+-- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
+-- >   deriving (Generic, Nominal, NominalSupport, NominalShow, Show)
+
+-- ----------------------------------------------------------------------
+
+-- $CUSTOM_ANCHOR #CUSTOM#
+
+-- $CUSTOM
+-- 
+-- There are some cases where instances of 'Nominal' and the other
+-- type classes cannot be automatically derived. These include: (a)
+-- base types such as 'Double', (b) types that are not generic, such
+-- as certain GADTs, and (c) types that require a custom 'Nominal'
+-- instance for some other reason (advanced users only!). In such
+-- cases, instances must be defined explicitly. The follow examples
+-- explain how this is done.
+
+-- ----------------------------------------------------------------------
+
+-- $CUSTOM_BASIC
+--
+-- A type is /basic/ or /non-nominal/ if its elements cannot contain
+-- atoms. Typical examples are base types such as 'Integer' and
+-- 'Bool', and other types constructed exclusively from them, such as
+-- @['Integer']@ or @'Bool' -> 'Bool'@.
+--
+-- For basic types, it is very easy to define instances of 'Nominal',
+-- 'NominalSupport', 'NominalShow', and 'Bindable': for each class
+-- method, we provide a corresponding helper function whose name
+-- starts with @basic_@ that does the correct thing. These functions
+-- can only be used to define instances for /non-nominal/ types.
+--
+-- ==== Example
+--
+-- We show how the nominal type class instances for the base type
+-- 'Double' were defined.
+--
+-- > instance Nominal Double where
+-- >   (•) = basic_action
+-- >
+-- > instance NominalSupport Double where
+-- >   support = basic_support
+-- >
+-- > instance NominalShow Double where
+-- >   showsPrecSup = basic_showsPrecSup
+-- >
+-- > instance Bindable Double where
+-- >   binding = basic_binding
+--
+-- An alternative to defining new basic type class instances is to
+-- wrap the corresponding types in the constructor 'Basic'.  The type
+-- @'Basic' MyType@ is isomorphic to @MyType@, and is automatically an
+-- instance of the relevant type classes.
+
+-- ----------------------------------------------------------------------
+
+-- $CUSTOM_RECURSIVE
+--
+-- For recursive types, instances for nominal type classes can be
+-- defined by passing the relevant operations recursively down the
+-- term structure.  We will use the type @MyTree@ as a running
+-- example.
+-- 
+-- > data MyTree a = Leaf | Branch a (MyTree a) (MyTree a)
+--
+-- ==== Nominal
+-- 
+-- To define an instance of 'Nominal', we must specify how
+-- permutations of atoms act on the elements of the type. For example:
+--
+-- > instance (Nominal a) => Nominal (MyTree a) where
+-- >   π • Leaf = Leaf
+-- >   π • (Branch a l r) = Branch (π • a) (π • l) (π • r)
+--
+-- ==== NominalSupport
+-- 
+-- To define an instance of 'NominalSupport', we must compute the
+-- support of each term. This can be done by applying 'support' to a
+-- tuple or list (or combination thereof) of immediate subterms. For
+-- example:
+--
+-- > instance (NominalSupport a) => NominalSupport (MyTree a) where
+-- >   support Leaf = support ()
+-- >   support (Branch a l r) = support (a, l, r)
+--
+-- Here is another example showing additional possibilities:
+-- 
 -- > instance NominalSupport Term where
 -- >   support (Var x) = support x
 -- >   support (App t s) = support (t, s)
@@ -357,13 +415,65 @@ import Nominal.NominalShow
 --
 -- If your nominal type uses additional constants, identifiers, or
 -- reserved keywords that are not implemented as 'Atom's, but whose
--- names you wouldn't like to clash with the names of bound
--- variables, declare them with 'Literal' applied to a string:
+-- names you don't want to clash with the names of bound variables,
+-- declare them with 'Literal' applied to a string:
 --
 -- >   support (Const str) = support (Literal str)
-
--- $ORPHAN ###
 --
--- Need an example of using 'Literal' in a custom 'NominalSupport'
--- instance, and an example of using 'nobinding' in a custom 'Bindable'
--- instance.
+-- ==== NominalShow
+--
+-- Custom 'NominalShow' instances require a definition of the
+-- 'showsPrecSup' function. This is very similar to the 'showsPrec'
+-- function of the 'Show' class, except that the function takes the
+-- term's support as an additional argument. Here is how it is done
+-- for the @MyTree@ datatype:
+-- 
+-- > instance (NominalShow a) => NominalShow (MyTree a) where
+-- >   showsPrecSup sup d Leaf = showString "Leaf"
+-- >   showsPrecSup sup d (Branch a l r) =
+-- >     showParen (d > 10) $
+-- >       showString "Branch "
+-- >       ∘ showsPrecSup sup 11 a
+-- >       ∘ showString " "
+-- >       ∘ showsPrecSup sup 11 l
+-- >       ∘ showString " "
+-- >       ∘ showsPrecSup sup 11 r
+--
+-- ==== Bindable
+--
+-- The 'Bindable' class requires a function 'binding', which maps a
+-- term to the corresponding pattern. The recursive cases use the
+-- 'Applicative' structure of the 'Pattern' type. 
+-- 
+-- Here is how we could define a 'Bindable' instance for the
+-- @MyTree@ type. We use the \"applicative do\" notation for
+-- convenience, although this is not essential.
+--
+-- > {-# LANGUAGE ApplicativeDo #-}
+-- > 
+-- > instance (Bindable a) => Bindable (MyTree a) where
+-- >   binding Leaf = do
+-- >     pure Leaf
+-- >   binding (Branch a l r) = do
+-- >     a' <- binding a
+-- >     l' <- binding l
+-- >     r' <- binding r
+-- >     pure (Branch a' l' r')
+--
+-- To embed non-binding sites within a pattern, replace 'binding' by
+-- 'nobinding' in the recursive call. For further discussion of
+-- non-binding patterns, see also 'NoBind'. Here is an example:
+--
+-- > {-# LANGUAGE ApplicativeDo #-}
+-- > 
+-- > data HalfBinder a b = HalfBinder a b
+-- >
+-- > instance (Bindable a) => Bindable (HalfBinder a b) where
+-- >   binding (HalfBinder a b) = do
+-- >     a' <- binding a
+-- >     b' <- nobinding b
+-- >     pure (HalfBinder a' b')
+--
+-- The effect of this is that the /a/ is bound and /b/ is not bound in
+-- the term @(HalfBinder /a/ /b/)./t/@,
+-- 

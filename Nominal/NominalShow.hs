@@ -33,7 +33,7 @@ import Nominal.Atomic
 -- In most cases, instances of 'NominalShow' can be automatically
 -- derived. See <#DERIVING "Deriving generic instances"> for
 -- information on how to do so, and
--- <#MANUAL "Defining custom instances"> for how to write custom
+-- <#CUSTOM "Defining custom instances"> for how to write custom
 -- instances.
 class (NominalSupport t) => NominalShow t where
   -- | A nominal version of 'showsPrec'. This function takes as its
@@ -101,10 +101,7 @@ nominal_showsPrec d t = showsPrecSup (support t) d t
 -- >   showsPrecSup = basic_showsPrecSup
 
 -- | A helper function for defining 'NominalShow' instances
--- for /non-nominal types only/. It can be used like this:
---
--- > instance NominalShow MyType where
--- >   showsPrecSup = basic_showsPrecSup
+-- for non-nominal types. This requires an existing 'Show' instance.
 basic_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
 basic_showsPrecSup dup d x = showString (show x)
 

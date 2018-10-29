@@ -30,7 +30,7 @@ import Nominal.Permutation
 -- In most cases, instances of 'Nominal' can be automatically
 -- derived. See <#DERIVING "Deriving generic instances"> for
 -- information on how to do so, and
--- <#MANUAL "Defining custom instances"> for how to write custom
+-- <#CUSTOM "Defining custom instances"> for how to write custom
 -- instances.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
@@ -199,10 +199,7 @@ newtype Basic t = Basic t
 -- >   (•) = basic_action
 
 -- | A helper function for defining 'Nominal' instances
--- for /non-nominal types only/. It can be used like this:
---
--- > instance Nominal MyType where
--- >   (•) = basic_action
+-- for non-nominal types.
 basic_action :: Permutation -> t -> t
 basic_action π t = t
 

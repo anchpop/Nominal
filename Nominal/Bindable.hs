@@ -118,7 +118,7 @@ data Pattern a =
 
 -- | Constructor for non-binding patterns. This can be used to mark
 -- non-binding subterms when defining a 'Bindable' instance. See
--- <#MANUAL "Defining custom instances"> for examples.
+-- <#CUSTOM "Defining custom instances"> for examples.
 nobinding :: a -> Pattern a
 nobinding a = Pattern [] (\xs -> (a, xs))
 
@@ -167,12 +167,12 @@ data Bind a t =
 -- In most cases, instances of 'Nominal' can be automatically
 -- derived. See <#DERIVING "Deriving generic instances"> for
 -- information on how to do so, and
--- <#MANUAL "Defining custom instances"> for how to write custom
+-- <#CUSTOM "Defining custom instances"> for how to write custom
 -- instances.
 class (Nominal a) => Bindable a where
   -- | A function that maps a term to a pattern. New patterns can be
   -- constructed using the 'Applicative' structure of 'Pattern'.
-  -- See <#MANUAL "Defining custom instances"> for examples.
+  -- See <#CUSTOM "Defining custom instances"> for examples.
   binding :: a -> Pattern a
   
   default binding :: (Generic a, GBindable (Rep a)) => a -> Pattern a
@@ -336,10 +336,7 @@ newtype NoBind t = NoBind t
 -- (/x/,/t/), since there is no bound atom that could be renamed.
 
 -- | A helper function for defining 'Bindable' instances
--- for /non-nominal types only/. It can be used like this:
---
--- > instance Bindable MyType where
--- >   binding = basic_binding
+-- for non-nominal types.
 basic_binding :: a -> Pattern a
 basic_binding = nobinding
 

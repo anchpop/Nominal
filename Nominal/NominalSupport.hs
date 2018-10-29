@@ -36,7 +36,7 @@ import Nominal.Nominal
 --
 -- Another way to use 'Literal' is in the definition of custom
 -- 'NominalSupport' instances. See
--- <#MANUAL "Defining custom instances"> for an example.
+-- <#CUSTOM "Defining custom instances"> for an example.
 
 newtype Literal = Literal String
                 deriving (Show)
@@ -108,7 +108,7 @@ strings_of_support (Support s) = Set.map name s where
 -- In most cases, instances of 'NominalSupport' can be automatically
 -- derived. See <#DERIVING "Deriving generic instances"> for
 -- information on how to do so, and
--- <#MANUAL "Defining custom instances"> for how to write custom
+-- <#CUSTOM "Defining custom instances"> for how to write custom
 -- instances.
 class (Nominal t) => NominalSupport t where
   -- | Compute a set of atoms and strings that should not be used as
@@ -165,10 +165,7 @@ atom_open_for_printing sup t@(BindAtom ng f) body =
 -- >   support = basic_support
 
 -- | A helper function for defining 'NominalSupport' instances
--- for /non-nominal types only/. It can be used like this:
---
--- > instance NominalSupport MyType where
--- >   support = basic_support
+-- for non-nominal types.
 basic_support :: t -> Support
 basic_support t = support ()
 
