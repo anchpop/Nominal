@@ -63,15 +63,12 @@ instance Nominal (Defer t) where
 -- the nominal logic literature. Its elements are of the form (a.v)
 -- modulo alpha-equivalence. For full technical details on what this
 -- means, see Definition 4 of [Pitts 2002].
-
--- Implementation note: we currently use an HOAS encoding. It remains
--- to be seen whether this is efficient. An important invariant of the
--- HOAS encoding is that the underlying function must only be applied
--- to /fresh/ atoms.
--- 
--- It would also be possible to use a DeBruijn encoding or a nameful
--- encoding. It remains to be seen which encoding is the most
--- efficient in practice.
+--
+-- Implementation note: we currently use an HOAS encoding, as this
+-- turns out to be far more efficient (both in time and memory usage)
+-- than the alternatives. An important invariant of the HOAS encoding
+-- is that the underlying function must only be applied to /fresh/
+-- atoms.
 data BindAtom t = BindAtom NameGen (Atom -> Defer t)
 
 -- | Atom abstraction: 'atom_abst' /a/ /t/ represents the equivalence

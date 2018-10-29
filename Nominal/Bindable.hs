@@ -155,8 +155,6 @@ instance Applicative Pattern where
 -- equivalence class of pairs. For full technical details on what this
 -- means, see Definition 4 of [Pitts 2002].
 
--- Implementation note: [Atom] must contain the same number of atoms
--- as are bound in BindAtomList.
 data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)
 
