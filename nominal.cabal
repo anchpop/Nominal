@@ -52,8 +52,11 @@ cabal-version:       1.24
 
 -- A list of additional files to be included in source distributions
 -- built with setup sdist.
-extra-source-files:
-  ChangeLog examples/Minimal.hs examples/Lambda.hs examples/Instances.hs
+extra-source-files:    ChangeLog
+                       examples/Minimal.hs
+                       examples/Lambda.hs
+                       examples/GenericInstances.hs
+                       examples/CustomInstances.hs
 
 library
   -- Modules exported by the library.

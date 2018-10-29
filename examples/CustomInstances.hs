@@ -4,7 +4,8 @@
 -- 'Nominal', 'NominalSupport', 'NominalShow', and 'Bindable'.
 --
 -- Note: this is usually unnecessary, as these instances can be
--- derived.
+-- derived. See "GenericInstances" for how to derive these instances
+-- automatically.
 
 import Nominal
 import Prelude hiding ((.))
@@ -76,4 +77,33 @@ instance NominalShow Term where
         ∘ showString " . "
         ∘ showsPrecSup sup 5 m
         ∘ showString ")"
-      
+
+instance Show Term where
+  showsPrec = nominal_showsPrec
+
+-- It does not make sense to define a 'Binable' instance for lambda
+-- terms, since lambda terms cannot be used as binders.
+
+-- ----------------------------------------------------------------------
+-- * Example 3: basic types
+
+-- $ A type is /basic/ or /non-nominal/ if its elements cannot contain
+-- atoms.
+
+data MyBaseType = MyString String | MyInt Int
+  deriving (Show)
+
+instance Nominal MyBaseType where
+  (•) = basic_action
+
+instance NominalSupport MyBaseType where
+  support = basic_support
+
+instance NominalShow MyBaseType where
+  showsPrecSup = basic_showsPrecSup
+
+instance Bindable MyBaseType where
+  binding = basic_binding
+  
+
+
