@@ -92,8 +92,8 @@ atom_abst a t = BindAtom (atom_names a) (\x -> Defer (perm_swap a x) t)
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
 atom_open :: (Nominal t) => BindAtom t -> (Atom -> t -> s) -> s
-atom_open (BindAtom ng f) body =
-  with_fresh_atom ng (\a -> body a (force (f a)))
+atom_open (BindAtom ng f) k =
+  with_fresh_atom ng (\a -> k a (force (f a)))
 
 instance (Nominal t, Eq t) => Eq (BindAtom t) where
   b1 == b2 = atom_open (atom_merge b1 b2) $ \a (t1,t2) -> t1 == t2

@@ -52,14 +52,14 @@ global_new ng = unsafePerformIO (global_new_io ng)
 -- 'with_fresh' and other analogous functions.
 {-# NOINLINE with_unique #-}
 with_unique :: (Unique -> a) -> a
-with_unique body = unsafePerformIO $ do
+with_unique k = unsafePerformIO $ do
   x <- newUnique
-  return (body x)
+  return (k x)
 
 -- | Usafely embed the 'IO' monad in a continuation monad. This is in
 -- general unsafe, but can be safe for certain kinds of 'IO'
 -- computation if the continuation satisfies a correctness condition.
 unsafe_with :: IO a -> (a -> b) -> b
-unsafe_with comp body = unsafePerformIO $ do
+unsafe_with comp k = unsafePerformIO $ do
   a <- comp
-  return (body a)
+  return (k a)

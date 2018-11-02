@@ -77,7 +77,7 @@ atomic_show a = atom_show (to_atom a)
 -- may, in the worst case, lead to unsound compiler optimizations and
 -- undefined behavior.
 with_fresh :: (Atomic a) => (a -> t) -> t
-with_fresh body = with_fresh_namelist [] body
+with_fresh k = with_fresh_namelist [] k
 
 -- | A version of 'with_fresh' that permits a suggested name to be
 -- given to the atom. The name is only a suggestion, and will be
@@ -95,10 +95,10 @@ with_fresh_named n = unsafe_with (fresh_named n)
 -- This function is subject to the same correctness condition as
 -- 'with_fresh'.
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
-with_fresh_namelist ns body =
-  with_fresh_atom ng (\a -> body (from_atom a))
+with_fresh_namelist ns k =
+  with_fresh_atom ng (\a -> k (from_atom a))
   where
-    NameGen ns1 ex = names (un body)
+    NameGen ns1 ex = names (un k)
     ns2 = if null ns then ns1 else ns
     ng = NameGen ns2 ex
     un :: (a -> t) -> a

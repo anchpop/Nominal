@@ -76,8 +76,8 @@ fresh_atom ng = do
 -- See the documentation of 'Nominal.Atomic.with_fresh' for more
 -- information on the correctness criterion.
 with_fresh_atom_named :: String -> NameGen -> (Atom -> a) -> a
-with_fresh_atom_named n ng body =
-  with_unique (\x -> body (Atom x n ng))
+with_fresh_atom_named n ng k =
+  with_unique (\x -> k (Atom x n ng))
 
 -- | Create a fresh atom with the given name suggestion.
 --
@@ -85,6 +85,6 @@ with_fresh_atom_named n ng body =
 -- 'IO' monad), so an actual concrete name will only be computed on
 -- demand.
 with_fresh_atom :: NameGen -> (Atom -> a) -> a
-with_fresh_atom ng body =
-  with_fresh_atom_named (global_new ng) ng body
+with_fresh_atom ng k =
+  with_fresh_atom_named (global_new ng) ng k
 
