@@ -27,6 +27,12 @@ module Nominal (
   with_fresh_named,
   with_fresh_namelist,
 
+  -- ** Creation of fresh atoms globally
+  -- $GLOBAL_FRESHNESS
+  fresh,
+  fresh_named,
+  fresh_namelist,
+
   -- $NOMINAL_ANCHOR
   
   -- * Nominal types
@@ -211,11 +217,10 @@ import Nominal.NominalShow
 -- $FRESHNESS
 --
 -- Sometimes we need to generate a fresh atom.  In the "Nominal"
--- library, a fresh atom should never be generated globally. The
--- philosophy is that a fresh atom is always generated for a
--- particular /purpose/, and the use of the atom is local to that
--- purpose.  Therefore, a fresh atom should always be generated within
--- a local /scope/. So instead of
+-- library, the philosophy is that a fresh atom is usually generated
+-- for a particular /purpose/, and the use of the atom is local to
+-- that purpose. Therefore, a fresh atom should always be generated
+-- within a local /scope/. So instead of
 --
 -- > let a = fresh in something,
 --
@@ -228,6 +233,31 @@ import Nominal.NominalShow
 -- documentation of 'with_fresh' for examples of what is and is not
 -- permitted, and a more precise statement of the correctness
 -- condition.
+
+-- ----------------------------------------------------------------------
+
+-- $GLOBAL_FRESHNESS
+--
+-- Occasionally, it can be useful to generate a globally fresh atom.
+-- This is done within the 'IO' monad, and therefore, the function
+-- 'fresh' (and its friends) have no corresponding correctness
+-- condition as for 'with_fresh'.
+-- 
+-- These functions are primarily intended for testing. They
+-- give the user a convenient way to generate fresh names in the
+-- read-eval-print loop, for example:
+--
+-- >>> a <- fresh :: IO Atom
+-- >>> b <- fresh :: IO Atom
+-- >>> a.b.(a,b)
+-- x . y . (x,y)
+--
+-- These functions should rarely be used in programs. Normally you
+-- should use 'with_fresh' instead of 'fresh', to generate a fresh
+-- atom in a specific scope for a specific purpose. If you find
+-- yourself generating a lot of global names and not binding them,
+-- consider whether the "Nominal" library is the wrong tool for your
+-- purpose. Perhaps you should use "Data.Unique" instead?
 
 -- ----------------------------------------------------------------------
 

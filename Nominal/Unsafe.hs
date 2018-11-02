@@ -26,22 +26,21 @@ global_used = unsafePerformIO $ do
 
 -- | Create a globally new concrete name based on the given name
 -- suggestion. This ensures that fresh names have distinct names when
--- they are not bound. (The naming of bound names is handled by a
--- different mechanism). Although technically there should never be
--- any global fresh names, this is still a useful convenience, for
--- example when generating an error message from inside a function
--- body where fresh names are in scope.
--- 
--- The use of 'unsafePerformIO' in this function is safe if the user
--- respects the correctness conditions associated with the function
--- 'with_fresh' and other analogous functions.
-{-# NOINLINE global_new #-}
-global_new :: NameGen -> String
-global_new ng = unsafePerformIO $ do
+-- they are not bound.
+global_new_io :: NameGen -> IO String
+global_new_io ng = do
   used <- readIORef global_used
   let n = rename_fresh used ng
   writeIORef global_used (Set.insert n used)
   return n
+
+-- | Create a globally new concrete name based on the given name
+-- suggestion. The use of 'unsafePerformIO' in this function is safe
+-- if the user respects the correctness conditions associated with the
+-- function 'with_fresh' and other analogous functions.
+{-# NOINLINE global_new #-}
+global_new :: NameGen -> String
+global_new ng = unsafePerformIO (global_new_io ng)
 
 -- | Perform a subcomputation in the presence of a globally unique
 -- value. This is similar to 'newUnique', but uses a continuation
@@ -57,3 +56,10 @@ with_unique body = unsafePerformIO $ do
   x <- newUnique
   return (body x)
 
+-- | Usafely embed the 'IO' monad in a continuation monad. This is in
+-- general unsafe, but can be safe for certain kinds of 'IO'
+-- computation if the continuation satisfies a correctness condition.
+unsafe_with :: IO a -> (a -> b) -> b
+unsafe_with comp body = unsafePerformIO $ do
+  a <- comp
+  return (body a)
