@@ -157,16 +157,16 @@ fresh_namelist ns = result
 -- > bind (\x -> t)
 --
 -- to denote the atom abstraction (x.t), where /x/ is a fresh atom.
-bind :: (Atomic a, Nominal t) => (a -> t) -> Bind a t
+bind :: (Atomic a) => (a -> t) -> Bind a t
 bind f = with_fresh (\x -> x . f x)
 
 -- | A version of 'bind' that also takes a suggested name for the bound atom.
-bind_named :: (Atomic a, Nominal t) => String -> (a -> t) -> Bind a t
+bind_named :: (Atomic a) => String -> (a -> t) -> Bind a t
 bind_named n f = with_fresh_named n (\x -> x . f x)
 
 -- | A version of 'bind' that also take a list of suggested names for
 -- the bound atom.
-bind_namelist :: (Atomic a, Nominal t) => NameSuggestion -> (a -> t) -> Bind a t
+bind_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> Bind a t
 bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 
 -- ----------------------------------------------------------------------
