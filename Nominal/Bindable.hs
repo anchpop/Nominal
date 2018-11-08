@@ -193,7 +193,7 @@ class (Nominal a) => Bindable a where
 -- in a context of 'Nominal.with_fresh' or 'open', such as the following:
 --
 -- > with_fresh (\a -> a.a)
-(.) :: (Bindable a) => a -> t -> Bind a t
+(.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
     Pattern xs f = binding a
@@ -202,7 +202,7 @@ infixr 5 .
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
 -- useful when using qualified module names, because \"̈@Nominal..@\" is not
 -- valid syntax.
-abst :: (Bindable a) => a -> t -> Bind a t
+abst :: (Bindable a, Nominal t) => a -> t -> Bind a t
 abst = (.)
   
 -- | Destructor for atom abstraction. In an ideal programming idiom,
