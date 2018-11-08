@@ -100,12 +100,11 @@ module Nominal (
   
   -- * Miscellaneous
   (∘),
-  module GHC.Generics
+  module Nominal.Generics
 )
 where
 
 import Prelude hiding ((.))
-import GHC.Generics
 
 import Nominal.ConcreteNames
 import Nominal.Atom
@@ -115,6 +114,7 @@ import Nominal.NominalSupport
 import Nominal.Bindable
 import Nominal.Atomic
 import Nominal.NominalShow
+import Nominal.Generics
 
 -- ----------------------------------------------------------------------
 
