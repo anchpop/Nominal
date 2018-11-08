@@ -56,7 +56,7 @@ with_unique k = unsafePerformIO $ do
   x <- newUnique
   return (k x)
 
--- | Usafely embed the 'IO' monad in a continuation monad. This is in
+-- | Unsafely embed the 'IO' monad in a continuation monad. This is in
 -- general unsafe, but can be safe for certain kinds of 'IO'
 -- computation if the continuation satisfies a correctness condition.
 unsafe_with :: IO a -> (a -> b) -> b
