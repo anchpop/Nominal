@@ -126,25 +126,26 @@ nobinding a = Pattern [] (\xs -> (a, xs))
 atom_binding :: Atom -> Pattern Atom
 atom_binding a = Pattern [a] (\(a:xs) -> (a, xs))
 
--- | Combinator for constructing tuple binders.
-pattern_pair :: Pattern a -> Pattern b -> Pattern (a,b)
-pattern_pair (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
-  h zs = ((a,b), zs'') where
-    (a, zs') = f zs
-    (b, zs'') = g zs'
-
 -- | Map a function over a 'Pattern'.
 pattern_map :: (a -> b) -> Pattern a -> Pattern b
 pattern_map f (Pattern xs g) = Pattern xs h where
   h xs = (f a, ys) where
     (a, ys) = g xs
 
+-- | Combinator giving 'Pattern' an applicative structure. This is
+-- used for constructing tuple binders.
+pattern_app :: Pattern (a -> b) -> Pattern a -> Pattern b
+pattern_app (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
+  h zs = (a b, zs'') where
+    (a, zs') = f zs
+    (b, zs'') = g zs'
+
 instance Functor Pattern where
   fmap = pattern_map
 
 instance Applicative Pattern where
   pure = nobinding
-  f <*> b = pattern_map (\(f,b) -> f b) (pattern_pair f b)
+  f <*> b = pattern_app f b
   
 -- ----------------------------------------------------------------------
 -- * The Bindable class
