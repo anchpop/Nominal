@@ -140,17 +140,6 @@ pattern_app (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
--- | A specialized combinator. While it is expressible in terms of the
--- applicative structure, this custom implementation using
--- continuation passing is more efficient. This function sits in an
--- important performance bottleneck and yields an overall improvement
--- of 14% (time) and 16% (memory) in a typical benchmark.
-pattern_pair :: Pattern (a x) -> Pattern (b x) -> ((a :*: b) x -> c) -> Pattern c
-pattern_pair (Pattern xs f) (Pattern ys g) k = Pattern (xs ++ ys) h where
-  h zs = (k (a :*: b), zs'') where
-    (a, zs') = f zs
-    (b, zs'') = g zs'
-
 instance Functor Pattern where
   fmap = pattern_map
 
@@ -396,6 +385,17 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable
 
+-- | A specialized combinator. Although this functionality is
+-- expressible in terms of the applicative structure, we give a custom
+-- CPS-based implementation for performance reasons. It improves the
+-- overall performance by 14% (time) and 16% (space) in a typical
+-- benchmark.
+pattern_gpair :: Pattern (a x) -> Pattern (b x) -> ((a :*: b) x -> c) -> Pattern c
+pattern_gpair (Pattern xs f) (Pattern ys g) k = Pattern (xs ++ ys) h where
+  h zs = (k (a :*: b), zs'') where
+    (a, zs') = f zs
+    (b, zs'') = g zs'
+
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
   gbinding :: f a -> (f a -> b) -> Pattern b
@@ -408,7 +408,7 @@ instance GBindable U1 where
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
   gbinding (a :*: b) k =
-    pattern_pair (gbinding a id) (gbinding b id) k
+    pattern_gpair (gbinding a id) (gbinding b id) k
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
   gbinding (L1 a) k = gbinding a (\a -> k (L1 a))
