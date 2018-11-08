@@ -34,9 +34,9 @@ import Nominal.Permutation
 -- instances.
 class Nominal t where
   -- | Apply a permutation of atoms to a term.
-  (•) :: Permutation -> t -> t
+  (•) :: NominalPermutation -> t -> t
 
-  default (•) :: (Generic t, GNominal (Rep t)) => Permutation -> t -> t
+  default (•) :: (Generic t, GNominal (Rep t)) => NominalPermutation -> t -> t
   π • x = to (gbullet π (from x))
 
 -- ----------------------------------------------------------------------
@@ -45,7 +45,7 @@ class Nominal t where
 -- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
 -- This is used to cache substitutions so that they can be optimized
 -- and applied all at once.
-data Defer t = Defer Permutation t
+data Defer t = Defer NominalPermutation t
 
 -- | Apply a deferred permutation.
 force :: (Nominal t) => Defer t -> t
@@ -197,7 +197,7 @@ newtype Basic t = Basic t
 
 -- | A helper function for defining 'Nominal' instances
 -- for non-nominal types.
-basic_action :: Permutation -> t -> t
+basic_action :: NominalPermutation -> t -> t
 basic_action π t = t
 
 -- Base cases
@@ -255,7 +255,7 @@ instance (Ord k, Nominal k) => Nominal (Set k) where
 
 -- | A version of the 'Nominal' class suitable for generic programming.
 class GNominal f where
-  gbullet :: Permutation -> f a -> f a
+  gbullet :: NominalPermutation -> f a -> f a
 
 instance GNominal V1 where
   gbullet π x = undefined -- Does not occur, because V1 is an empty type.

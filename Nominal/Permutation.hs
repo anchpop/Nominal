@@ -70,12 +70,15 @@ p_domain (Perm sigma) = Map.keys sigma
 
 -- | The group of finitely supported permutations on atoms.  This is
 -- an abstract type with no exposed structure.
-data Permutation = Permutation Perm Perm
+data NominalPermutation = Permutation Perm Perm
   -- ^ Implementation note: If we used 'Perm' directly, inverting a
   -- permutation would be O(n). We make inverting O(1) by storing a
   -- permutation together with its inverse. Because of laziness, the
   -- inverse will not be computed unless it is used.
   deriving (Eq)
+
+-- | A type synonym.
+type Permutation = NominalPermutation
 
 -- | The identity permutation. O(1).
 perm_identity :: Permutation

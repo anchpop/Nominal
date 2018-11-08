@@ -38,7 +38,7 @@ module Nominal (
   -- * Nominal types
   -- $NOMINAL
   Nominal(..),
-  Permutation,
+  NominalPermutation,
   Basic(..),
   
   -- * Binders
