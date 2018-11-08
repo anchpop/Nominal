@@ -103,7 +103,7 @@ nominal_showsPrec d t = showsPrecSup (support t) d t
 -- | A helper function for defining 'NominalShow' instances
 -- for non-nominal types. This requires an existing 'Show' instance.
 basic_showsPrecSup :: (Show t) => Support -> Int -> t -> ShowS
-basic_showsPrecSup dup d x = showString (show x)
+basic_showsPrecSup sup d x = showsPrec d x
 
 -- Base cases
 
