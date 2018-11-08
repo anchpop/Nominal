@@ -21,7 +21,7 @@ description:
   nominal sets.
 
 -- URL for the project homepage or repository.
-homepage:            http://www.mathstat.dal.ca/~selinger/nominal/
+-- homepage:
 
 -- The license under which the package is released.
 license:             GPL-3
