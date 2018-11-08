@@ -1,0 +1,42 @@
+# Also try this using newest Haskell Platform if possible - e.g. in
+# virtual machine.
+
+cabal clean
+cabal configure
+cabal build --ghc-options="-Wall -fno-warn-name-shadowing -fno-warn-unused-matches -fno-warn-type-defaults -fno-warn-unused-local-binds -fno-warn-orphans" 
+
+* update ChangeLog
+
+* update version in *.cabal: first two digits are for breaking API
+  changes, third digit for non-breaking API additions, fourth digit
+  for code changes with no API change.
+
+* update copyright date in *.cabal
+
+* add version number to ChangeLog
+
+cabal clean
+cabal configure
+cabal build
+
+make doc-for-upload
+
+cabal sdist
+
+----------------------------------------------------------------------
+
+* upload "candidate" manually using Hackage:
+https://hackage.haskell.org/package/nominal
+
+make doc-upload-candidate -o doc
+
+* manually "publish" canidate
+
+make doc-upload -o doc
+
+git commit -a
+grep version: *cabal
+git tag X.X.X.X
+
+----------------------------------------------------------------------
+* Also update website: https://www.mathstat.dal.ca/~selinger/newsynth/
