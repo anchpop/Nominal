@@ -85,11 +85,11 @@ atomlist_merge _ _ = Nothing
 
 -- | A representation of patterns of type /a/. This is an abstract
 -- type with no exposed structure. The only way to construct a value
--- of type 'Pattern' /a/ is through the 'Applicative' interface and by
+-- of type 'NominalPattern' /a/ is through the 'Applicative' interface and by
 -- using the functions 'binding' and 'nobinding'.
 
-data Pattern a =
-  Pattern [Atom] ([Atom] -> (a, [Atom]))
+data NominalPattern a =
+  NominalPattern [Atom] ([Atom] -> (a, [Atom]))
 
 -- $ Implementation note: The behavior of a pattern is determined by two
 -- things: the list of bound atom occurrences (binding sites), and a
@@ -108,42 +108,42 @@ data Pattern a =
 --
 -- ==== Examples:
 --
--- > binding x = Pattern [x] (\(x:zs) -> (x, zs))
+-- > binding x = NominalPattern [x] (\(x:zs) -> (x, zs))
 -- >
--- > binding (x, y) = Pattern [x, y] (\(x:y:zs) -> ((x, y), zs))
+-- > binding (x, y) = NominalPattern [x, y] (\(x:y:zs) -> ((x, y), zs))
 -- >
--- > binding (x, NoBind y) = Pattern [x] (\(x:zs) -> ((x, NoBind y), zs))
+-- > binding (x, NoBind y) = NominalPattern [x] (\(x:zs) -> ((x, NoBind y), zs))
 -- >
--- > binding (x, x, y) = Pattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
+-- > binding (x, x, y) = NominalPattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
 
 -- | Constructor for non-binding patterns. This can be used to mark
 -- non-binding subterms when defining a 'Bindable' instance. See
 -- <#CUSTOM "Defining custom instances"> for examples.
-nobinding :: a -> Pattern a
-nobinding a = Pattern [] (\xs -> (a, xs))
+nobinding :: a -> NominalPattern a
+nobinding a = NominalPattern [] (\xs -> (a, xs))
 
 -- | Constructor for a pattern binding a single atom.
-atom_binding :: Atom -> Pattern Atom
-atom_binding a = Pattern [a] (\(a:xs) -> (a, xs))
+atom_binding :: Atom -> NominalPattern Atom
+atom_binding a = NominalPattern [a] (\(a:xs) -> (a, xs))
 
--- | Map a function over a 'Pattern'.
-pattern_map :: (a -> b) -> Pattern a -> Pattern b
-pattern_map f (Pattern xs g) = Pattern xs h where
+-- | Map a function over a 'NominalPattern'.
+pattern_map :: (a -> b) -> NominalPattern a -> NominalPattern b
+pattern_map f (NominalPattern xs g) = NominalPattern xs h where
   h xs = (f a, ys) where
     (a, ys) = g xs
 
--- | Combinator giving 'Pattern' an applicative structure. This is
+-- | Combinator giving 'NominalPattern' an applicative structure. This is
 -- used for constructing tuple binders.
-pattern_app :: Pattern (a -> b) -> Pattern a -> Pattern b
-pattern_app (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
+pattern_app :: NominalPattern (a -> b) -> NominalPattern a -> NominalPattern b
+pattern_app (NominalPattern xs f) (NominalPattern ys g) = NominalPattern (xs ++ ys) h where
   h zs = (a b, zs'') where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
-instance Functor Pattern where
+instance Functor NominalPattern where
   fmap = pattern_map
 
-instance Applicative Pattern where
+instance Applicative NominalPattern where
   pure = nobinding
   f <*> b = pattern_app f b
   
@@ -170,11 +170,11 @@ data Bind a t =
 -- instances.
 class (Nominal a) => Bindable a where
   -- | A function that maps a term to a pattern. New patterns can be
-  -- constructed using the 'Applicative' structure of 'Pattern'.
+  -- constructed using the 'Applicative' structure of 'NominalPattern'.
   -- See <#CUSTOM "Defining custom instances"> for examples.
-  binding :: a -> Pattern a
+  binding :: a -> NominalPattern a
   
-  default binding :: (Generic a, GBindable (Rep a)) => a -> Pattern a
+  default binding :: (Generic a, GBindable (Rep a)) => a -> NominalPattern a
   binding x = gbinding (from x) to
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
@@ -196,7 +196,7 @@ class (Nominal a) => Bindable a where
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
-    Pattern xs f = binding a
+    NominalPattern xs f = binding a
 infixr 5 .
 
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
@@ -336,7 +336,7 @@ newtype NoBind t = NoBind t
 
 -- | A helper function for defining 'Bindable' instances
 -- for non-nominal types.
-basic_binding :: a -> Pattern a
+basic_binding :: a -> NominalPattern a
 basic_binding = nobinding
 
 -- Base cases
@@ -390,21 +390,21 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 -- CPS-based implementation for performance reasons. It improves the
 -- overall performance by 14% (time) and 16% (space) in a typical
 -- benchmark.
-pattern_gpair :: Pattern (a x) -> Pattern (b x) -> ((a :*: b) x -> c) -> Pattern c
-pattern_gpair (Pattern xs f) (Pattern ys g) k = Pattern (xs ++ ys) h where
+pattern_gpair :: NominalPattern (a x) -> NominalPattern (b x) -> ((a :*: b) x -> c) -> NominalPattern c
+pattern_gpair (NominalPattern xs f) (NominalPattern ys g) k = NominalPattern (xs ++ ys) h where
   h zs = (k (a :*: b), zs'') where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
-  gbinding :: f a -> (f a -> b) -> Pattern b
+  gbinding :: f a -> (f a -> b) -> NominalPattern b
 
 instance GBindable V1 where
   gbinding = undefined -- never occurs, because V1 is empty
 
 instance GBindable U1 where
-  gbinding a k = Pattern [] (\xs -> (k a, xs))
+  gbinding a k = NominalPattern [] (\xs -> (k a, xs))
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
   gbinding (a :*: b) k =

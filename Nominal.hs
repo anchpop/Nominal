@@ -56,7 +56,7 @@ module Nominal (
   -- ** The Bindable class
   -- $BINDABLE
   Bindable(..),
-  Pattern,
+  NominalPattern,
 
   -- ** Non-binding patterns
   NoBind(..),
@@ -473,7 +473,7 @@ import Nominal.Generics
 --
 -- The 'Bindable' class requires a function 'binding', which maps a
 -- term to the corresponding pattern. The recursive cases use the
--- 'Applicative' structure of the 'Pattern' type. 
+-- 'Applicative' structure of the 'NominalPattern' type. 
 -- 
 -- Here is how we could define a 'Bindable' instance for the
 -- @MyTree@ type. We use the \"applicative do\" notation for
