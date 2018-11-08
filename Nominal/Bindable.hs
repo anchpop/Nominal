@@ -140,6 +140,17 @@ pattern_app (Pattern xs f) (Pattern ys g) = Pattern (xs ++ ys) h where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
+-- | A specialized combinator. While it is expressible in terms of the
+-- applicative structure, this custom implementation using
+-- continuation passing is more efficient. This function sits in an
+-- important performance bottleneck and yields an overall improvement
+-- of 14% (time) and 16% (memory) in a typical benchmark.
+pattern_pair :: Pattern (a x) -> Pattern (b x) -> ((a :*: b) x -> c) -> Pattern c
+pattern_pair (Pattern xs f) (Pattern ys g) k = Pattern (xs ++ ys) h where
+  h zs = (k (a :*: b), zs'') where
+    (a, zs') = f zs
+    (b, zs'') = g zs'
+
 instance Functor Pattern where
   fmap = pattern_map
 
@@ -175,7 +186,7 @@ class (Nominal a) => Bindable a where
   binding :: a -> Pattern a
   
   default binding :: (Generic a, GBindable (Rep a)) => a -> Pattern a
-  binding x = pattern_map to (gbinding (from x))
+  binding x = gbinding (from x) to
 
 -- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
@@ -387,29 +398,27 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
-  gbinding :: f a -> Pattern (f a)
+  gbinding :: f a -> (f a -> b) -> Pattern b
 
 instance GBindable V1 where
-  gbinding a = undefined -- never occurs, because V1 is empty
+  gbinding = undefined -- never occurs, because V1 is empty
 
 instance GBindable U1 where
-  gbinding = basic_binding
+  gbinding a k = Pattern [] (\xs -> (k a, xs))
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
-  gbinding (a :*: b) = do
-    a <- gbinding a
-    b <- gbinding b
-    pure (a :*: b)
+  gbinding (a :*: b) k =
+    pattern_pair (gbinding a id) (gbinding b id) k
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
-  gbinding (L1 a) = L1 <$> gbinding a
-  gbinding (R1 a) = R1 <$> gbinding a
+  gbinding (L1 a) k = gbinding a (\a -> k (L1 a))
+  gbinding (R1 a) k = gbinding a (\a -> k (R1 a))
 
 instance (GBindable a) => GBindable (M1 i c a) where
-  gbinding (M1 a) = M1 <$> gbinding a
+  gbinding (M1 a) k = gbinding a (\a -> k (M1 a))
   
 instance (Bindable a) => GBindable (K1 i a) where
-  gbinding (K1 a) = K1 <$> binding a
+  gbinding (K1 a) k = pattern_map k (K1 <$> binding a)
 
 -- ----------------------------------------------------------------------
 -- * Miscellaneous
