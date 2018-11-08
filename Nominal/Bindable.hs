@@ -30,12 +30,9 @@
 module Nominal.Bindable where
 
 import Prelude hiding ((.))
-import Control.Applicative
 import GHC.Generics
 
-import Nominal.ConcreteNames
 import Nominal.Atom
-import Nominal.Permutation
 import Nominal.Nominal
 import Nominal.NominalSupport
 
