@@ -273,19 +273,19 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 --
 -- > f abs = open abs (\a t -> body).
 --
--- A pattern of the form @(a :. t)@ is called a /binding pattern/.
+-- A pattern of the form @(a :. t)@ is called an /abstraction pattern/.
 -- Such a pattern matches any term of type 'Bind' /a/ /t/. The
--- variable /a/ is made fresh each time a binding pattern is
--- used. Therefore, binding patterns implement a form of Barendregt's
+-- variable /a/ is made fresh each time an abstraction pattern is
+-- used. Therefore, abstraction patterns implement a form of Barendregt's
 -- variable convention (the names of bound variables are always
 -- fresh).
 -- 
 -- To guarantee soundness (referential transparency and equivariance),
--- the body of a binding pattern match is subject to the same
+-- the body of an abstraction pattern matching is subject to the same
 -- restriction as 'Nominal.with_fresh', namely, /a/ must be fresh for
 -- the body (in symbols /a/ # /body/).
 --
--- Like all patterns, binding patterns can be nested. They are right
+-- Like all patterns, abstraction patterns can be nested. They are right
 -- associative, therefore @(a:.b:.t)@ means the same thing as
 -- @(a:.(b:.t))@. For example:
 --
