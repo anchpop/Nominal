@@ -77,17 +77,12 @@ data BindAtom t = BindAtom NameGen (Atom -> Defer t)
 atom_abst :: Atom -> t -> BindAtom t
 atom_abst a t = BindAtom (atom_names a) (\x -> Defer (perm_swap a x) t)
 
--- | Pattern matching for atom abstraction. In an ideal programming
--- idiom, we would be able to define a function on atom abstractions
--- like this:
+-- | Destructor for atom abstractions. If /m/ = /y/./s/, the term
+-- 
+-- > open m (\x t -> body)
 --
--- > f (x.s) = body.
---
--- Haskell doesn't let us provide this syntax, but the 'open' function
--- provides the equivalent syntax
---
--- > f t = open t (\x s -> body).
---
+-- binds /x/ to a fresh name and /t/ to a term such that /x/./t/ = /y/./s/.
+-- 
 -- To be referentially transparent and equivariant, the body is
 -- subject to the same restriction as 'with_fresh', namely,
 -- /x/ must be fresh for the body (in symbols /x/ # /body/).
@@ -101,48 +96,9 @@ instance (Nominal t, Eq t) => Eq (BindAtom t) where
 instance (Nominal t) => Nominal (BindAtom t) where
   π • (BindAtom n f) = BindAtom n (\x -> π • (f x))
 
--- | Sometimes, it is necessary to open two abstractions, using the
--- /same/ fresh name for both of them. An example of this is the
--- typing rule for lambda abstraction in dependent type theory:
+-- | Merge two abstractions. The defining property is
 --
--- >           Gamma, x:t  |-  e : s
--- >      ------------------------------------
--- >        Gamma |-  Lam (x.e) : Pi t (x.s)
---
--- In the bottom-up reading of this rule, we are given the terms @Lam@
--- /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/ and
--- terms /e/, /s/ such that /body/ = (/x/./e/) and
--- /body'/ = (/x/./s/).  Crucially, the same atom /x/ should be used
--- in both /e/ and /s/, because we subsequently need to check that /e/
--- has type /s/ in some scope that is common to /e/ and /s/.
---
--- The 'merge' primitive permits us to deal with such situations.  Its
--- defining property is
---
--- > merge (x.e) (x.s) = (x.(e,s)).
---
--- We can therefore solve the above problem:
---
--- > open (merge body body') (\x (e,s) -> .....)
---
--- Moreover, the 'merge' primitive can be used to define other
--- merge-like functionality. For example, it is easy to define a
--- function
---
--- > merge_list :: (Atomic a, Nominal t) => [Bind a t] -> Bind a [t]
---
--- in terms of it.
---
--- Semantically, the 'merge' operation implements the isomorphism of
--- nominal sets [/A/]/T/ × [/A/]/S/ = [/A/](/T/ × /S/).
---
--- If /x/ and /y/ are atoms with user-suggested concrete names and
---
--- > (z.(t',s')) = merge (x.t) (y.s),
---
--- then /z/ will be preferably given the concrete name of /x/, but the
--- concrete name of /y/ will be used if the name of /x/ would cause a
--- clash.
+-- > merge (x.t) (x.s) = (x.(t,s))
 atom_merge :: (Nominal t, Nominal s) => BindAtom t -> BindAtom s -> BindAtom (t,s)
 atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
   ng'' = combine_names ng ng'

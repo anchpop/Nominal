@@ -71,10 +71,11 @@ atomic_show a = atom_show (to_atom a)
 --
 -- > with_fresh (\a -> body),
 --
--- we must have /a/ # /body/ (see [Pitts 2002] for more details on
--- what this means). Haskell does not enforce this restriction, but if
--- a program violates it, referential transparency may not hold, which
--- may, in the worst case, lead to unsound compiler optimizations and
+-- we must have /a/ # /body/. This is known as Pitts's /freshness/
+-- /condition/ /for/ /binders/ (see Chapter 4.5 of [Pitts 2013]).
+-- Haskell does not enforce this restriction, but if a program
+-- violates it, referential transparency may not hold, which may, in
+-- the worst case, lead to unsound compiler optimizations and
 -- undefined behavior.
 with_fresh :: (Atomic a) => (a -> t) -> t
 with_fresh k = with_fresh_namelist [] k
@@ -202,7 +203,7 @@ from_bindatom body = atom_open body $ \a t -> (from_atom a . t)
 --
 -- We can therefore solve the above problem:
 --
--- > open (merge body body') (\x (e,s) -> .....)
+-- > let (x :. (e,s)) = merge body body' in ....
 --
 -- Moreover, the 'merge' primitive can be used to define other
 -- merge-like functionality. For example, it is easy to define a

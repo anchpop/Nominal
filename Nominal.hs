@@ -46,9 +46,9 @@ module Nominal (
   -- * Binders
   Bind,
   (.),
+  pattern (:.),
   abst,
   open,
-  pattern (:.),
   merge,
 
   -- ** Convenience functions
@@ -248,8 +248,8 @@ import Nominal.Generics
 --
 -- Occasionally, it can be useful to generate a globally fresh atom.
 -- This is done within the 'IO' monad, and therefore, the function
--- 'fresh' (and its friends) have no corresponding correctness
--- condition as for 'with_fresh'.
+-- 'fresh' (and its friends) are not subject to Pitts's freshness
+-- condition.
 -- 
 -- These functions are primarily intended for testing. They
 -- give the user a convenient way to generate fresh names in the

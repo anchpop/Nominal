@@ -151,7 +151,7 @@ instance Applicative NominalBinder where
 -- in the nominal logic literature. Its elements are pairs (/a/,/t/)
 -- modulo alpha-equivalence. We also write /a/'.'/t/ for such an
 -- equivalence class of pairs. For full technical details on what this
--- means, see Definition 4 of [Pitts 2002].
+-- means, see Definition 4 of [Pitts 2002].
 
 data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)
@@ -174,8 +174,8 @@ class (Nominal a) => Bindable a where
   default binding :: (Generic a, GBindable (Rep a)) => a -> NominalBinder a
   binding x = gbinding (from x) to
 
--- | Abstraction: /a/'.'/t/ represents the equivalence class of
--- pairs (/a/,/t/) modulo alpha-equivalence. 
+-- | Constructor for abstractions. The term /a/'.'/t/ represents the
+-- equivalence class of pairs (/a/,/t/) modulo alpha-equivalence.
 --
 -- We use the infix operator @(@'.'@)@, which is normally bound to
 -- function composition in the standard Haskell library. Thus, nominal
@@ -183,24 +183,76 @@ class (Nominal a) => Bindable a where
 -- 
 -- > import Prelude hiding ((.))
 --
--- Note that @(@'.'@)@ is a abstraction of the /object language/ (i.e.,
--- whatever datatype you are defining), not of the /metalanguage/
--- (i.e., Haskell). A term such as /a/'.'/t/ only makes sense if the
--- variable /a/ is already defined to be a particular atom.  Thus,
--- abstractions are often used in the context of 'Nominal.with_fresh',
--- 'open', or an abstraction pattern, as in the following examples:
+-- Note that @(@'.'@)@ is a abstraction operator of the
+-- /object language/ (i.e., whatever datatype you are defining), not
+-- of the /metalanguage/ (i.e., Haskell). A term such as /a/'.'/t/
+-- only makes sense if the variable /a/ is already defined to be a
+-- particular atom.  Thus, abstractions are often used in the context
+-- of a scoped operation such as 'Nominal.with_fresh' or on the
+-- right-hand side of an abstraction pattern match, as in the
+-- following examples:
 --
 -- > with_fresh (\a -> a.a)
 -- >
 -- > subst m z (Abs (x :. t)) = Abs (x . subst m z t)
 --
--- If you are instead looking to construct an abstraction using a
--- binder of the metalanguage, see the function 'Nominal.bind'.
+-- For building an abstraction by using a binder of the metalanguage,
+-- see also the function 'Nominal.bind'.
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
     NominalBinder xs f = binding a
 infixr 5 .
+
+-- | A pattern matching syntax for abstractions. The pattern
+-- @(x :. t)@ is called an /abstraction pattern/. It matches any term
+-- of type @('Bind' /a/ /b/)@. The result of matching the pattern
+-- @(x :. t)@ against a value /y/'.'/s/ is to bind /x/ to a fresh name
+-- and /t/ to a value such that /x/'.'/t/ = /y/'.'/s/.
+--
+-- Note that a different fresh /x/ is chosen each time an abstraction
+-- patterns is used.
+--
+-- Here are some examples:
+--
+-- > foo (x :. t) = body
+-- > 
+-- > let (x :. t) = s in body
+-- > 
+-- > case t of
+-- >   Var v -> body1
+-- >   App m n -> body2
+-- >   Abs (x :. t) -> body3
+--
+-- To guarantee soundness (referential transparency and equivariance),
+-- the programmer must ensure that /x/ does not escape the body of the
+-- pattern match. Thus, the following are permitted
+--
+-- > let (x :. t) = s in x.t,
+-- > let (x :. t) = s in f x t == g x t,
+--
+-- whereas the following is not permitted:
+--
+-- > let (x :. t) = s in (x,t).
+--
+-- The required condition is known as Pitt's /freshness/ /condition/
+-- /for/ /binders/. For more information, see 'Nominal.with_fresh'.
+--   
+-- Like all patterns, abstraction patterns can be nested. For example:
+--
+-- > foo1 (a :. b :. t) = ...
+-- >
+-- > foo2 (x :. (s,t)) = (x.s, x.t)
+-- >
+-- > foo3 (Abs (x :. Var y))
+-- >   | x == y    = ...
+-- >   | otherwise = ...
+-- >
+pattern (:.) :: (Nominal b, Bindable a) => a -> b -> Bind a b 
+pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
+ where
+   a :. t = a . t
+infixr 5 :.
 
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
 -- useful when using qualified module names, because \"̈@Nominal..@\" is not
@@ -208,22 +260,17 @@ infixr 5 .
 abst :: (Bindable a, Nominal t) => a -> t -> Bind a t
 abst = (.)
 
--- | Destructor for abstractions. In an ideal programming idiom,
--- we would be able to define a function on abstractions by
--- pattern matching like this:
+-- | An alternative notation for abstraction patterns.
 --
--- > f (a.s) = body.
+-- > f t = open t (\x s -> body)
 --
--- Haskell doesn't let us provide this syntax, but using the 'open'
--- function, we can equivalently write:
+-- is precisely equivalent to
 --
--- > f t = open t (\a s -> body).
+-- > f (x :. s) = body.
 --
--- Each time an abstraction is opened, /a/ is guaranteed to be a fresh
--- atom.  To guarantee soundness (referential transparency and
--- equivariance), the body is subject to the same restriction as
--- 'Nominal.with_fresh', namely, /a/ must be fresh for the body (in symbols
--- /a/ # /body/).
+-- Each time an abstraction is opened, /x/ is guaranteed to be a new
+-- fresh atom. To ensure soundness, the body must satisfy the same
+-- correctness condition as @(@':.'@)@.
 open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
 open (Bind f body) k =
   atomlist_open body (\ys t -> k (f ys) t)
@@ -264,45 +311,6 @@ instance (Bindable a, Nominal t) => Nominal (Bind a t) where
 instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bind a t) where
   support (Bind f body) = atomlist_open body $ \xs t ->
     support_deletes xs (support (f xs, t))
-
--- ----------------------------------------------------------------------
--- * Pattern matching for abstractions
-
--- | A pattern matching syntax for abstractions. This permits us
--- to write
---
--- > f (a :. t) = body
---
--- instead of
---
--- > f abs = open abs (\a t -> body).
---
--- A pattern of the form @(a :. t)@ is called an /abstraction pattern/.
--- Such a pattern matches any term of type 'Bind' /a/ /t/. The
--- variable /a/ is made fresh each time an abstraction pattern is
--- used. Therefore, abstraction patterns implement a form of Barendregt's
--- variable convention (the names of bound variables are always
--- fresh).
--- 
--- To guarantee soundness (referential transparency and equivariance),
--- the body of an abstraction pattern matching is subject to the same
--- restriction as 'Nominal.with_fresh', namely, /a/ must be fresh for
--- the body (in symbols /a/ # /body/).
---
--- Like all patterns, abstraction patterns can be nested. They are right
--- associative, therefore @(a :. b :. t)@ means the same thing as
--- @(a :. (b :. t))@. For example:
---
--- > f (a :. b :. t) = ...
--- > g (Abs (x :. t)) = ...
--- > h (Abs (x :. Var y))
--- >   | x == y    = ...
--- >   | otherwise = ...
-pattern (:.) :: (Nominal b, Bindable a) => a -> b -> Bind a b 
-pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
- where
-   a :. t = a . t
-infixr 5 :.
 
 -- ----------------------------------------------------------------------
 -- * Non-binding binders
