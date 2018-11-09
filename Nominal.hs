@@ -168,9 +168,9 @@ import Nominal.Generics
 -- * The next line declares that @Term@ is a /nominal/ type, by
 -- deriving an instance of the type class 'Nominal' (and also
 -- 'Generic', which enables the magic that allows 'Nominal' instances
--- to be derived automatically).  In a nutshell, a nominal datatype is
+-- to be derived automatically).  In a nutshell, a nominal type is
 -- a type that is aware of the existence of atoms. The 'Bind'
--- operation can only be applied to nominal datatypes, because
+-- operation can only be applied to nominal types, because
 -- otherwise alpha-equivalence would not make sense.
 --
 -- * The substitution function inputs a term /m/, a variable /z/, and
@@ -185,7 +185,10 @@ import Nominal.Generics
 -- /y/'.'/s/. Since the name /x/ resulting from the pattern matching
 -- is always guaranteed to be fresh, the substitution can be
 -- recursively applied to /t/ without the possibility that /x/ may be
--- captured in /m/ or that /x/ = /z/.
+-- captured in /m/ or that /x/ = /z/. In other words, abstraction
+-- patterns implement what is informally known as
+-- /Barendregt's variable convention/, i.e., the names of bound
+-- variables are always assumed to be fresh.
 
 -- ----------------------------------------------------------------------
 
