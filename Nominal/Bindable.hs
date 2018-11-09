@@ -238,7 +238,7 @@ open (Bind f body) k =
 --
 -- > open_for_printing sup t (\x s sup' -> body)
 --
--- Here, /sup/ = 'support' /t/ (this requires a 'NominalSupport'
+-- Here, /sup/ = 'support' /t/ (this requires a 'NominalSupport'
 -- instance). For printing to be efficient (roughly O(/n/)), the
 -- support must be pre-computed in a bottom-up fashion, and then
 -- passed into each subterm in a top-down fashion (rather than
@@ -324,18 +324,18 @@ infixr 5 :.
 --
 -- > type Context t = [(Atom, NoBind t)]
 --
--- then we can use contexts as binders. Specifically, if Γ = {/x/₁
--- ↦ /A/₁, …, /x/ₙ ↦ /A/ₙ} is a context, then (Γ . /t/) binds the
--- context to a term /t/. This means, /x/₁,…,/x/ₙ are bound in /t/,
--- but not any atoms that occur in /A/₁,…,/A/ₙ. Without the use of
--- 'NoBind', any atoms occurring on /A/₁,…,/A/ₙ would have been bound
--- as well.
+-- then we can use contexts as binders. Specifically, if
+-- Γ = {/x/₁ ↦ /A/₁, …, /x/ₙ ↦ /A/ₙ} is a context, then (Γ . /t/)
+-- binds the context to a term /t/. This means, /x/₁,…,/x/ₙ are bound
+-- in /t/, but not any atoms that occur in /A/₁,…,/A/ₙ. Without the
+-- use of 'NoBind', any atoms occurring on /A/₁,…,/A/ₙ would have been
+-- bound as well.
 --
 -- Even though atoms under 'NoBind' are not /binding/, they can still
 -- be /bound/ by other binders. For example, the term @/x/.(/x/,
--- 'NoBind' /x/)@ is alpha-equivalent to @/y/.(/y/, 'NoBind'
--- /y/)@. Another way to say this is that 'NoBind' has a special
--- behavior on the left, but not on the right of a dot.
+-- 'NoBind' /x/)@ is alpha-equivalent to
+-- @/y/.(/y/, 'NoBind' /y/)@. Another way to say this is that 'NoBind'
+-- has a special behavior on the left, but not on the right of a dot.
 
 newtype NoBind t = NoBind t
   deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport)

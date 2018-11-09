@@ -111,10 +111,10 @@ instance (Nominal t) => Nominal (BindAtom t) where
 --
 -- In the bottom-up reading of this rule, we are given the terms @Lam@
 -- /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/ and
--- terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ =
--- (/x/./s/).  Crucially, the same atom /x/ should be used in both /e/
--- and /s/, because we subsequently need to check that /e/ has type
--- /s/ in some scope that is common to /e/ and /s/.
+-- terms /e/, /s/ such that /body/ = (/x/./e/) and
+-- /body'/ = (/x/./s/).  Crucially, the same atom /x/ should be used
+-- in both /e/ and /s/, because we subsequently need to check that /e/
+-- has type /s/ in some scope that is common to /e/ and /s/.
 --
 -- The 'merge' primitive permits us to deal with such situations.  Its
 -- defining property is
@@ -134,7 +134,7 @@ instance (Nominal t) => Nominal (BindAtom t) where
 -- in terms of it.
 --
 -- Semantically, the 'merge' operation implements the isomorphism of
--- nominal sets [A]T x [A]S = [A](T x S).
+-- nominal sets [/A/]/T/ × [/A/]/S/ = [/A/](/T/ × /S/).
 --
 -- If /x/ and /y/ are atoms with user-suggested concrete names and
 --
@@ -155,7 +155,7 @@ atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
 -- contain any atoms. Typical examples are base types, such as 'Integer'
 -- or 'Bool', and other types constructed exclusively from them,
 -- such as @['Integer']@ or @'Bool' -> 'Bool'@. On such types, the
--- nominal structure is trivial, i.e., @π • /x/ = /x/@ for all /x/.
+-- nominal structure is trivial, i.e., @π • /x/ = /x/@ for all /x/.
 --
 -- For convenience, we define 'Basic' as a wrapper around such types,
 -- which will automatically generate appropriate instances of

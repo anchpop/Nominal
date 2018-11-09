@@ -131,7 +131,7 @@ class (Nominal t) => NominalSupport t where
 --
 -- > open_for_printing sup t (\x s sup' -> body)
 --
--- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
+-- Here, /sup/ = 'support' /t/. For printing to be efficient (roughly
 -- O(/n/)), the support must be pre-computed in a bottom-up fashion,
 -- and then passed into each subterm in a top-down fashion (rather
 -- than re-computing it at each level, which would be O(/n/²)).  For

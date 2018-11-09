@@ -71,7 +71,7 @@ atomic_show a = atom_show (to_atom a)
 --
 -- > with_fresh (\a -> body),
 --
--- we must have /a/ # /body/ (see [Pitts 2002] for more details on
+-- we must have /a/ # /body/ (see [Pitts 2002] for more details on
 -- what this means). Haskell does not enforce this restriction, but if
 -- a program violates it, referential transparency may not hold, which
 -- may, in the worst case, lead to unsound compiler optimizations and
@@ -190,10 +190,10 @@ from_bindatom body = atom_open body $ \a t -> (from_atom a . t)
 --
 -- In the bottom-up reading of this rule, we are given the terms @Lam@
 -- /body/ and @Pi@ /t/ /body'/, and we require a fresh name /x/ and
--- terms /e/, /s/ such that /body/ = (/x/./e/) and /body'/ =
--- (/x/./s/).  Crucially, the same atom /x/ should be used in both /e/
--- and /s/, because we subsequently need to check that /e/ has type
--- /s/ in some scope that is common to /e/ and /s/.
+-- terms /e/, /s/ such that /body/ = (/x/./e/) and
+-- /body'/ = (/x/./s/).  Crucially, the same atom /x/ should be used
+-- in both /e/ and /s/, because we subsequently need to check that /e/
+-- has type /s/ in some scope that is common to /e/ and /s/.
 --
 -- The 'merge' primitive permits us to deal with such situations.  Its
 -- defining property is
@@ -213,7 +213,7 @@ from_bindatom body = atom_open body $ \a t -> (from_atom a . t)
 -- in terms of it.
 --
 -- Semantically, the 'merge' operation implements the isomorphism of
--- nominal sets [A]T x [A]S = [A](T x S).
+-- nominal sets [/A/]/T/ × [/A/]/S/ = [/A/](/T/ × /S/).
 --
 -- If /x/ and /y/ are atoms with user-suggested concrete names and
 --

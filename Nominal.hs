@@ -185,7 +185,7 @@ import Nominal.Generics
 -- /y/'.'/s/. Since the name /x/ resulting from the pattern matching
 -- is always guaranteed to be fresh, the substitution can be
 -- recursively applied to /t/ without the possibility that /x/ may be
--- captured in /m/ or that /x/ = /z/. In other words, abstraction
+-- captured in /m/ or that /x/ = /z/. In other words, abstraction
 -- patterns implement what is informally known as
 -- /Barendregt's variable convention/, i.e., the names of bound
 -- variables are always assumed to be fresh.
