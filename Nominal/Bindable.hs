@@ -209,10 +209,8 @@ infixr 5 .
 -- of type @('Bind' /a/ /b/)@. The result of matching the pattern
 -- @(x :. t)@ against a value /y/'.'/s/ is to bind /x/ to a fresh name
 -- and /t/ to a value such that /x/'.'/t/ = /y/'.'/s/.
---
 -- Note that a different fresh /x/ is chosen each time an abstraction
 -- patterns is used.
---
 -- Here are some examples:
 --
 -- > foo (x :. t) = body
@@ -223,20 +221,6 @@ infixr 5 .
 -- >   Var v -> body1
 -- >   App m n -> body2
 -- >   Abs (x :. t) -> body3
---
--- To guarantee soundness (referential transparency and equivariance),
--- the programmer must ensure that /x/ does not escape the body of the
--- pattern match. Thus, the following are permitted
---
--- > let (x :. t) = s in x.t,
--- > let (x :. t) = s in f x t == g x t,
---
--- whereas the following is not permitted:
---
--- > let (x :. t) = s in (x,t).
---
--- The required condition is known as Pitt's /freshness/ /condition/
--- /for/ /binders/. For more information, see 'Nominal.with_fresh'.
 --   
 -- Like all patterns, abstraction patterns can be nested. For example:
 --
@@ -248,6 +232,19 @@ infixr 5 .
 -- >   | x == y    = ...
 -- >   | otherwise = ...
 -- >
+--
+-- The correct use of abstraction patterns is subject to
+-- <#CONDITION Pitts's freshness condition>.
+-- Thus, for example, the following are permitted
+--
+-- > let (x :. t) = s in x.t,
+-- > let (x :. t) = s in f x t == g x t,
+--
+-- whereas the following is not permitted:
+--
+-- > let (x :. t) = s in (x,t).
+--
+-- See <#CONDITION "Pitts's freshness condition"> for more details.
 pattern (:.) :: (Nominal b, Bindable a) => a -> b -> Bind a b 
 pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
  where
@@ -268,9 +265,8 @@ abst = (.)
 --
 -- > f (x :. s) = body.
 --
--- Each time an abstraction is opened, /x/ is guaranteed to be a new
--- fresh atom. To ensure soundness, the body must satisfy the same
--- correctness condition as @(@':.'@)@.
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
 open :: (Bindable a, Nominal t) => Bind a t -> (a -> t -> s) -> s
 open (Bind f body) k =
   atomlist_open body (\ys t -> k (f ys) t)
@@ -293,6 +289,9 @@ open (Bind f body) k =
 -- reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
+--
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
 open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -> Support -> s) -> s
 open_for_printing sup (Bind f body) k =
   atomlist_open_for_printing sup body (\ys t sup' -> k (f ys) t sup')

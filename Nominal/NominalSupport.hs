@@ -138,6 +138,9 @@ class (Nominal t) => NominalSupport t where
 -- this reason, 'open_for_printing' takes the support of /t/ as an
 -- additional argument, and provides /sup'/, the support of /s/, as an
 -- additional parameter to the body.
+--
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
 atom_open_for_printing :: (Nominal t) => Support -> BindAtom t -> (Atom -> t -> Support -> s) -> s
 atom_open_for_printing sup t@(BindAtom ng f) k =
   with_fresh_atom_named n ng (\a -> k a (force (f a)) (sup' a))

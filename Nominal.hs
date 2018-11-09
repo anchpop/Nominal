@@ -16,6 +16,7 @@ module Nominal (
   -- $OVERVIEW
 
   -- * Atoms
+  -- ** Atom types
   -- $ATOMS
   Atom,
   AtomKind(..),
@@ -44,6 +45,7 @@ module Nominal (
   Basic(..),
   
   -- * Binders
+  -- ** Abstractions
   Bind,
   (.),
   pattern (:.),
@@ -64,6 +66,11 @@ module Nominal (
   -- ** Non-binding patterns
   NoBind(..),
   nobinding,
+
+  -- $CONDITION_ANCHOR
+  
+  -- * Pitt's freshness condition
+  -- $CONDITION
   
   -- * Printing of nominal values
   -- $PRINTING
@@ -237,10 +244,10 @@ import Nominal.Generics
 -- > with_fresh (\a -> something).
 --
 -- To ensure soundness, the programmer must ensure that the fresh atom
--- does not escape the body of the 'with_fresh' block. See the
--- documentation of 'with_fresh' for examples of what is and is not
--- permitted, and a more precise statement of the correctness
--- condition.
+-- does not escape the body of the 'with_fresh' block. See 
+-- <#CONDITION "Pitts's freshness condition"> for examples
+-- of what is and is not permitted, and a more precise statement of
+-- the correctness condition.
 
 -- ----------------------------------------------------------------------
 
@@ -248,8 +255,8 @@ import Nominal.Generics
 --
 -- Occasionally, it can be useful to generate a globally fresh atom.
 -- This is done within the 'IO' monad, and therefore, the function
--- 'fresh' (and its friends) are not subject to Pitts's freshness
--- condition.
+-- 'fresh' (and its friends) are /not/ subject to
+-- <#CONDITION Pitts's freshness condition>.
 -- 
 -- These functions are primarily intended for testing. They
 -- give the user a convenient way to generate fresh names in the
@@ -529,3 +536,46 @@ import Nominal.Generics
 -- The effect of this is that the /a/ is bound and /b/ is not bound in
 -- the term @(HalfBinder /a/ /b/)./t/@,
 -- 
+
+-- ----------------------------------------------------------------------
+
+-- $CONDITION_ANCHOR #CONDITION#
+
+-- $CONDITION
+--
+-- To ensure soundness (referential transparency and equivariance),
+-- all functions that generate a fresh name in a local scope must
+-- satisfy a certain condition known as Pitts's /freshness/
+-- /condition/ /for/ /binders/ (see Chapter 4.5 of [Pitts 2013]).
+--
+-- Informally, this condition means that the fresh atom must not
+-- escape the body of the block in which it was created. Thus, for
+-- example, the following are permitted:
+--   
+-- > with_fresh (\a -> f a == g a)
+-- > with_fresh (\a -> a . f a b c)
+--
+-- Here is an example of what is /not/ permitted:
+--
+-- > with_fresh (\a -> a)
+--
+-- In more technical terms, the correctness condition is that in an
+-- application
+--
+-- > with_fresh (\a -> body),
+--
+-- we must have /a/ # /body/. See [Pitts 2002] or [Pitts 2013] for
+-- more information on what this means.
+--
+-- The following functions are subject to the freshness condition:
+-- 'with_fresh', 
+-- 'with_fresh_named', 
+-- 'with_fresh_namelist',
+-- 'open',
+-- 'open_for_printing',
+-- as well as the use of abstraction patterns @(@':.'@)@.
+--
+-- Haskell does not enforce this restriction, but if a program
+-- violates it, referential transparency may not hold, which could in
+-- the worst case lead to unsound compiler optimizations and undefined
+-- behavior.

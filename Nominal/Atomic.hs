@@ -55,10 +55,11 @@ atomic_show a = atom_show (to_atom a)
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope
 
--- | Perform a computation in the presence of a fresh atom. For
--- soundness, the programmer must ensure that the atom created does
--- not escape the body of the 'with_fresh' block. Thus, the following
--- uses are permitted:
+-- | Perform a computation in the presence of a fresh atom.
+--
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
+-- Thus, for example, the following uses are permitted:
 --   
 -- > with_fresh (\a -> f a == g a)
 -- > with_fresh (\a -> a . f a b c)
@@ -67,16 +68,7 @@ atomic_show a = atom_show (to_atom a)
 --
 -- > with_fresh (\a -> a)
 --
--- Technically, the correctness condition is that in an application
---
--- > with_fresh (\a -> body),
---
--- we must have /a/ # /body/. This is known as Pitts's /freshness/
--- /condition/ /for/ /binders/ (see Chapter 4.5 of [Pitts 2013]).
--- Haskell does not enforce this restriction, but if a program
--- violates it, referential transparency may not hold, which may, in
--- the worst case, lead to unsound compiler optimizations and
--- undefined behavior.
+-- See <#CONDITION "Pitts's freshness condition"> for more details.
 with_fresh :: (Atomic a) => (a -> t) -> t
 with_fresh k = with_fresh_namelist [] k
 
@@ -84,8 +76,8 @@ with_fresh k = with_fresh_namelist [] k
 -- given to the atom. The name is only a suggestion, and will be
 -- changed, if necessary, to avoid clashes.
 --
--- This function is subject to the same correctness condition as
--- 'with_fresh'.
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
 with_fresh_named :: (Atomic a) => String -> (a -> t) -> t
 with_fresh_named n = unsafe_with (fresh_named n)
 
@@ -93,8 +85,8 @@ with_fresh_named n = unsafe_with (fresh_named n)
 -- to be specified. The first suitable name in the list will be used
 -- if possible.
 --
--- This function is subject to the same correctness condition as
--- 'with_fresh'.
+-- The correct use of this function is subject to
+-- <#CONDITION Pitts's freshness condition>.
 with_fresh_namelist :: (Atomic a) => NameSuggestion -> (a -> t) -> t
 with_fresh_namelist ns k =
   with_fresh_atom ng (\a -> k (from_atom a))
