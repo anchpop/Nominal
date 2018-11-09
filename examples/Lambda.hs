@@ -43,11 +43,11 @@ infixl 9 @@
 -- | Substitution. Note that it is capture avoiding!
 -- 'subst' /m/ /x/ /n/ substitutes /m/ for 'Var' /x/ in /n/.
 subst :: Term -> Variable -> Term -> Term
-subst m x (Var y)
-  | x == y = m
-  | otherwise = Var y
-subst m x (App t s) = App (subst m x t) (subst m x s)
-subst m x (Abs (y :. t)) = Abs (y . subst m x t)
+subst m z (Var x)
+  | x == z    = m
+  | otherwise = Var x
+subst m z (App t s) = App (subst m z t) (subst m z s)
+subst m z (Abs (x :. t)) = Abs (x . subst m z t)
 
 -- ----------------------------------------------------------------------
 -- * Free variables

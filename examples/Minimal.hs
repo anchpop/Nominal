@@ -12,8 +12,9 @@ data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
 
 -- | Capture-avoiding substitution.
 subst :: Term -> Atom -> Term -> Term
-subst m x (Var y)
-  | x == y = m
-  | otherwise = Var y
-subst m x (App t s) = App (subst m x t) (subst m x s)
-subst m x (Abs (y :. t)) = Abs (y . subst m x t)
+subst m z (Var x)
+  | x == z    = m
+  | otherwise = Var x
+subst m z (App t s) = App (subst m z t) (subst m z s)
+subst m z (Abs (x :. t)) = Abs (x . subst m z t)
+  
