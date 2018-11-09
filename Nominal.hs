@@ -143,11 +143,11 @@ import Nominal.Generics
 -- >
 -- > -- Capture-avoiding substitution.
 -- > subst :: Term -> Atom -> Term -> Term
--- > subst m x (Var y)
--- >   | x == y = m
--- >   | otherwise = Var y
--- > subst m x (App t s) = App (subst m x t) (subst m x s)
--- > subst m x (Abs body) = open body (\y s -> Abs (y . subst m x s))
+-- > subst m z (Var x)
+-- >   | x == z    = m
+-- >   | otherwise = Var x
+-- > subst m z (App t s) = App (subst m z t) (subst m z s)
+-- > subst m z (Abs (x :. t)) = Abs (x . subst m z t)
 --
 -- Let us examine this code in more detail:
 -- 
@@ -173,17 +173,19 @@ import Nominal.Generics
 -- operation can only be applied to nominal datatypes, because
 -- otherwise alpha-equivalence would not make sense.
 --
--- * The substitution function inputs a term /m/, a variable /x/, and
--- a term /t/, and outputs the term obtained from /t/ by replacing all
--- occurrences of the variable /x/ by /m/.  The clauses for variables
--- and application are straightforward. Note that atoms can be
--- compared for equality. In the clause for abstraction, the /body/ of
--- the abstraction, which is of type @('Bind' 'Atom' Term)@, is
--- /opened/: this means that a /fresh/ name /y/ and a term /s/ are
--- generated such that /body/ = /y/'.'/s/. Since the name /y/ is
--- guaranteed to be fresh, the substitution can be recursively applied
--- to /s/ without the possibility that /y/ may be captured in /m/ or
--- /x/.
+-- * The substitution function inputs a term /m/, a variable /z/, and
+-- a term /t/, and outputs the term /t/[/m/\//z/] that is obtained
+-- from /t/ by replacing all occurrences of the variable /z/ by /m/.
+-- The clauses for variables and application are straightforward. Note
+-- that atoms can be compared for equality. In the clause for
+-- abstraction, @(x :. t)@ is an /abstraction pattern/. It matches any
+-- abstraction of the form /y/'.'/s/, which is of type @('Bind' 'Atom'
+-- Term)@. Moreover, each time the abstraction pattern is used, a
+-- /fresh/ name /x/ and a term /t/ are generated such that /x/'.'/t/ =
+-- /y/'.'/s/. Since the name /x/ resulting from the pattern matching
+-- is always guaranteed to be fresh, the substitution can be
+-- recursively applied to /t/ without the possibility that /x/ may be
+-- captured in /m/ or that /x/ = /z/.
 
 -- ----------------------------------------------------------------------
 

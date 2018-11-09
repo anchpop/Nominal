@@ -187,11 +187,17 @@ class (Nominal a) => Bindable a where
 --
 -- Note that @(@'.'@)@ is a binder of the /object language/ (i.e.,
 -- whatever datatype you are defining), not of the /metalanguage/
--- (i.e., Haskell). A term such as /a/'.'/t/ only makes sense if /a/
--- is already defined to be some atom.  Thus, binders are often used
--- in a context of 'Nominal.with_fresh' or 'open', such as the following:
+-- (i.e., Haskell). A term such as /a/'.'/t/ only makes sense if the
+-- variable /a/ is already defined to be a particular atom.  Thus,
+-- binders are often used in the context of 'Nominal.with_fresh',
+-- 'open', or an abstraction pattern, as in the following examples:
 --
 -- > with_fresh (\a -> a.a)
+-- >
+-- > subst m z (Abs (x :. t)) = Abs (x . subst m z t)
+--
+-- If you are instead looking to construct an abstraction using a
+-- binder of the metalanguage, see the function 'Nominal.bind'.
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
