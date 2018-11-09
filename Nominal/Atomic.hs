@@ -174,7 +174,7 @@ bind_namelist ns f = with_fresh_namelist ns (\x -> x . f x)
 
 -- | Convert an atomic binding to an atom binding.
 to_bindatom :: (Atomic a, Nominal t) => Bind a t -> BindAtom t
-to_bindatom body = open body $ \a t -> atom_abst (to_atom a) t
+to_bindatom (a :. t) = atom_abst (to_atom a) t
 
 -- | Convert an atom binding to an atomic binding.
 from_bindatom :: (Atomic a, Nominal t) => BindAtom t -> Bind a t

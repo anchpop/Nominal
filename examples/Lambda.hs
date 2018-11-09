@@ -66,9 +66,9 @@ reduce :: Term -> Term
 reduce (Var x) = Var x
 reduce (App m n) =
   case reduce m of
-   Abs t -> open t (\x s -> reduce (subst n x s))
-   m' -> App m' (reduce n)
-reduce (Abs (x :. t)) = Abs (x.reduce t)
+    Abs (x :. t) -> reduce (subst n x t)
+    m' -> App m' (reduce n)
+reduce (Abs (x :. t)) = Abs (x . reduce t)
 
 -- ----------------------------------------------------------------------
 -- * Some example terms
