@@ -129,6 +129,9 @@ instance NominalShow Double where
 instance NominalShow Float where
   showsPrecSup = basic_showsPrecSup
 
+instance NominalShow Ordering where
+  showsPrecSup = basic_showsPrecSup
+
 instance (Show t) => NominalShow (Basic t) where
   showsPrecSup = basic_showsPrecSup
 
@@ -144,6 +147,8 @@ instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q) => Nominal
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p) => NominalShow (t,s,r,q,p)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o) => NominalShow (t,s,r,q,p,o)
 instance (NominalShow t, NominalShow s, NominalShow r, NominalShow q, NominalShow p, NominalShow o, NominalShow n) => NominalShow (t,s,r,q,p,o,n)
+instance (NominalShow a) => NominalShow (Maybe a)
+instance (NominalShow a, NominalShow b) => NominalShow (Either a b)
 
 -- Special instances
 

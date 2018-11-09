@@ -164,8 +164,8 @@ atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
 --
 -- > type Term = Var Atom | Const (Basic Int) | App Term Term
 --
--- Some common base types, including 'Bool', 'Char', 'Int',
--- 'Integer', 'Double', and 'Float', are already instances of the
+-- Some common base types, including 'Bool', 'Char', 'Int', 'Integer',
+-- 'Double', 'Float', and 'Ordering' are already instances of the
 -- relevant type classes, and do not need to be wrapped in 'Basic'.
 --
 -- The use of 'Basic' can sometimes have a performance advantage. For
@@ -223,6 +223,9 @@ instance Nominal Double where
 instance Nominal Float where
   (•) = basic_action
 
+instance Nominal Ordering where
+  (•) = basic_action
+
 instance Nominal (Basic t) where
   (•) = basic_action
 
@@ -236,6 +239,9 @@ instance (Nominal t, Nominal s, Nominal r, Nominal q) => Nominal (t,s,r,q)
 instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p) => Nominal (t,s,r,q,p)
 instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o) => Nominal (t,s,r,q,p,o)
 instance (Nominal t, Nominal s, Nominal r, Nominal q, Nominal p, Nominal o, Nominal n) => Nominal (t,s,r,q,p,o,n)
+instance (Nominal a) => Nominal (Maybe a)
+instance (Nominal a, Nominal b) => Nominal (Either a b)
+
 
 -- Special instances
 

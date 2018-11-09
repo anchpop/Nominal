@@ -390,6 +390,9 @@ instance Bindable Double where
 instance Bindable Float where
   binding = basic_binding
   
+instance Bindable Ordering where
+  binding = basic_binding
+  
 instance Bindable (Basic t) where
   binding = basic_binding
 
@@ -409,6 +412,8 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d) => Bindable (a, b, c, 
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e) => Bindable (a, b, c, d, e)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f) => Bindable (a, b, c, d, e, f)
 instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f, Bindable g) => Bindable (a, b, c, d, e, f, g)
+instance (Bindable a) => Bindable (Maybe a)
+instance (Bindable a, Bindable b) => Bindable (Either a b)
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for Bindable

@@ -192,6 +192,9 @@ instance NominalSupport Double where
 instance NominalSupport Float where
   support = basic_support
 
+instance NominalSupport Ordering where
+  support = basic_support
+
 instance NominalSupport (Basic t) where
   support = basic_support
 
@@ -208,6 +211,9 @@ instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q
 instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p) => NominalSupport (t,s,r,q,p)
 instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o) => NominalSupport (t,s,r,q,p,o)
 instance (NominalSupport t, NominalSupport s, NominalSupport r, NominalSupport q, NominalSupport p, NominalSupport o, NominalSupport n) => NominalSupport (t,s,r,q,p,o,n)
+instance (NominalSupport a) => NominalSupport (Maybe a)
+instance (NominalSupport a, NominalSupport b) => NominalSupport (Either a b)
+
 
 -- Special instances
 

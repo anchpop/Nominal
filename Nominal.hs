@@ -357,6 +357,19 @@ import Nominal.Generics
 -- > 
 -- > data Term = Var Atom | App Term Term | Abs (Bind Atom Term)
 -- >   deriving (Generic, Nominal, NominalSupport, NominalShow, Show)
+--
+-- == Deriving instances for existing types
+--
+-- Sometimes it may be necessary to derive an instance of 'Nominal' or
+-- one of the other type classes for an already existing datatype.
+-- This can be done by specifying an instance declaration without any
+-- body. For example, here is how the instances would be specified for
+-- the 'Maybe' type:
+--
+-- > instance (Nominal a) => Nominal (Maybe a)
+-- > instance (NominalSupport a) => NominalSupport (Maybe a)
+-- > instance (NominalShow a) => NominalShow (Maybe a)
+-- > instance (Bindable a) => Bindable (Maybe a)
 
 -- ----------------------------------------------------------------------
 
