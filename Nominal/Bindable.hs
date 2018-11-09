@@ -4,6 +4,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
@@ -147,7 +149,7 @@ instance Applicative NominalPattern where
 -- ----------------------------------------------------------------------
 -- * The Bindable class
 
--- | 'Bind' /a/ /t/ is the type of atom abstractions, denoted [/A/]/T/
+-- | 'Bind' /a/ /t/ is the type of /abstractions/, denoted [/A/]/T/
 -- in the nominal logic literature. Its elements are pairs (/a/,/t/)
 -- modulo alpha-equivalence. We also write /a/'.'/t/ for such an
 -- equivalence class of pairs. For full technical details on what this
@@ -174,7 +176,7 @@ class (Nominal a) => Bindable a where
   default binding :: (Generic a, GBindable (Rep a)) => a -> NominalPattern a
   binding x = gbinding (from x) to
 
--- | Atom abstraction: /a/'.'/t/ represents the equivalence class of
+-- | Abstraction: /a/'.'/t/ represents the equivalence class of
 -- pairs (/a/,/t/) modulo alpha-equivalence. 
 --
 -- We use the infix operator @(@'.'@)@, which is normally bound to
@@ -201,9 +203,9 @@ infixr 5 .
 -- valid syntax.
 abst :: (Bindable a, Nominal t) => a -> t -> Bind a t
 abst = (.)
-  
--- | Destructor for atom abstraction. In an ideal programming idiom,
--- we would be able to define a function on atom abstractions by
+
+-- | Destructor for abstractions. In an ideal programming idiom,
+-- we would be able to define a function on abstractions by
 -- pattern matching like this:
 --
 -- > f (a.s) = body.
@@ -258,6 +260,43 @@ instance (Bindable a, Nominal t) => Nominal (Bind a t) where
 instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bind a t) where
   support (Bind f body) = atomlist_open body $ \xs t ->
     support_deletes xs (support (f xs, t))
+
+-- ----------------------------------------------------------------------
+-- * Pattern matching for binders
+
+-- | A pattern matching syntax for abstraction. This permits us
+-- to write
+--
+-- > f (a :. t) = body
+--
+-- instead of
+--
+-- > f abs = open abs (\a t -> body).
+--
+-- A pattern of the form @(a :. t)@ is called a /binding pattern/.
+-- Such a pattern matches any term of type 'Bind' /a/ /t/. The
+-- variable /a/ is made fresh each time a binding pattern is
+-- used. Therefore, binding patterns implement a form of Barendregt's
+-- variable convention (the names of bound variables are always
+-- fresh).
+-- 
+-- To guarantee soundness (referential transparency and equivariance),
+-- the body of a binding pattern match is subject to the same
+-- restriction as 'Nominal.with_fresh', namely, /a/ must be fresh for
+-- the body (in symbols /a/ # /body/).
+--
+-- Like all patterns, binding patterns can be nested. They are right
+-- associative, therefore @(a:.b:.t)@ means the same thing as
+-- @(a:.(b:.t))@. For example:
+--
+-- > f (a :. b :. t) = ...
+-- > g (Abs (x :. t)) = ...
+-- > h (Abs (x :. Var y))
+-- >   | x == y    = ...
+-- >   | otherwise = ...
+pattern (:.) :: (Nominal b, Bindable a) => a -> b -> Bind a b 
+pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
+infix 5 :.
 
 -- ----------------------------------------------------------------------
 -- * Non-binding patterns

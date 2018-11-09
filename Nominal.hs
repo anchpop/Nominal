@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternSynonyms #-}
+
 -- | An efficient and easy-to-use library for defining datatypes with
 -- binders, and automatically handling bound variables and
 -- alpha-equivalence. It is based on Gabbay and Pitts's theory of
@@ -46,6 +48,7 @@ module Nominal (
   (.),
   abst,
   open,
+  pattern (:.),
   merge,
 
   -- ** Convenience functions
