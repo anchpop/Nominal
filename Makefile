@@ -45,4 +45,4 @@ clean:
 	rm -f ${PACKAGE}-${VERSION}-docs.tar.gz
 
 spellcheck: doc
-	ispell -d canadian -p local/dictionary.txt -H dist/doc/html/nominal/*.html
+	ispell -d canadian -p local/dictionary.txt -H dist/doc/html/nominal/*.html ChangeLog *cabal
