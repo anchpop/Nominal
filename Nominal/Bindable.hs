@@ -244,20 +244,6 @@ open_for_printing :: (Bindable a, Nominal t) => Support -> Bind a t -> (a -> t -
 open_for_printing sup (Bind f body) k =
   atomlist_open_for_printing sup body (\ys t sup' -> k (f ys) t sup')
 
--- | Open two abstractions at once. So
---
--- > f t = open t (\x y s -> body)
---
--- is equivalent to the nominal pattern matching
---
--- > f (x.y.s) = body
-open2 :: (Bindable a, Bindable b, Nominal t) => Bind a (Bind b t) -> (a -> b -> t -> s) -> s
-open2 term k = open term $ \a term' -> open term' $ \a' t -> k a a' t
-
--- | Like 'open2', but open two abstractions for printing.
-open2_for_printing :: (Bindable a, Bindable b, Nominal t) => Support -> Bind a (Bind b t) -> (a -> b -> t -> Support -> s) -> s
-open2_for_printing sup term k = open_for_printing sup term $ \a term' sup' -> open_for_printing sup' term' $ \a' t sup'' -> k a a' t sup''
-
 instance (Nominal a, Nominal t, Eq a, Eq t) => Eq (Bind a t) where
   Bind f1 body1 == Bind f2 body2 =
     case atomlist_merge body1 body2 of
