@@ -187,7 +187,7 @@ import Nominal.Generics
 -- recursively applied to /t/ without the possibility that /x/ may be
 -- captured in /m/ or that /x/ = /z/. In other words, abstraction
 -- patterns implement what is informally known as
--- /Barendregt's variable convention/, i.e., the names of bound
+-- /Barendregt's variable convention/, i.e., the names of bound
 -- variables are always assumed to be fresh.
 
 -- ----------------------------------------------------------------------
@@ -422,7 +422,7 @@ import Nominal.Generics
 --
 -- An alternative to defining new basic type class instances is to
 -- wrap the corresponding types in the constructor 'Basic'.  The type
--- @'Basic' MyType@ is isomorphic to @MyType@, and is automatically an
+-- @'Basic' MyType@ is isomorphic to @MyType@, and is automatically an
 -- instance of the relevant type classes.
 
 -- ----------------------------------------------------------------------

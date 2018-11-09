@@ -85,7 +85,7 @@ nominal_showsPrec d t = showsPrecSup (support t) d t
 -- * NominalShow instances
 
 -- $ Most of the time, instances of 'NominalShow' should be derived using
--- @deriving (Generic, NominalSupport, NominalShow)@, as in this example:
+-- @deriving (Generic, NominalSupport, NominalShow)@, as in this example:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}

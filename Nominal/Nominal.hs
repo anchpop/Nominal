@@ -180,7 +180,7 @@ newtype Basic t = Basic t
 -- * Nominal instances
 
 -- $ Most of the time, instances of 'Nominal' should be derived using
--- @deriving (Generic, Nominal)@, as in this example:
+-- @deriving (Generic, Nominal)@, as in this example:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}

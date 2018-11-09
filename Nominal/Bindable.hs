@@ -41,7 +41,7 @@ import Nominal.NominalSupport
 -- * Binding lists of atoms
 
 -- | The type of abstractions of a list of atoms. It is equivalent to
--- @'Bind' ['Atom'] /t/@, but has a more low-level implementation.
+-- @'Bind' ['Atom'] /t/@, but has a more low-level implementation.
 data BindAtomList t =
   BindNil t
   | BindCons (BindAtom (BindAtomList t))
@@ -290,8 +290,8 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- the body (in symbols /a/ # /body/).
 --
 -- Like all patterns, abstraction patterns can be nested. They are right
--- associative, therefore @(a:.b:.t)@ means the same thing as
--- @(a:.(b:.t))@. For example:
+-- associative, therefore @(a :. b :. t)@ means the same thing as
+-- @(a :. (b :. t))@. For example:
 --
 -- > f (a :. b :. t) = ...
 -- > g (Abs (x :. t)) = ...
@@ -315,7 +315,7 @@ infixr 5 :.
 --
 -- the atom /a/ is bound, but the atom /b/ remains free. Thus, /m/ is
 -- alpha-equivalent to @(x, NoBind b).(x,b)@, but not to
--- @(x, NoBind c).(x,c)@.
+-- @(x, NoBind c).(x,c)@.
 --
 -- A typical use case is using contexts as binders. A /context/ is a
 -- map from atoms to some data (for example, a /typing context/ is a
@@ -344,7 +344,7 @@ newtype NoBind t = NoBind t
 -- * Bindable instances
 
 -- $ Most of the time, instances of 'Bindable' should be derived using
--- @deriving (Generic, Nominal, Bindable)@, as in this example:
+-- @deriving (Generic, Nominal, Bindable)@, as in this example:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}

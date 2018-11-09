@@ -149,7 +149,7 @@ atom_open_for_printing sup t@(BindAtom ng f) k =
 -- * NominalSupport instances
 
 -- $ Most of the time, instances of 'NominalSupport' should be derived using
--- @deriving (Generic, NominalSupport)@, as in this example:
+-- @deriving (Generic, NominalSupport)@, as in this example:
 --
 -- > {-# LANGUAGE DeriveGeneric #-}
 -- > {-# LANGUAGE DeriveAnyClass #-}
