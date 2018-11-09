@@ -9,9 +9,8 @@
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
--- binders (sometimes also called /patterns/).  Moreover, for each
--- bindable type /a/ and nominal type /t/, it defines a type 'Bind'
--- /a/ /t/ of abstractions.
+-- binders.  Moreover, for each bindable type /a/ and nominal type
+-- /t/, it defines a type 'Bind' /a/ /t/ of abstractions.
 --
 -- We also provide some generic programming so that instances of
 -- 'Bindable' can be automatically derived in many cases.
@@ -82,15 +81,15 @@ atomlist_merge _ _ = Nothing
 -- ----------------------------------------------------------------------
 -- * Binder combinators
 
--- | A representation of patterns of type /a/. This is an abstract
+-- | A representation of binders of type /a/. This is an abstract
 -- type with no exposed structure. The only way to construct a value
--- of type 'NominalPattern' /a/ is through the 'Applicative' interface and by
+-- of type 'NominalBinder' /a/ is through the 'Applicative' interface and by
 -- using the functions 'binding' and 'nobinding'.
 
-data NominalPattern a =
-  NominalPattern [Atom] ([Atom] -> (a, [Atom]))
+data NominalBinder a =
+  NominalBinder [Atom] ([Atom] -> (a, [Atom]))
 
--- $ Implementation note: The behavior of a pattern is determined by two
+-- $ Implementation note: The behavior of a binders is determined by two
 -- things: the list of bound atom occurrences (binding sites), and a
 -- renaming function that takes such a list of atoms and returns a
 -- term. For efficiency, the renaming function is stateful: it also
@@ -100,51 +99,50 @@ data NominalPattern a =
 -- and must be accepted in the same corresponding order by the
 -- renaming function.
 --
--- If an atom occurs at multiple binding sites of the pattern, it must
--- be serialized multiple times. The corresponding renaming function
--- must accept fresh atoms and put them into the respective binding
--- sites.
+-- If an atom occurs at multiple binding sites, it must be serialized
+-- multiple times. The corresponding renaming function must accept
+-- fresh atoms and put them into the respective binding sites.
 --
 -- ==== Examples:
 --
--- > binding x = NominalPattern [x] (\(x:zs) -> (x, zs))
+-- > binding x = NominalBinder [x] (\(x:zs) -> (x, zs))
 -- >
--- > binding (x, y) = NominalPattern [x, y] (\(x:y:zs) -> ((x, y), zs))
+-- > binding (x, y) = NominalBinder [x, y] (\(x:y:zs) -> ((x, y), zs))
 -- >
--- > binding (x, NoBind y) = NominalPattern [x] (\(x:zs) -> ((x, NoBind y), zs))
+-- > binding (x, NoBind y) = NominalBinder [x] (\(x:zs) -> ((x, NoBind y), zs))
 -- >
--- > binding (x, x, y) = NominalPattern [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
+-- > binding (x, x, y) = NominalBinder [x, x, y] (\(x:x':y:zs) -> ((x, x', y), zs))
 
--- | Constructor for non-binding patterns. This can be used to mark
+-- | Constructor for non-binding binders. This can be used to mark
 -- non-binding subterms when defining a 'Bindable' instance. See
 -- <#CUSTOM "Defining custom instances"> for examples.
-nobinding :: a -> NominalPattern a
-nobinding a = NominalPattern [] (\xs -> (a, xs))
+nobinding :: a -> NominalBinder a
+nobinding a = NominalBinder [] (\xs -> (a, xs))
 
--- | Constructor for a pattern binding a single atom.
-atom_binding :: Atom -> NominalPattern Atom
-atom_binding a = NominalPattern [a] (\(a:xs) -> (a, xs))
+-- | Constructor for a binder binding a single atom.
+atom_binding :: Atom -> NominalBinder Atom
+atom_binding a = NominalBinder [a] (\(a:xs) -> (a, xs))
 
--- | Map a function over a 'NominalPattern'.
-pattern_map :: (a -> b) -> NominalPattern a -> NominalPattern b
-pattern_map f (NominalPattern xs g) = NominalPattern xs h where
+-- | Map a function over a 'NominalBinder'.
+binder_map :: (a -> b) -> NominalBinder a -> NominalBinder b
+binder_map f (NominalBinder xs g) = NominalBinder xs h where
   h xs = (f a, ys) where
     (a, ys) = g xs
 
--- | Combinator giving 'NominalPattern' an applicative structure. This is
--- used for constructing tuple binders.
-pattern_app :: NominalPattern (a -> b) -> NominalPattern a -> NominalPattern b
-pattern_app (NominalPattern xs f) (NominalPattern ys g) = NominalPattern (xs ++ ys) h where
+-- | Combinator giving 'NominalBinder' an applicative structure. This
+-- is used for constructing tuple binders.
+binder_app :: NominalBinder (a -> b) -> NominalBinder a -> NominalBinder b
+binder_app (NominalBinder xs f) (NominalBinder ys g) = NominalBinder (xs ++ ys) h where
   h zs = (a b, zs'') where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
-instance Functor NominalPattern where
-  fmap = pattern_map
+instance Functor NominalBinder where
+  fmap = binder_map
 
-instance Applicative NominalPattern where
+instance Applicative NominalBinder where
   pure = nobinding
-  f <*> b = pattern_app f b
+  f <*> b = binder_app f b
   
 -- ----------------------------------------------------------------------
 -- * The Bindable class
@@ -158,9 +156,9 @@ instance Applicative NominalPattern where
 data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)
 
--- | A type is 'Bindable' if its elements can be abstracted by
--- binders. Such elements are also called /patterns/. Examples include
--- atoms, tuples of atoms, list of atoms, etc.
+-- | A type is 'Bindable' if its elements can be abstracted. Such
+-- elements are also called /binders/, or sometimes /patterns/.
+-- Examples include atoms, tuples of atoms, list of atoms, etc.
 --
 -- In most cases, instances of 'Nominal' can be automatically
 -- derived. See <#DERIVING "Deriving generic instances"> for
@@ -168,12 +166,12 @@ data Bind a t =
 -- <#CUSTOM "Defining custom instances"> for how to write custom
 -- instances.
 class (Nominal a) => Bindable a where
-  -- | A function that maps a term to a pattern. New patterns can be
-  -- constructed using the 'Applicative' structure of 'NominalPattern'.
+  -- | A function that maps a term to a binder. New binders can be
+  -- constructed using the 'Applicative' structure of 'NominalBinder'.
   -- See <#CUSTOM "Defining custom instances"> for examples.
-  binding :: a -> NominalPattern a
+  binding :: a -> NominalBinder a
   
-  default binding :: (Generic a, GBindable (Rep a)) => a -> NominalPattern a
+  default binding :: (Generic a, GBindable (Rep a)) => a -> NominalBinder a
   binding x = gbinding (from x) to
 
 -- | Abstraction: /a/'.'/t/ represents the equivalence class of
@@ -185,11 +183,11 @@ class (Nominal a) => Bindable a where
 -- 
 -- > import Prelude hiding ((.))
 --
--- Note that @(@'.'@)@ is a binder of the /object language/ (i.e.,
+-- Note that @(@'.'@)@ is a abstraction of the /object language/ (i.e.,
 -- whatever datatype you are defining), not of the /metalanguage/
 -- (i.e., Haskell). A term such as /a/'.'/t/ only makes sense if the
 -- variable /a/ is already defined to be a particular atom.  Thus,
--- binders are often used in the context of 'Nominal.with_fresh',
+-- abstractions are often used in the context of 'Nominal.with_fresh',
 -- 'open', or an abstraction pattern, as in the following examples:
 --
 -- > with_fresh (\a -> a.a)
@@ -201,7 +199,7 @@ class (Nominal a) => Bindable a where
 (.) :: (Bindable a, Nominal t) => a -> t -> Bind a t
 a . t = Bind (fst ∘ f) (atomlist_abst xs t)
   where
-    NominalPattern xs f = binding a
+    NominalBinder xs f = binding a
 infixr 5 .
 
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
@@ -268,9 +266,9 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
     support_deletes xs (support (f xs, t))
 
 -- ----------------------------------------------------------------------
--- * Pattern matching for binders
+-- * Pattern matching for abstractions
 
--- | A pattern matching syntax for abstraction. This permits us
+-- | A pattern matching syntax for abstractions. This permits us
 -- to write
 --
 -- > f (a :. t) = body
@@ -307,7 +305,7 @@ pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
 infixr 5 :.
 
 -- ----------------------------------------------------------------------
--- * Non-binding patterns
+-- * Non-binding binders
 
 -- | The type constructor 'NoBind' permits data of arbitrary types
 -- (including nominal types) to be embedded in binders without
@@ -361,12 +359,12 @@ newtype NoBind t = NoBind t
 -- > instance Bindable MyType where
 -- >   binding = basic_binding
 --
--- In this case, a binder (/x/./t/) is equivalent to an ordinary pair
--- (/x/,/t/), since there is no bound atom that could be renamed.
+-- In this case, an abstraction (/x/./t/) is equivalent to an ordinary
+-- pair (/x/,/t/), since there is no bound atom that could be renamed.
 
 -- | A helper function for defining 'Bindable' instances
 -- for non-nominal types.
-basic_binding :: a -> NominalPattern a
+basic_binding :: a -> NominalBinder a
 basic_binding = nobinding
 
 -- Base cases
@@ -420,25 +418,25 @@ instance (Bindable a, Bindable b, Bindable c, Bindable d, Bindable e, Bindable f
 -- CPS-based implementation for performance reasons. It improves the
 -- overall performance by 14% (time) and 16% (space) in a typical
 -- benchmark.
-pattern_gpair :: NominalPattern (a x) -> NominalPattern (b x) -> ((a :*: b) x -> c) -> NominalPattern c
-pattern_gpair (NominalPattern xs f) (NominalPattern ys g) k = NominalPattern (xs ++ ys) h where
+binder_gpair :: NominalBinder (a x) -> NominalBinder (b x) -> ((a :*: b) x -> c) -> NominalBinder c
+binder_gpair (NominalBinder xs f) (NominalBinder ys g) k = NominalBinder (xs ++ ys) h where
   h zs = (k (a :*: b), zs'') where
     (a, zs') = f zs
     (b, zs'') = g zs'
 
 -- | A version of the 'Bindable' class suitable for generic programming.
 class GBindable f where
-  gbinding :: f a -> (f a -> b) -> NominalPattern b
+  gbinding :: f a -> (f a -> b) -> NominalBinder b
 
 instance GBindable V1 where
   gbinding = undefined -- never occurs, because V1 is empty
 
 instance GBindable U1 where
-  gbinding a k = NominalPattern [] (\xs -> (k a, xs))
+  gbinding a k = NominalBinder [] (\xs -> (k a, xs))
 
 instance (GBindable a, GBindable b) => GBindable (a :*: b) where
   gbinding (a :*: b) k =
-    pattern_gpair (gbinding a id) (gbinding b id) k
+    binder_gpair (gbinding a id) (gbinding b id) k
 
 instance (GBindable a, GBindable b) => GBindable (a :+: b) where
   gbinding (L1 a) k = gbinding a (\a -> k (L1 a))
@@ -448,7 +446,7 @@ instance (GBindable a) => GBindable (M1 i c a) where
   gbinding (M1 a) k = gbinding a (\a -> k (M1 a))
   
 instance (Bindable a) => GBindable (K1 i a) where
-  gbinding (K1 a) k = pattern_map k (K1 <$> binding a)
+  gbinding (K1 a) k = binder_map k (K1 <$> binding a)
 
 -- ----------------------------------------------------------------------
 -- * Miscellaneous

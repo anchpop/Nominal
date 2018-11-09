@@ -59,7 +59,7 @@ module Nominal (
   -- ** The Bindable class
   -- $BINDABLE
   Bindable(..),
-  NominalPattern,
+  NominalBinder,
 
   -- ** Non-binding patterns
   NoBind(..),
@@ -285,11 +285,12 @@ import Nominal.Generics
 
 -- $BINDABLE
 --
--- The 'Bindable' class contains things that can be abstracted by
--- binders (sometimes called /patterns/). In addition to atoms, this
--- also includes pairs of atoms, lists of atoms, and so on.
--- In most cases, new instances of 'Bindable' can be derived
--- automatically.
+-- The 'Bindable' class contains things that can be abstracted. More
+-- precisely, /x/ is /bindable/, or a /binder/, if abstractions of the
+-- form /x/./t/ can be formed.  Sometimes binders are also called
+-- /patterns/. In addition to atoms, binders include pairs of atoms,
+-- lists of atoms, and so on.  In most cases, new instances of
+-- 'Bindable' can be derived automatically.
 
 -- ----------------------------------------------------------------------
 
@@ -477,8 +478,8 @@ import Nominal.Generics
 -- ==== Bindable
 --
 -- The 'Bindable' class requires a function 'binding', which maps a
--- term to the corresponding pattern. The recursive cases use the
--- 'Applicative' structure of the 'NominalPattern' type. 
+-- term to the corresponding binder. The recursive cases use the
+-- 'Applicative' structure of the 'NominalBinder' type. 
 -- 
 -- Here is how we could define a 'Bindable' instance for the
 -- @MyTree@ type. We use the \"applicative do\" notation for
@@ -495,9 +496,9 @@ import Nominal.Generics
 -- >     r' <- binding r
 -- >     pure (Branch a' l' r')
 --
--- To embed non-binding sites within a pattern, replace 'binding' by
+-- To embed non-binding sites within a binder, replace 'binding' by
 -- 'nobinding' in the recursive call. For further discussion of
--- non-binding patterns, see also 'NoBind'. Here is an example:
+-- non-binding binders, see also 'NoBind'. Here is an example:
 --
 -- > {-# LANGUAGE ApplicativeDo #-}
 -- > 
