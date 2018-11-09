@@ -296,7 +296,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- >   | otherwise = ...
 pattern (:.) :: (Nominal b, Bindable a) => a -> b -> Bind a b 
 pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
-infix 5 :.
+infixr 5 :.
 
 -- ----------------------------------------------------------------------
 -- * Non-binding patterns
