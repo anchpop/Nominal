@@ -18,7 +18,8 @@ import Nominal.ConcreteNames
 -- names.
 -- 
 -- The use of 'unsafePerformIO' in this function is safe, because it
--- is only called once and serves to create a global reference cell.
+-- is only called once and serves to create a unique global reference
+-- cell.
 {-# NOINLINE global_used #-}
 global_used :: IORef (Set String)
 global_used = unsafePerformIO $ do
@@ -35,9 +36,11 @@ global_new_io ng = do
   return n
 
 -- | Create a globally new concrete name based on the given name
--- suggestion. The use of 'unsafePerformIO' in this function is safe
--- if the user respects the correctness conditions associated with the
--- function 'with_fresh' and other analogous functions.
+-- suggestion.
+-- 
+-- The use of 'unsafePerformIO' in this function is safe, provided
+-- that the user only uses API functions and respects Pitts's
+-- freshness condition.
 {-# NOINLINE global_new #-}
 global_new :: NameGen -> String
 global_new ng = unsafePerformIO (global_new_io ng)
@@ -47,18 +50,20 @@ global_new ng = unsafePerformIO (global_new_io ng)
 -- monad instead of the 'IO' monad. To ensure referential
 -- transparency, the unique value must not escape the function body.
 --
--- The use of 'unsafePerformIO' in this function is safe if the user
--- respects the correctness conditions associated with the function
--- 'with_fresh' and other analogous functions.
+-- The use of 'unsafePerformIO' in this function is safe, provided
+-- that the user only uses API functions and respects Pitts's
+-- freshness condition.
 {-# NOINLINE with_unique #-}
 with_unique :: (Unique -> a) -> a
 with_unique k = unsafePerformIO $ do
   x <- newUnique
   return (k x)
 
--- | Unsafely embed the 'IO' monad in a continuation monad. This is in
--- general unsafe, but can be safe for certain kinds of 'IO'
--- computation if the continuation satisfies a correctness condition.
+-- | Unsafely embed the 'IO' monad in a continuation monad.
+--
+-- The use of 'unsafePerformIO' in this function is safe, provided
+-- that the user only uses API functions and respects Pitts's
+-- freshness condition.
 unsafe_with :: IO a -> (a -> b) -> b
 unsafe_with comp k = unsafePerformIO $ do
   a <- comp

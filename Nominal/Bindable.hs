@@ -53,6 +53,9 @@ atomlist_abst [] t = BindNil t
 atomlist_abst (a:as) t = BindCons (atom_abst a (atomlist_abst as t))
 
 -- | Open a list abstraction.
+--
+-- The correct use of this function is subject to Pitts's freshness
+-- condition.
 atomlist_open :: (Nominal t) => BindAtomList t -> ([Atom] -> t -> s) -> s
 atomlist_open (BindNil t) k = k [] t
 atomlist_open (BindCons body) k =
@@ -61,6 +64,9 @@ atomlist_open (BindCons body) k =
   k (a:as) t
 
 -- | Open a list abstraction for printing.
+--
+-- The correct use of this function is subject to Pitts's freshness
+-- condition.
 atomlist_open_for_printing :: (Nominal t) => Support -> BindAtomList t -> ([Atom] -> t -> Support -> s) -> s
 atomlist_open_for_printing sup (BindNil t) k = k [] t sup
 atomlist_open_for_printing sup (BindCons body) k =

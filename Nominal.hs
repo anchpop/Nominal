@@ -578,4 +578,7 @@ import Nominal.Generics
 -- Haskell does not enforce this restriction, but if a program
 -- violates it, referential transparency may not hold, which could in
 -- the worst case lead to unsound compiler optimizations and undefined
--- behavior.
+-- behavior. For example, the following incorrect use of 'with_fresh'
+-- violates referential transparency:
+-- 
+-- > with_fresh id != with_fresh id.

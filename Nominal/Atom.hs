@@ -66,15 +66,10 @@ fresh_atom ng = do
 -- ----------------------------------------------------------------------
 -- ** Creation of fresh atoms in a scope
 
--- | Create a fresh atom with the given name and name suggestions.  To
--- ensure soundness, the created atom must not escape the body of the
--- 'Nominal.Atomic.with_fresh' block. Otherwise, referential
--- transparency may be violated. For example,
+-- | Create a fresh atom with the given name and name suggestions.
 --
--- > with_fresh id != with_fresh id.
---
--- See the documentation of 'Nominal.Atomic.with_fresh' for more
--- information on the correctness criterion.
+-- The correct use of this function is subject to
+-- Pitts's freshness condition.
 with_fresh_atom_named :: String -> NameGen -> (Atom -> a) -> a
 with_fresh_atom_named n ng k =
   with_unique (\x -> k (Atom x n ng))
@@ -84,6 +79,9 @@ with_fresh_atom_named n ng k =
 -- Here, the call to 'global_new' is performed lazily (outside of the
 -- 'IO' monad), so an actual concrete name will only be computed on
 -- demand.
+--
+-- The correct use of this function is subject to
+-- Pitts's freshness condition.
 with_fresh_atom :: NameGen -> (Atom -> a) -> a
 with_fresh_atom ng k =
   with_fresh_atom_named (global_new ng) ng k

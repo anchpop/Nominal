@@ -83,9 +83,8 @@ atom_abst a t = BindAtom (atom_names a) (\x -> Defer (perm_swap a x) t)
 --
 -- binds /x/ to a fresh name and /t/ to a term such that /x/./t/ = /y/./s/.
 -- 
--- To be referentially transparent and equivariant, the body is
--- subject to the same restriction as 'with_fresh', namely,
--- /x/ must be fresh for the body (in symbols /x/ # /body/).
+-- The correct use of this function is subject to Pitts's freshness
+-- condition.
 atom_open :: (Nominal t) => BindAtom t -> (Atom -> t -> s) -> s
 atom_open (BindAtom ng f) k =
   with_fresh_atom ng (\a -> k a (force (f a)))
