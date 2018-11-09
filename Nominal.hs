@@ -567,7 +567,7 @@ import Nominal.Generics
 -- we must have /a/ # /body/. See [Pitts 2002] or [Pitts 2013] for
 -- more information on what this means.
 --
--- The following functions are subject to the freshness condition:
+-- The following exported functions are subject to the freshness condition:
 -- 'with_fresh', 
 -- 'with_fresh_named', 
 -- 'with_fresh_namelist',
