@@ -47,7 +47,7 @@ subst m x (Var y)
   | x == y = m
   | otherwise = Var y
 subst m x (App t s) = App (subst m x t) (subst m x s)
-subst m x (Abs body) = open body (\y s -> Abs (y . subst m x s))
+subst m x (Abs (y :. t)) = Abs (y . subst m x t)
 
 -- ----------------------------------------------------------------------
 -- * Free variables
@@ -56,7 +56,7 @@ subst m x (Abs body) = open body (\y s -> Abs (y . subst m x s))
 fv :: Term -> Set Variable
 fv (Var x) = Set.singleton x
 fv (App m n) = fv m `Set.union` fv n
-fv (Abs t) = open t (\x s -> Set.delete x (fv s))
+fv (Abs (x :. t)) = Set.delete x (fv t)
 
 -- ----------------------------------------------------------------------
 -- * Evaluation
@@ -68,7 +68,7 @@ reduce (App m n) =
   case reduce m of
    Abs t -> open t (\x s -> reduce (subst n x s))
    m' -> App m' (reduce n)
-reduce (Abs t) = open t (\x s -> Abs (x.reduce s))
+reduce (Abs (x :. t)) = Abs (x.reduce t)
 
 -- ----------------------------------------------------------------------
 -- * Some example terms
