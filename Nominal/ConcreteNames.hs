@@ -19,6 +19,10 @@
 -- name suggestions. In particular, if one name has a user-specified
 -- suggestion and the other one does not, we always use the
 -- user-specified one.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.ConcreteNames where
 

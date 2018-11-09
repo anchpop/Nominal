@@ -3,6 +3,10 @@
 -- | This module provides three primitive functions that use
 -- 'unsafePerformIO'. These functions are only safe if used correctly.
 -- How to use each function correctly is specified in its documentation.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.Unsafe where
 

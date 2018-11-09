@@ -27,6 +27,10 @@
 -- or @(/x/,/y/).(/y/,/y/)@. Which of the two alternatives is chosen
 -- is implementation specific and user code should not rely on the
 -- order of abstractions in such cases.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.Bindable where
 

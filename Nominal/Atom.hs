@@ -1,6 +1,10 @@
 -- | This module provides a type of atoms. An atom is a globally
 -- unique identifier that also has a concrete name, as well as
 -- additional name suggestions (in case it must be renamed).
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.Atom where
 

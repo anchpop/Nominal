@@ -1,6 +1,10 @@
 -- | This module provides an efficient implementation of finitely
 -- supported permutations of atoms.  Compositions and inverses can
 -- both be computed with O(/n/) 'Map' lookup operations.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.Permutation where
 

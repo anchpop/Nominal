@@ -5,6 +5,10 @@
 -- | This module provides the class 'Atomic', which generalizes the
 -- type 'Atom'. The purpose of this is to allow users to define more
 -- than one type of atoms.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.Atomic where
 

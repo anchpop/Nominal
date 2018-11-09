@@ -7,6 +7,10 @@
 -- extension of 'Show' with support for renaming of bound variables.
 -- We also provide generic programming so that instances of
 -- 'NominalShow' can be automatically derived in most cases.
+--
+-- This module exposes implementation details of the Nominal library,
+-- and should not normally be imported. Users of the library should
+-- only import the top-level module "Nominal".
 
 module Nominal.NominalShow where
 
