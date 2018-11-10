@@ -10,3 +10,8 @@ Author: Peter Selinger <selinger@mathstat.dal.ca>
 Copyright (c) 2016-2018 Peter Selinger
 
 License: GPL-3 (see LICENSE)
+
+Install with:
+
+  cabal update
+  cabal install nominal
