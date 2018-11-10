@@ -45,8 +45,8 @@ module Nominal (
   Basic(..),
   
   -- * Binders
-  -- ** Abstractions
   Bind,
+  -- ** Basic operations
   (.),
   pattern (:.),
   abst,
@@ -298,9 +298,25 @@ import Nominal.Generics
 -- The 'Bindable' class contains things that can be abstracted. More
 -- precisely, /x/ is /bindable/, or a /binder/, if abstractions of the
 -- form /x/./t/ can be formed.  Sometimes binders are also called
--- /patterns/. In addition to atoms, binders include pairs of atoms,
--- lists of atoms, and so on.  In most cases, new instances of
--- 'Bindable' can be derived automatically.
+-- /patterns/, but we avoid this terminology here, to avoid confusion
+-- with pattern matching, which is a separate operation from binding.
+--
+-- In addition to atoms, binders include pairs of atoms, lists of
+-- atoms, and so on.  In most cases, new instances of 'Bindable' can
+-- be derived automatically.
+-- 
+-- For example, @(/x/,/y/)./t/@ binds a pair of atoms in /t/. It is
+-- roughly equivalent to @/x/./y/./t/@, except that it is of type
+-- 'Bind' ('Atom', 'Atom') /t/ instead of
+-- 'Bind' 'Atom' ('Bind' 'Atom' /t/).
+--
+-- When a binder contains repeated atoms, they are regarded as
+-- distinct, and are bound one at a time, in some fixed but
+-- unspecified order. For example, @(/x/,/x/).(/x/,/x/)@ is equivalent
+-- to either @(/x/,/y/).(/x/,/x/)@ or @(/x/,/y/).(/y/,/y/)@. Which of
+-- the two alternatives is chosen is implementation specific and user
+-- code should not rely on the order of abstractions in such cases.
+
 
 -- ----------------------------------------------------------------------
 
