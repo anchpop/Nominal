@@ -21,7 +21,7 @@ description:
   nominal sets.
 
 -- URL for the project homepage or repository.
--- homepage:
+homepage:            https://bitbucket.org/selinger/nominal/
 
 -- The license under which the package is released.
 license:             GPL-3
