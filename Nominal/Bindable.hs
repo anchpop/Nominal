@@ -261,7 +261,8 @@ pattern a :. t <- ((\body -> open body (\a t -> (a,t))) -> (a, t))
  where
    a :. t = a . t
 infixr 5 :.
-
+{-# COMPLETE (:.) #-}
+  
 -- | An alternative non-infix notation for @(@'.'@)@. This can be
 -- useful when using qualified module names, because \"̈@Nominal..@\" is not
 -- valid syntax.
