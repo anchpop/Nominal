@@ -19,6 +19,7 @@ import Nominal.ConcreteNames
 import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
+import Nominal.NominalShow
 import Nominal.Bindable
 import Nominal.Unsafe
 
@@ -277,14 +278,17 @@ class AtomKind a where
 newtype AtomOfKind a = AtomOfKind Atom
   deriving (Eq, Ord, Generic, Bindable)
 
-instance (AtomKind a) => Show (AtomOfKind a) where
-  show = atomic_show
-
 instance (AtomKind a) => Nominal (AtomOfKind a) where
   π • (AtomOfKind a) = AtomOfKind (π • a)
 
 instance (AtomKind a) => NominalSupport (AtomOfKind a) where
   support (AtomOfKind a) = support a
+
+instance (AtomKind a) => NominalShow (AtomOfKind a) where
+  showsPrecSup sup d t = showString (atomic_show t)
+
+instance (AtomKind a) => Show (AtomOfKind a) where
+  show = atomic_show
 
 instance (AtomKind a) => Atomic (AtomOfKind a) where
   to_atom (AtomOfKind a) = a

@@ -40,6 +40,7 @@ import GHC.Generics
 import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
+import Nominal.NominalShow
 
 -- ----------------------------------------------------------------------
 -- * Binding lists of atoms
@@ -166,6 +167,15 @@ instance Applicative NominalBinder where
 
 data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)
+
+instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
+  showsPrecSup sup d t =
+    open_for_printing sup t $ \a s sup' ->
+      showParen (d > 5) $
+        showString (nominal_show a ++ " . " ++ showsPrecSup sup' 5 s "")
+
+instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
+  showsPrec = nominal_showsPrec
 
 -- | A type is 'Bindable' if its elements can be abstracted. Such
 -- elements are also called /binders/, or sometimes /patterns/.
@@ -472,14 +482,3 @@ instance (GBindable a) => GBindable (M1 i c a) where
 instance (Bindable a) => GBindable (K1 i a) where
   gbinding (K1 a) k = binder_map k (K1 <$> binding a)
 
--- ----------------------------------------------------------------------
--- * Miscellaneous
-
--- | Function composition.
--- 
--- Since we hide (.) from the standard library, and the fully
--- qualified name of the "Prelude"'s dot operator, \"̈@Prelude..@\", is
--- not legal syntax, we provide '∘' as an alternate notation for
--- composition.
-(∘) :: (b -> c) -> (a -> b) -> (a -> c)
-(g ∘ f) x = g (f x)

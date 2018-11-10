@@ -24,8 +24,6 @@ import GHC.Generics
 import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
-import Nominal.Bindable
-import Nominal.Atomic
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -112,7 +110,7 @@ basic_showsPrecSup sup d x = showsPrec d x
 -- Base cases
 
 instance NominalShow Atom where
-  showsPrecSup sup d t = showString (atomic_show t)
+  showsPrecSup sup d t = showString (atom_show t)
 
 instance NominalShow Bool where
   showsPrecSup = basic_showsPrecSup
@@ -162,15 +160,6 @@ instance (NominalShow t) => NominalShow [t] where
 instance (NominalShow t) => NominalShow (Defer t) where
   showsPrecSup sup d t = showsPrecSup sup d (force t)
 
-instance (AtomKind a) => NominalShow (AtomOfKind a) where
-  showsPrecSup sup d t = showString (atomic_show t)
-
-instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
-  showsPrecSup sup d t =
-    open_for_printing sup t $ \a s sup' ->
-      showParen (d > 5) $
-        showString (nominal_show a ++ " . " ++ showsPrecSup sup' 5 s "")
-
 instance (Ord k, NominalShow k, NominalShow v) => NominalShow (Map k v) where
   showsPrecSup sup d m =
     showParen (d > 10) $
@@ -180,9 +169,6 @@ instance (Ord k, NominalShow k) => NominalShow (Set k) where
   showsPrecSup sup d s =
     showParen (d > 10) $
       showString "fromList " ∘ showsPrecSup sup 11 (Set.toList s)
-
-instance (Bindable a, NominalShow a, NominalShow t) => Show (Bind a t) where
-  showsPrec = nominal_showsPrec
 
 -- ----------------------------------------------------------------------
 -- * Generic programming for NominalShow
@@ -263,3 +249,15 @@ instance (GNominalShow a, Selector c) => GNominalShow (M1 S c a) where
 
 instance (NominalShow a) => GNominalShow (K1 i a) where
   gshowsPrecSup sep sup d (K1 x) = showsPrecSup sup d x
+
+-- ----------------------------------------------------------------------
+-- * Miscellaneous
+
+-- | Function composition.
+-- 
+-- Since we hide (.) from the standard library, and the fully
+-- qualified name of the "Prelude"'s dot operator, \"̈@Prelude..@\", is
+-- not legal syntax, we provide '∘' as an alternate notation for
+-- composition.
+(∘) :: (b -> c) -> (a -> b) -> (a -> c)
+(g ∘ f) x = g (f x)
