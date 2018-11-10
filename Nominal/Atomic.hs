@@ -253,10 +253,10 @@ class AtomKind a where
 
   -- | An optional function for generating infinitely many distinct
   -- names from a finite list of suggestions. The default behavior is
-  -- to append numerical subscripts. For example, the names @[x, y,
-  -- z]@ are by default expanded to @[x, y, z, x₁, y₁, z₁, x₂, y₂,
-  -- …]@, using Unicode for the subscripts.  To use a a different
-  -- naming convention, redefine 'expand_names'.
+  -- to append numerical subscripts. For example, the names
+  -- @[x, y, z]@ are by default expanded to @[x, y, z, x₁, y₁, z₁,
+  -- x₂, y₂, …]@, using Unicode for the subscripts.  To use a a
+  -- different naming convention, redefine 'expand_names'.
   -- 
   -- It is not strictly necessary for all of the returned names to be
   -- distinct; it is sufficient that there are infinitely many
