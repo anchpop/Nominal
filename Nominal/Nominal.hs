@@ -103,7 +103,7 @@ instance (Nominal t) => Nominal (BindAtom t) where
 --
 -- > merge (x.t) (x.s) = (x.(t,s))
 atom_merge :: (Nominal t, Nominal s) => BindAtom t -> BindAtom s -> BindAtom (t,s)
-atom_merge (BindAtom ng f) (BindAtom ng' g) = (BindAtom ng'' h) where
+atom_merge (BindAtom ng f) (BindAtom ng' g) = BindAtom ng'' h where
   ng'' = combine_names ng ng'
   h x = Defer perm_identity (force (f x), force (g x))
 

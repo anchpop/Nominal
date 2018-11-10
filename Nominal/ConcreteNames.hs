@@ -68,7 +68,7 @@ expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..]
   where
     xs1 = [ x | x <- xs0, x /= "" ]
     xs2 = [ y | x <- xs0, let y = takeWhile isAlphaOrWild x, y /= "" ]
-    xs3 = if xs2 == [] then default_names else xs2
+    xs3 = if null xs2 then default_names else xs2
 
 -- | A name generator consists of a (possibly finite) list of name
 -- suggestions and an /expander/, which is a function for generating
