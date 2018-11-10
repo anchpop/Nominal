@@ -112,7 +112,7 @@ nested 0 t = t
 nested n t = lam (\x -> nested (n-1) (t @@ x))
 
 -- ----------------------------------------------------------------------
--- | A pretty-printer for terms.
+-- * A pretty-printer for terms.
 
 -- | Optional parentheses.
 paren :: Bool -> String -> String
