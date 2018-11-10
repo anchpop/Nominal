@@ -611,13 +611,14 @@ import Nominal.Generic
 -- 'open_for_printing',
 -- as well as the use of abstraction patterns @(@':.'@)@.
 --
--- Haskell does not enforce this restriction, but if a program
+-- Haskell does not enforce this restriction. But if a program
 -- violates it, referential transparency may not hold, which could in
--- the worst case lead to unsound compiler optimizations and undefined
--- behavior. For example, the following incorrect use of 'with_fresh'
--- violates referential transparency:
+-- theory lead to unsound compiler optimizations and undefined
+-- behavior. Here is an example of an incorrect use of 'with_fresh'
+-- that violates referential transparency:
 -- 
--- > with_fresh id != with_fresh id.
+-- >>> (with_fresh id :: Atom) == (with_fresh id :: Atom)
+-- False
 
 ----------------------------------------------------------------------
 
