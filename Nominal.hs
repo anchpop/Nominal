@@ -111,7 +111,8 @@ module Nominal (
   -- * Miscellaneous
   (∘),
   module Nominal.Generics
-
+  -- $GENERICS
+  
   -- $RELATED_ANCHOR
   
   -- * Related Work
@@ -617,6 +618,13 @@ import Nominal.Generics
 -- violates referential transparency:
 -- 
 -- > with_fresh id != with_fresh id.
+
+----------------------------------------------------------------------
+
+-- $GENERICS
+--
+-- We re-export the "Generic" type class for convenience, so that
+-- users do not have to import "GHC.Generics".
 
 ----------------------------------------------------------------------
 
