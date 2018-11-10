@@ -1,8 +1,9 @@
 /local
+/dist
+*~
 *.o
 *.hi
-*~
-/dist
 *.orig
 *.rej
+*.bak
 nominal-*.*.*.*
