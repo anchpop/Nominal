@@ -1,4 +1,16 @@
 ChangeLog
 
+v0.2.0.0 2018/11/10
+	(2018/11/09) PS1 - documentation updates: added related works,
+	acknowledgements, and references. Added a README file for
+	bitbucket.
+	(2018/11/09) PS1 - renamed Nominal.Generics as Nominal.Generic.
+	(2018/11/09) PS1 - added type class instances for Ordering, Maybe,
+	and Either.
+	(2018/11/09) PS1 - renamed NominalPattern to NominalBinder, to
+	avoid confusion between Haskell patterns and Nominal binders.
+	(2018/11/09) PS1 - added abstraction patterns (:.).
+	(2018/11/09) PS1 - removed unused open2 functions.
+
 v0.1.0.0 2018/11/08
 	Initial public release.

@@ -1,6 +1,8 @@
 # Also try this using newest Haskell Platform if possible - e.g. in
 # virtual machine.
 
+make spellcheck
+
 cabal clean
 cabal configure
 cabal build --ghc-options="-Wall -fno-warn-name-shadowing -fno-warn-unused-matches -fno-warn-type-defaults -fno-warn-unused-local-binds -fno-warn-orphans" 
@@ -18,6 +20,9 @@ cabal build --ghc-options="-Wall -fno-warn-name-shadowing -fno-warn-unused-match
 cabal clean
 cabal configure
 cabal build
+
+make examples-clean
+ghc examples/*.hs -Wall -fno-warn-unused-matches -fno-warn-name-shadowing
 
 make doc-for-upload
 
@@ -37,6 +42,4 @@ make doc-upload -o doc
 git commit -a
 grep version: *cabal
 git tag X.X.X.X
-
-----------------------------------------------------------------------
-* Also update website: https://www.mathstat.dal.ca/~selinger/newsynth/
+git push

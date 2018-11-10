@@ -39,7 +39,10 @@ dist: dist/setup/setup
 conf dist/setup/setup: ${PACKAGE}.cabal
 	cabal configure
 
-clean: 
+examples-clean:
+	rm -f examples/*.o examples/*.hi
+
+clean: examples-clean
 	cabal clean
 	rm -rf ${PACKAGE}-${VERSION}-docs
 	rm -f ${PACKAGE}-${VERSION}-docs.tar.gz
