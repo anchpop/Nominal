@@ -161,7 +161,8 @@ instance Applicative NominalBinder where
 -- in the nominal logic literature. Its elements are pairs (/a/,/t/)
 -- modulo alpha-equivalence. We also write /a/'.'/t/ for such an
 -- equivalence class of pairs. For full technical details on what this
--- means, see Definition 4 of [Pitts 2002].
+-- means, see Definition 4 of
+-- <#PITTS2003 [Pitts 2003]>.
 
 data Bind a t =
   Bind ([Atom] -> a) (BindAtomList t)

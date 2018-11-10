@@ -2,8 +2,8 @@
 
 -- | An efficient and easy-to-use library for defining datatypes with
 -- binders, and automatically handling bound variables and
--- alpha-equivalence. It is based on Gabbay and Pitts's theory of
--- nominal sets.
+-- alpha-equivalence. It is based on <#GP1999 Gabbay and Pitts>'s
+-- theory of nominal sets.
 --
 -- Users should only import the top-level module "Nominal", which
 -- exports all the relevant functionality in a clean and abstract way.
@@ -111,6 +111,11 @@ module Nominal (
   -- * Miscellaneous
   (∘),
   module Nominal.Generics
+
+  -- $BIBLIOGRAPHY_ANCHOR
+  
+  -- * Bibliography
+  -- $BIBLIOGRAPHY
 )
 where
 
@@ -562,7 +567,8 @@ import Nominal.Generics
 -- To ensure soundness (referential transparency and equivariance),
 -- all functions that generate a fresh name in a local scope must
 -- satisfy a certain condition known as Pitts's /freshness/
--- /condition/ /for/ /binders/ (see Chapter 4.5 of [Pitts 2013]).
+-- /condition/ /for/ /binders/ (see Chapter 4.5 of 
+-- <#PITTS2013 [Pitts 2013]>).
 --
 -- Informally, this condition means that the fresh atom must not
 -- escape the body of the block in which it was created. Thus, for
@@ -580,8 +586,9 @@ import Nominal.Generics
 --
 -- > with_fresh (\a -> body),
 --
--- we must have /a/ # /body/. See [Pitts 2002] or [Pitts 2013] for
--- more information on what this means.
+-- we must have /a/ \# /body/.  See <#PITTS2003 [Pitts 2003]> or
+-- <#PITTS2013 [Pitts 2013]> for more information on what this
+-- means.
 --
 -- The following exported functions are subject to the freshness condition:
 -- 'with_fresh', 
@@ -598,3 +605,27 @@ import Nominal.Generics
 -- violates referential transparency:
 -- 
 -- > with_fresh id != with_fresh id.
+
+----------------------------------------------------------------------
+
+-- $BIBLIOGRAPHY_ANCHOR #BIBLIOGRAPHY#
+
+-- $BIBLIOGRAPHY
+--
+-- #GB1999#
+-- 
+-- * M. J. Gabbay and A. M. Pitts. "A New
+-- Approach to Abstract Syntax Involving Binders".  Proceedings of the
+-- 14th Annual IEEE Symposium on Logic in Computer Science (LICS'99),
+-- pages 214-224, July 1999.
+-- 
+-- #PITTS2003#
+--
+-- * M. Pitts. "Nominal logic, a first order theory of
+-- names and binding". Information and Computation 186:165–193, 2003.
+--
+-- #PITTS2013#
+--
+-- * M. Pitts. "Nominal Sets: Names and Symmetry in
+-- Computer Science". Cambridge University Press, 2013.
+
