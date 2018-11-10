@@ -6,7 +6,7 @@
 -- and should not normally be imported. Users of the library should
 -- only import the top-level module "Nominal".
 
-module Nominal.Generics (
+module Nominal.Generic (
   Generic
   )
 where

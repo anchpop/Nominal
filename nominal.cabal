@@ -70,7 +70,7 @@ library
                        Nominal.NominalShow,
                        Nominal.Bindable,
                        Nominal.Atomic,
-                       Nominal.Generics
+                       Nominal.Generic
   
   -- Modules included in this library but not exported.
   -- other-modules:

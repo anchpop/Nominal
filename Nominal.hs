@@ -110,7 +110,7 @@ module Nominal (
   
   -- * Miscellaneous
   (∘),
-  module Nominal.Generics
+  module Nominal.Generic
   -- $GENERICS
   
   -- $RELATED_ANCHOR
@@ -138,7 +138,7 @@ import Nominal.NominalSupport
 import Nominal.Bindable
 import Nominal.Atomic
 import Nominal.NominalShow
-import Nominal.Generics
+import Nominal.Generic
 
 -- ----------------------------------------------------------------------
 
