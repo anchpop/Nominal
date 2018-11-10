@@ -112,10 +112,15 @@ module Nominal (
   (∘),
   module Nominal.Generics
 
-  -- $BIBLIOGRAPHY_ANCHOR
+  -- $RELATED_ANCHOR
   
-  -- * Bibliography
-  -- $BIBLIOGRAPHY
+  -- * Related Work
+  -- $RELATED
+
+  -- $REFERENCES_ANCHOR
+  
+  -- * References
+  -- $REFERENCES
 )
 where
 
@@ -608,24 +613,83 @@ import Nominal.Generics
 
 ----------------------------------------------------------------------
 
--- $BIBLIOGRAPHY_ANCHOR #BIBLIOGRAPHY#
+-- $RELATED_ANCHOR #RELATED#
 
--- $BIBLIOGRAPHY
+-- $RELATED
 --
+-- <#CHENEY2005 [Cheney 2005]> and
+-- <#WYS2011 [Weirich, Yorgey, and Sheard 2011]> describe
+-- Haskell implementations of binders using generic programming. While
+-- there are many similarities, these implementations differ from the
+-- "Nominal" library in several respects.
+-- 
+-- 1. /No higher-order nominal types./ The implementation by Weirich
+-- et al. is based on the locally nameless approach, and therefore
+-- function types cannot appear under binders. Although Cheney's
+-- implementation is based on the nominal approach, it requires the
+-- relation /a/ \# /t/ to be decidable for all nominal types, and
+-- therefore function types cannot be nominal.
+--
+-- 2. /Freshness monad vs. scoped freshness./ The libraries by Cheney
+-- and by Weirich et al. both use a freshness monad; all operations
+-- that create fresh names (such as 'open') take place in this monad.
+-- While this is semantically sound, it has some disadvantages: (a)
+-- every computation with binders must be threaded through the monad,
+-- even when used within a deeply nested subexpression, giving rise to
+-- an unnatural programming style; (b) Computations must be threaded
+-- through the monad even though the user is aware, in all relevant
+-- use cases, that the defined functions are in fact pure (i.e., the
+-- freshness state is inessential); (c) the use of a freshness monad
+-- precludes the use of abstraction patterns. The "Nominal" library
+-- uses /scoped freshness/ instead of a freshness monad. This lends
+-- itself to a more natural programming style. The price to pay for
+-- this is that the user must ensure that fresh names are only used in
+-- the local scope in which they were generated. Formally, the user
+-- must adhere to a correctness criterion
+-- (<#CONDITION Pitts's freshness condition>) that cannot be checked
+-- by the compiler.
+--
+-- 3. /Simplicity./ The library by Weirich et al. has many advanced
+-- features, such as set-binders, recursive patterns, nested bindings,
+-- and an exposed interface for certain low-level atom manipulations.
+-- The "Nominal" library lacks these features. Instead, it focuses on
+-- ease of use and an efficient implementation of a core set of
+-- functionalities. It is hoped, but remains to be seen, whether these
+-- are sufficiently general and robust to permit more advanced
+-- features to be implemented in user space on top of the library.
+
+----------------------------------------------------------------------
+
+-- $REFERENCES_ANCHOR #REFERENCES#
+
+-- $REFERENCES
+--
+-- #CHENEY2005#
+--
+-- * J. Cheney. "Scrap your nameplate (functional pearl)". Proceedings
+-- of the 10th ACM SIGPLAN International Conference on Functional
+-- Programming (ICFP 2005), pages 180–191, 2005.
+-- 
 -- #GB1999#
 -- 
--- * M. J. Gabbay and A. M. Pitts. "A New
--- Approach to Abstract Syntax Involving Binders".  Proceedings of the
--- 14th Annual IEEE Symposium on Logic in Computer Science (LICS'99),
--- pages 214-224, July 1999.
+-- * M. J. Gabbay and A. M. Pitts. "A new approach to abstract syntax
+-- involving binders".  Proceedings of the 14th Annual IEEE Symposium
+-- on Logic in Computer Science (LICS 1999), pages 214–224, 1999.
 -- 
 -- #PITTS2003#
 --
--- * M. Pitts. "Nominal logic, a first order theory of
--- names and binding". Information and Computation 186:165–193, 2003.
+-- * M. Pitts. "Nominal logic, a first order theory of names and
+-- binding". Information and Computation 186:165–193, 2003.
 --
 -- #PITTS2013#
 --
--- * M. Pitts. "Nominal Sets: Names and Symmetry in
--- Computer Science". Cambridge University Press, 2013.
+-- * M. Pitts. "Nominal sets: names and symmetry in computer
+-- science". Cambridge University Press, 2013.
+--
+-- #WYS2011#
+--
+-- * S. Weirich, B. A. Yorgey, and T. Sheard. "Binders unbound".
+-- Proceedings of the 16th ACM SIGPLAN International Conference on
+-- Functional Programming (ICFP 2011), pages 333–345, 2011.
+-- Implementation at <http://hackage.haskell.org/package/unbound>.
 
