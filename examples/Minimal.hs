@@ -3,6 +3,8 @@
 
 -- | A minimal example illustrating the "Nominal" library.
 
+module Minimal where
+
 import Nominal
 import Prelude hiding ((.))
 

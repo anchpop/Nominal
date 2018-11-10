@@ -4,6 +4,8 @@
 -- | This file illustrates how to derive generic instances for
 -- 'Nominal', 'NominalSupport', 'NominalShow', and 'Bindable'.
 
+module GenericInstances where
+
 import Nominal
 import Prelude hiding ((.))
 

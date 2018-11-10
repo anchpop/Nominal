@@ -7,6 +7,8 @@
 -- derived. See "GenericInstances" for how to derive these instances
 -- automatically.
 
+module CustomInstances where
+
 import Nominal
 import Prelude hiding ((.))
 
