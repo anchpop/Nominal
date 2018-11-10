@@ -110,3 +110,50 @@ multilam n t = lam (\x -> multilam (n-1) t)
 nested :: Integer -> Term -> Term
 nested 0 t = t
 nested n t = lam (\x -> nested (n-1) (t @@ x))
+
+-- ----------------------------------------------------------------------
+-- | A pretty-printer for terms.
+
+-- | Optional parentheses.
+paren :: Bool -> String -> String
+paren False s = s
+paren True s = "(" ++ s ++ ")"
+
+-- | Pretty-printing with precedence and support.
+pretty_aux :: Support -> Int -> Term -> String
+pretty_aux sup d (Var x) = show x
+pretty_aux sup d (App m n) = paren (d > 10) $
+  pretty_aux sup 10 m ++ " " ++ pretty_aux sup 11 n
+pretty_aux sup d (Abs body) = open_for_printing sup body $ \x m sup ->
+  paren (d > 1) $
+    "λ" ++ show x ++ "." ++ pretty_aux sup 1 m
+
+-- | Top-level function for pretty-printing.
+pretty :: Term -> IO ()
+pretty m = putStrLn (pretty_aux (support m) 0 m)
+
+-- ----------------------------------------------------------------------
+-- * Now try it!
+
+-- $ Here are some things you can try:
+--
+-- >>> z
+-- >>> s
+-- >>> plus
+-- >>> pretty z
+-- >>> pretty s
+-- >>> pretty plus
+-- >>> pretty times
+-- >>> pretty $ church 1
+-- >>> pretty $ church 2
+-- >>> pretty $ church 3
+-- >>> pretty $ plus @@ church 2 @@ church 2
+-- >>> pretty $ reduce (plus @@ church 2 @@ church 2)
+-- >>> plus @@ church 2 @@ church 2 == church 4
+-- >>> reduce (plus @@ church 2 @@ church 2) == church 4
+-- >>> x <- fresh_named "x" :: IO Variable
+-- >>> y <- fresh_named "y" :: IO Variable
+-- >>> let k = Abs (x . App (Var x) (Var y))
+-- >>> pretty k
+-- >>> fv k
+-- >>> pretty $ subst z y k
