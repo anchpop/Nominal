@@ -119,6 +119,9 @@ module Nominal (
 
   -- $REFERENCES_ANCHOR
   
+  -- * Acknowledgements
+  -- $ACKNOWLEDGEMENTS
+
   -- * References
   -- $REFERENCES
 )
@@ -206,6 +209,10 @@ import Nominal.Generics
 -- patterns implement what is informally known as
 -- /Barendregt's variable convention/, i.e., the names of bound
 -- variables are always assumed to be fresh.
+--
+-- See the folder
+-- <http://hackage.haskell.org/package/nominal/src/examples/ \"examples\">
+-- for additional examples.
 
 -- ----------------------------------------------------------------------
 
@@ -657,6 +664,14 @@ import Nominal.Generics
 -- functionalities. It is hoped, but remains to be seen, whether these
 -- are sufficiently general and robust to permit more advanced
 -- features to be implemented in user space on top of the library.
+
+----------------------------------------------------------------------
+
+-- $ACKNOWLEDGEMENTS
+--
+-- Thanks to Frank Fu for stress-testing the library and insisting on
+-- efficiency. Thanks to Andrew Pitts for helpful suggestions, and
+-- especially for nudging me to implement abstraction patterns.
 
 ----------------------------------------------------------------------
 
