@@ -19,6 +19,9 @@ description:
   binders, and automatically handling bound variables and
   alpha-equivalence. It is based on Gabbay and Pitts's theory of
   nominal sets.
+  .
+
+  See "Nominal" for an overview and the full documentation.
 
 -- URL for the project homepage or repository.
 homepage:            https://bitbucket.org/selinger/nominal/
