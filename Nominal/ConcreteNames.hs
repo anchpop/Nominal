@@ -64,7 +64,7 @@ isAlphaOrWild c = isAlpha c || c == '_'
 -- | Generate an infinite list of possible names from a (possibly
 -- finite) list of suggestions.
 expand_default :: NameSuggestion -> [String]
-expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..], x <- xs3 ]
+expand_default xs0 = xs1 ++ xs3 ++ [ x ++ map to_subscript (show n) | n <- [1..] :: [Integer], x <- xs3 ]
   where
     xs1 = [ x | x <- xs0, x /= "" ]
     xs2 = [ y | x <- xs0, let y = takeWhile isAlphaOrWild x, y /= "" ]
