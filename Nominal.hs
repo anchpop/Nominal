@@ -676,6 +676,19 @@ import Nominal.Generic
 -- these are sufficiently general and robust to permit more advanced
 -- features to be implemented in user space on top of the library. It
 -- remains to be seen whether this is the case.
+--
+-- <#SPG2003 [Shinwell, Pitts, and Gabbay 2003]> describe FreshML, an
+-- extension of ML with binders. This was later implemented by
+-- <#SP2005 [Shinwell and Pitts 2005]> as an extension of Objective
+-- Caml. The functionality and philosophy of the "Nominal" library is
+-- essentially similar to that of FreshML. Since ML is a
+-- side-effecting language, the issue of a freshness monad does not
+-- arise, but users must still adhere to
+-- <#CONDITION Pitts's freshness condition> to guarantee that programs
+-- define equivariant functions. However, since ML lacks Haskell's
+-- support for generic programming and custom patterns, the FreshML
+-- implementation requires patching the compiler. It is therefore
+-- harder to deploy than a library.
 
 ----------------------------------------------------------------------
 
@@ -712,6 +725,20 @@ import Nominal.Generic
 --
 -- * M. Pitts. "Nominal sets: names and symmetry in computer
 -- science". Cambridge University Press, 2013.
+--
+-- #SPG2003#
+--
+-- * M. R. Shinwell, A. M. Pitts, and M. J. Gabbay. "FreshML:
+-- programming with binders made simple". Proceedings of the 8th ACM
+-- SIGPLAN International Conference on Functional Programming (ICFP
+-- 2003), pages 263–274, 2003.
+--
+-- #SP2005#
+--
+-- * M. R. Shinwell and A. M. Pitts. "Fresh Objective Caml user
+-- manual". Technical Report 621, University of Cambridge Computer
+-- Laboratory, February 2005. Implementation at
+-- <https://www.cl.cam.ac.uk/~amp12/fresh-ocaml/>.
 --
 -- #WYS2011#
 --
