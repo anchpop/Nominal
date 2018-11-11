@@ -1,6 +1,6 @@
 # Nominal
 
- An efficient and easy-to-use library for defining datatypes
+ An efficient and easy-to-use Haskell library for defining datatypes
  with binders, and automatically handling bound variables and
  alpha-equivalence. It is based on Gabbay and Pitts's theory of
  nominal sets.
@@ -11,6 +11,11 @@
  **Package URL:** http://hackage.haskell.org/package/nominal
 
  **Author:** Peter Selinger <selinger@mathstat.dal.ca>
+
+## Installation
+
+    cabal update
+    cabal install nominal
 
 ## License
 
@@ -28,8 +33,3 @@
 
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-## Installation
-
-    cabal update
-    cabal install nominal

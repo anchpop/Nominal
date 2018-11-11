@@ -39,6 +39,10 @@ dist: dist/setup/setup
 conf dist/setup/setup: ${PACKAGE}.cabal
 	cabal configure
 
+doc-for-spellcheck:
+	mkdir -p dist
+	haddock -o dist/doc-for-spellcheck -h examples/*.hs
+
 examples-clean:
 	rm -f examples/*.o examples/*.hi
 
@@ -47,5 +51,5 @@ clean: examples-clean
 	rm -rf ${PACKAGE}-${VERSION}-docs
 	rm -f ${PACKAGE}-${VERSION}-docs.tar.gz
 
-spellcheck: doc
-	ispell -d canadian -p local/dictionary.txt -H dist/doc/html/nominal/*.html ChangeLog *cabal
+spellcheck: doc-for-spellcheck
+	ispell -d canadian -p local/dictionary.txt -H dist/doc-for-spellcheck/*.html ChangeLog *cabal README.md

@@ -69,7 +69,7 @@ module Nominal (
 
   -- $CONDITION_ANCHOR
   
-  -- * Pitt's freshness condition
+  -- * Pitts's freshness condition
   -- $CONDITION
   
   -- * Printing of nominal values
