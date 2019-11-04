@@ -42,6 +42,8 @@ import Nominal.Nominal
 import Nominal.NominalSupport
 import Nominal.NominalShow
 
+import qualified Data.Text as T
+import Data.Ratio
 -- ----------------------------------------------------------------------
 -- * Binding lists of atoms
 
@@ -431,6 +433,15 @@ instance Bindable Literal where
 instance (Nominal t) => Bindable (NoBind t) where
   binding = nobinding
   
+instance Bindable Double where
+  binding = basic_binding
+
+instance Bindable T.Text where 
+  binding = basic_binding
+
+instance Bindable Rational where
+  binding = basic_binding
+
 -- Generic instances
   
 instance (Bindable a) => Bindable [a]
