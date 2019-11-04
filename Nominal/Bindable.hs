@@ -433,14 +433,9 @@ instance Bindable Literal where
 instance (Nominal t) => Bindable (NoBind t) where
   binding = nobinding
   
-instance Bindable Double where
-  binding = basic_binding
-
 instance Bindable T.Text where 
   binding = basic_binding
 
-instance Bindable Rational where
-  binding = basic_binding
 
 -- Generic instances
   
