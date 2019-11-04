@@ -26,6 +26,7 @@ import Nominal.ConcreteNames
 import Nominal.Atom
 import Nominal.Nominal
 
+import qualified Data.Text as T
 -- ----------------------------------------------------------------------
 -- * Literal strings
 
@@ -197,6 +198,9 @@ instance NominalSupport Double where
   support = basic_support
 
 instance NominalSupport Float where
+  support = basic_support
+
+instance NominalSupport T.Text where
   support = basic_support
 
 instance NominalSupport Ordering where

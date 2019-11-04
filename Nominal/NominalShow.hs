@@ -24,6 +24,7 @@ import GHC.Generics
 import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
+import qualified Data.Text as T
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -126,6 +127,9 @@ instance NominalShow Char where
   nominal_showList sup ts = shows ts
 
 instance NominalShow Double where
+  showsPrecSup = basic_showsPrecSup
+  
+instance NominalShow T.Text where
   showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Float where
