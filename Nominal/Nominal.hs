@@ -25,6 +25,7 @@ import Nominal.ConcreteNames
 import Nominal.Atom
 import Nominal.Permutation
 
+import qualified Data.Text as T
 -- ----------------------------------------------------------------------
 -- * The Nominal class
 
@@ -180,6 +181,9 @@ instance Nominal Double where
   (•) = basic_action
 
 instance Nominal Float where
+  (•) = basic_action
+
+instance Nominal T.Text where
   (•) = basic_action
 
 instance Nominal Ordering where
