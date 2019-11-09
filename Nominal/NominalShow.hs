@@ -25,6 +25,7 @@ import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
 import qualified Data.Text as T
+import qualified Data.Map.Justified
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -142,6 +143,9 @@ instance (Show t) => NominalShow (Basic t) where
   showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Literal where
+  showsPrecSup = basic_showsPrecSup
+
+instance (Show i) => NominalShow (Data.Map.Justified.Key ph i) where
   showsPrecSup = basic_showsPrecSup
 
 -- Generic instances

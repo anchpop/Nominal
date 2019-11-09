@@ -27,6 +27,7 @@ import Nominal.Atom
 import Nominal.Nominal
 
 import qualified Data.Text as T
+import Data.Map.Justified (Key, theKey)
 -- ----------------------------------------------------------------------
 -- * Literal strings
 
@@ -211,6 +212,9 @@ instance NominalSupport (Basic t) where
 
 instance NominalSupport Literal where
   support (Literal s) = support_string s
+
+instance (Show i) => NominalSupport (Key ph i) where
+  support k = support_string $ show $ theKey k
 
 -- Generic instances
 

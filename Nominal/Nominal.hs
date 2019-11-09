@@ -26,6 +26,7 @@ import Nominal.Atom
 import Nominal.Permutation
 
 import qualified Data.Text as T
+import qualified Data.Map.Justified
 -- ----------------------------------------------------------------------
 -- * The Nominal class
 
@@ -190,6 +191,9 @@ instance Nominal Ordering where
   (•) = basic_action
 
 instance Nominal (Basic t) where
+  (•) = basic_action
+
+instance Nominal (Data.Map.Justified.Key ph i) where
   (•) = basic_action
 
 -- Generic instances

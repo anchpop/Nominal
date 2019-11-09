@@ -7,3 +7,7 @@
 *.rej
 *.bak
 nominal-*.*.*.*
+
+
+.stack-work/
+*~
