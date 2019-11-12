@@ -436,6 +436,8 @@ instance (Nominal t) => Bindable (NoBind t) where
 instance Bindable T.Text where 
   binding = basic_binding
 
+instance (Bindable a) => Bindable (Ratio a) where 
+  binding = basic_binding
 
 -- Generic instances
   

@@ -25,6 +25,7 @@ import GHC.Generics
 import Nominal.ConcreteNames
 import Nominal.Atom
 import Nominal.Nominal
+import Data.Ratio
 
 import qualified Data.Text as T
 import Data.Map.Justified (Key, theKey)
@@ -212,6 +213,9 @@ instance NominalSupport (Basic t) where
 
 instance NominalSupport Literal where
   support (Literal s) = support_string s
+  
+instance (Nominal a, Show a) => NominalSupport (Ratio a) where
+  support = basic_support
 
 instance (Show i) => NominalSupport (Key ph i) where
   support k = support_string $ show $ theKey k

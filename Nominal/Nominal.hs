@@ -24,6 +24,7 @@ import GHC.Generics
 import Nominal.ConcreteNames
 import Nominal.Atom
 import Nominal.Permutation
+import Data.Ratio
 
 import qualified Data.Text as T
 import qualified Data.Map.Justified
@@ -188,6 +189,9 @@ instance Nominal T.Text where
   (•) = basic_action
 
 instance Nominal Ordering where
+  (•) = basic_action
+
+instance (Nominal a) => Nominal (Ratio a) where
   (•) = basic_action
 
 instance Nominal (Basic t) where

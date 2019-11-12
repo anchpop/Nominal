@@ -26,6 +26,7 @@ import Nominal.Nominal
 import Nominal.NominalSupport
 import qualified Data.Text as T
 import qualified Data.Map.Justified
+import Data.Ratio
 
 -- ----------------------------------------------------------------------
 -- * Display of nominal values
@@ -143,6 +144,9 @@ instance (Show t) => NominalShow (Basic t) where
   showsPrecSup = basic_showsPrecSup
 
 instance NominalShow Literal where
+  showsPrecSup = basic_showsPrecSup
+
+instance (Nominal a, Show a) => NominalShow (Ratio a) where
   showsPrecSup = basic_showsPrecSup
 
 instance (Show i) => NominalShow (Data.Map.Justified.Key ph i) where
