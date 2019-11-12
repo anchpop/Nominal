@@ -6,6 +6,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
@@ -369,7 +370,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- has a special behavior on the left, but not on the right of a dot.
 
 newtype NoBind t = NoBind t
-  deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport, NominalShow)
+  deriving (Show, Eq, Ord, Functor, Generic, Nominal, NominalSupport, NominalShow)
 
 -- ----------------------------------------------------------------------
 -- * Bindable instances
