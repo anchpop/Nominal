@@ -369,7 +369,7 @@ instance (Bindable a, NominalSupport a, NominalSupport t) => NominalSupport (Bin
 -- has a special behavior on the left, but not on the right of a dot.
 
 newtype NoBind t = NoBind t
-  deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport)
+  deriving (Show, Eq, Ord, Generic, Nominal, NominalSupport, NominalShow)
 
 -- ----------------------------------------------------------------------
 -- * Bindable instances
