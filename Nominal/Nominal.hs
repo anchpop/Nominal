@@ -28,6 +28,7 @@ import Data.Ratio
 
 import qualified Data.Text as T
 import qualified Data.Map.Justified
+import Data.List.NonEmpty
 -- ----------------------------------------------------------------------
 -- * The Nominal class
 
@@ -203,6 +204,7 @@ instance Nominal (Data.Map.Justified.Key ph i) where
 -- Generic instances
 
 instance (Nominal t) => Nominal [t]
+instance (Nominal t) => Nominal (NonEmpty t)
 instance Nominal ()
 instance (Nominal t, Nominal s) => Nominal (t,s)
 instance (Nominal t, Nominal s, Nominal r) => Nominal (t,s,r)

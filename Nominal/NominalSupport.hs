@@ -29,6 +29,7 @@ import Data.Ratio
 
 import qualified Data.Text as T
 import Data.Map.Justified (Key, theKey)
+import Data.List.NonEmpty
 -- ----------------------------------------------------------------------
 -- * Literal strings
 
@@ -223,6 +224,7 @@ instance (Show i) => NominalSupport (Key ph i) where
 -- Generic instances
 
 instance (NominalSupport t) => NominalSupport [t]
+instance (NominalSupport t) => NominalSupport (NonEmpty t)
 instance NominalSupport ()
 instance (NominalSupport t, NominalSupport s) => NominalSupport (t,s)
 instance (NominalSupport t, NominalSupport s, NominalSupport r) => NominalSupport (t,s,r)
