@@ -46,6 +46,7 @@ import Nominal.NominalShow
 import qualified Data.Text as T
 import Data.Ratio
 import Data.List.NonEmpty
+import qualified Data.Map.Justified
 -- ----------------------------------------------------------------------
 -- * Binding lists of atoms
 
@@ -439,6 +440,9 @@ instance Bindable T.Text where
   binding = basic_binding
 
 instance (Bindable a) => Bindable (Ratio a) where 
+  binding = basic_binding
+  
+instance (Bindable i) => Bindable (Data.Map.Justified.Key ph i) where
   binding = basic_binding
 
 -- Generic instances
