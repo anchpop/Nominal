@@ -7,7 +7,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 -- | This module provides a type class 'Bindable'. It contains things
 -- (such as atoms, tuples of atoms, etc.) that can be abstracted by
@@ -39,9 +38,6 @@ module Nominal.Bindable where
 import Prelude hiding ((.))
 import GHC.Generics
 
-import Data.Bifunctor.TH
-
-
 import Nominal.Atom
 import Nominal.Nominal
 import Nominal.NominalSupport
@@ -59,7 +55,7 @@ import qualified Data.Map.Justified
 data BindAtomList t =
   BindNil t
   | BindCons (BindAtom (BindAtomList t))
-  deriving (Generic, Nominal, Functor)
+  deriving (Generic, Nominal)
 
 -- | Abstract a list of atoms in a term.
 atomlist_abst :: [Atom] -> t -> BindAtomList t
@@ -175,9 +171,7 @@ instance Applicative NominalBinder where
 -- <#PITTS2003 [Pitts 2003]>.
 
 data Bind a t =
-  Bind ([Atom] -> a) (BindAtomList t) deriving (Functor)
-$(deriveBifunctor ''Bind)
-
+  Bind ([Atom] -> a) (BindAtomList t)
 
 instance (Bindable a, NominalShow a, NominalShow t) => NominalShow (Bind a t) where
   showsPrecSup sup d t =

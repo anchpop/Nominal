@@ -1,7 +1,6 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveFunctor #-}
 
 -- | This module provides the 'Nominal' type class. A type is
 -- 'Nominal' if the group of finitely supported permutations of atoms
@@ -54,7 +53,7 @@ class Nominal t where
 -- | 'Defer' /t/ is the type /t/, but equipped with an explicit substitution.
 -- This is used to cache substitutions so that they can be optimized
 -- and applied all at once.
-data Defer t = Defer NominalPermutation t deriving (Functor)
+data Defer t = Defer NominalPermutation t
 
 -- | Apply a deferred permutation.
 force :: (Nominal t) => Defer t -> t
@@ -78,7 +77,7 @@ instance Nominal (Defer t) where
 -- than the alternatives. An important invariant of the HOAS encoding
 -- is that the underlying function must only be applied to /fresh/
 -- atoms.
-data BindAtom t = BindAtom NameGen (Atom -> Defer t) deriving (Functor)
+data BindAtom t = BindAtom NameGen (Atom -> Defer t)
 
 -- | Atom abstraction: 'atom_abst' /a/ /t/ represents the equivalence
 -- class of pairs (/a/,/t/) modulo alpha-equivalence. We first define
